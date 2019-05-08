@@ -4,6 +4,21 @@
 
 // ================ Functions implementation ====================
 
+// Get the set of squidlets of the Squad 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const GSet* SquadSquidlets(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    FracNoiseErr->_type = PBErrTypeNullPointer;
+    sprintf(FracNoiseErr->_msg, "'that' is null");
+    PBErrCatch(FracNoiseErr);
+  }
+#endif
+  return &(that->_squidlets);  
+}
+
 // -------------- Squidlet
 
 // ================ Functions implementation ====================

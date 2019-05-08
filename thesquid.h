@@ -28,13 +28,32 @@
 #define THESQUID_PORTMIN 9000
 #define THESQUID_PORTMAX 9999
 
+// -------------- Squidlet
+
+// ================= Data structure ===================
+
+typedef struct SquidletInfo {
+  // IP of the squidlet
+  char* _ip;
+  // Port of the squidlet
+  int _port;
+} SquidletInfo;
+
+// Return a new SquidletInfo with IP 'ip' and port 'port'
+SquidletInfo* SquidletInfoCreate(char* ip, int port);
+
+// Free the memory used by the SquidletInfo 'that'
+void SquidletInfoFree(SquidletInfo** that);
+
 // -------------- Squad
 
 // ================= Data structure ===================
 
 typedef struct Squad {
-  // Parameters 
-  int _p[512];
+  // File descriptor of the socket
+  short _fd;
+  // GSet of SquidletInfo
+  GSet _squidlets;
 } Squad;
 
 // ================ Functions declaration ====================
@@ -45,6 +64,16 @@ Squad* SquadCreate(void);
 // Free the memory used by the Squad 'that'
 void SquadFree(Squad** that);
 
+// Get the set of squidlets of the Squad 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const GSet* SquadSquidlets(const Squad* const that);
+
+// Load the Squad info from the 'stream' into the 'that'
+// Return true if it could load the info, else false
+bool SquadLoad(Squad* const that, FILE* const stream);
+
 // -------------- Squidlet
 
 // ================= Data structure ===================
@@ -52,7 +81,7 @@ void SquadFree(Squad** that);
 typedef struct Squidlet {
   // File descriptor of the socket
   short _fd;
-  // Port the squid is listening to
+  // Port the squidlet is listening to
   int _port;
   // Info about the socket
   struct sockaddr_in _sock;
@@ -74,7 +103,7 @@ void SquidletFree(Squidlet** that);
 
 // Print the PID, Hostname, IP and Port of the Squidlet 'that' on the 
 // 'stream'
-// Example: 100 localhost 0:0:0:0 3000
+// Example: 100 localhost 0.0.0.0 3000
 void SquidletPrint(const Squidlet* const that, FILE* const stream);
 
 // Get the PID of the Squidlet 'that'
