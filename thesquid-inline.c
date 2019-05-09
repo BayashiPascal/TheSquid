@@ -11,9 +11,9 @@ inline
 const GSet* SquadSquidlets(const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    FracNoiseErr->_type = PBErrTypeNullPointer;
-    sprintf(FracNoiseErr->_msg, "'that' is null");
-    PBErrCatch(FracNoiseErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   return &(that->_squidlets);  
@@ -30,9 +30,9 @@ inline
 pid_t SquidletGetPID(const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    FracNoiseErr->_type = PBErrTypeNullPointer;
-    sprintf(FracNoiseErr->_msg, "'that' is null");
-    PBErrCatch(FracNoiseErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   return that->_pid;  
@@ -45,9 +45,9 @@ inline
 const char* SquidletHostname(const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    FracNoiseErr->_type = PBErrTypeNullPointer;
-    sprintf(FracNoiseErr->_msg, "'that' is null");
-    PBErrCatch(FracNoiseErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   return that->_hostname;
@@ -60,9 +60,9 @@ inline
 const char* SquidletIP(const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    FracNoiseErr->_type = PBErrTypeNullPointer;
-    sprintf(FracNoiseErr->_msg, "'that' is null");
-    PBErrCatch(FracNoiseErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   return inet_ntoa(*((struct in_addr*)that->_host->h_addr_list[0]));
@@ -75,9 +75,9 @@ inline
 int SquidletGetPort(const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    FracNoiseErr->_type = PBErrTypeNullPointer;
-    sprintf(FracNoiseErr->_msg, "'that' is null");
-    PBErrCatch(FracNoiseErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   return that->_port;  
