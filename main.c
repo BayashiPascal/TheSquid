@@ -54,6 +54,7 @@ void UnitTestDummy() {
   const int nbSquidlet = 2;
   int squidletId = -1;
   int port[2] = {9000, 9001};
+  int nbRequest = 3;
   for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
     if (fork() == 0) {
       squidletId = iSquidlet;
@@ -69,9 +70,12 @@ void UnitTestDummy() {
     printf("Squidlet #%d : ", squidletId);
     SquidletPrint(squidlet, stdout);
     printf("\n");
-    SquidletTaskRequest request = SquidletWaitRequest(squidlet);
-    printf("Squidlet #%d received task %d\n", squidletId, request._id);
-    SquidletProcessRequest(squidlet, &request);
+    do {
+      SquidletTaskRequest request = SquidletWaitRequest(squidlet);
+      printf("Squidlet #%d received task %d\n", squidletId, request._id);
+      SquidletProcessRequest(squidlet, &request);
+      --nbRequest;
+    } while (nbRequest > 0);
     SquidletFree(&squidlet);
     printf("Squidlet #%d ended\n", squidletId);
     fflush(stdout);
@@ -100,18 +104,30 @@ void UnitTestDummy() {
     fclose(fp);
     sleep(2);
     SquidletTaskRequest request = {._id = SquidletTaskID_Dummy};
-    GSetIterForward iter = 
-      GSetIterForwardCreateStatic(SquadSquidlets(squad));
+    int data = 1;
     do {
-      SquidletInfo* squidlet = GSetIterGet(&iter);
-      bool ret = SquadSendTaskRequest(squad, &request, squidlet);
-      if (!ret) {
-        printf("Failed to send request to %s:%d\n", squidlet->_ip, 
-          squidlet->_port);
-        printf("errno: %s\n", strerror(errno));
-      }
-    } while (GSetIterStep(&iter));
-    sleep(2);
+      GSetIterForward iter = 
+        GSetIterForwardCreateStatic(SquadSquidlets(squad));
+      do {
+        SquidletInfo* squidlet = GSetIterGet(&iter);
+        bool ret = SquadSendTaskRequest(squad, &request, squidlet);
+        if (!ret) {
+          printf("Failed to send request to %s:%d\n", squidlet->_ip, 
+            squidlet->_port);
+          printf("errno: %s\n", strerror(errno));
+        } else {
+          ret = SquadSendTaskData_Dummy(squad, squidlet, data);
+          if (!ret) {
+            printf("Failed to send data to %s:%d\n", squidlet->_ip, 
+              squidlet->_port);
+            printf("errno: %s\n", strerror(errno));
+          }
+        }
+        ++data;
+      } while (GSetIterStep(&iter));
+      sleep(2);
+      --nbRequest;
+    } while (nbRequest > 0);
     SquadFree(&squad);
     printf("Squad ended\n");
     printf("UnitTestDummy OK\n");

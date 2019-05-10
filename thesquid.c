@@ -21,7 +21,8 @@ SquidletInfo* SquidletInfoCreate(char* ip, int port) {
   // Init properties
   that->_ip = strdup(ip);
   that->_port = port;
-
+  that->_sock = -1;
+  
   // Return the new squidletInfo
   return that;
 }
@@ -32,6 +33,10 @@ void SquidletInfoFree(SquidletInfo** that) {
   if (that == NULL || *that == NULL)
     return;
 
+  // Close the socket if it's opened
+  if ((*that)->_sock != -1)
+    close((*that)->_sock);
+    
   // Free memory
   free((*that)->_ip);
   free(*that);
@@ -113,16 +118,16 @@ bool SquadLoad(Squad* const that, FILE* const stream) {
 
   // Load the whole encoded data
   if (JSONLoad(json, stream) == false) {
-    JSONErr->_type = PBErrTypeUnitTestFailed;
-    sprintf(JSONErr->_msg, "JSONLoad failed");
-    PBErrCatch(JSONErr);
+    TheSquidErr->_type = PBErrTypeUnitTestFailed;
+    sprintf(TheSquidErr->_msg, "JSONLoad failed");
+    PBErrCatch(TheSquidErr);
   }
 
   // Decode the data from the JSON
   if (!SquadDecodeAsJSON(that, json)) {
-    JSONErr->_type = PBErrTypeUnitTestFailed;
-    sprintf(JSONErr->_msg, "SquadDecodeAsJSON failed");
-    PBErrCatch(JSONErr);
+    TheSquidErr->_type = PBErrTypeUnitTestFailed;
+    sprintf(TheSquidErr->_msg, "SquadDecodeAsJSON failed");
+    PBErrCatch(TheSquidErr);
   }
 
   // Free the memory used by the JSON
@@ -138,8 +143,8 @@ bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
   // Get the property _squidlets from the JSON
   JSONNode* prop = JSONProperty(json, "_squidlets");
   if (prop == NULL) {
-    JSONErr->_type = PBErrTypeUnitTestFailed;
-    sprintf(JSONErr->_msg, "SquadDecodeAsJSON failed");
+    TheSquidErr->_type = PBErrTypeUnitTestFailed;
+    sprintf(TheSquidErr->_msg, "SquadDecodeAsJSON failed");
     return false;
   }
 
@@ -154,16 +159,16 @@ bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
     // Get the property _ip of the squidlet
     JSONNode* propIp = JSONProperty(propSquidlet, "_ip");
     if (propIp == NULL) {
-      JSONErr->_type = PBErrTypeUnitTestFailed;
-      sprintf(JSONErr->_msg, "SquadDecodeAsJSON failed");
+      TheSquidErr->_type = PBErrTypeUnitTestFailed;
+      sprintf(TheSquidErr->_msg, "SquadDecodeAsJSON failed");
       return false;
     }
 
     // Get the property _port of the squidlet
     JSONNode* propPort = JSONProperty(propSquidlet, "_port");
     if (propPort == NULL) {
-      JSONErr->_type = PBErrTypeUnitTestFailed;
-      sprintf(JSONErr->_msg, "SquadDecodeAsJSON failed");
+      TheSquidErr->_type = PBErrTypeUnitTestFailed;
+      sprintf(TheSquidErr->_msg, "SquadDecodeAsJSON failed");
       return false;
     }
 
@@ -182,7 +187,8 @@ bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
 
 // Send the task request 'request' from the Squad 'that' to its
 // Squidlet 'squidlet'
-// Return true if the request could be sent, false else
+// Return true if the request could be sent and the squidlet
+// accepted it, false else
 bool SquadSendTaskRequest(Squad* const that, 
   const SquidletTaskRequest* const request, 
   SquidletInfo* const squidlet) {
@@ -210,11 +216,13 @@ bool SquadSendTaskRequest(Squad* const that,
   }
   
   // Create a socket
-  short fd = socket(AF_INET, SOCK_STREAM, 0);
+  squidlet->_sock = socket(AF_INET, SOCK_STREAM, 0);
   
   // If we couldn't create the socket
-  if (fd == -1)
+  if (squidlet->_sock == -1)
     return false;
+
+printf("squad: created socket\n");
   
   // Create the data for the connection to the squidlet
   struct sockaddr_in remote = {0};
@@ -223,28 +231,116 @@ bool SquadSendTaskRequest(Squad* const that,
   remote.sin_port = htons(squidlet->_port);
 
   // Connect to the squidlet
-  if (connect(fd, (struct sockaddr*)&remote, 
+  if (connect(squidlet->_sock, (struct sockaddr*)&remote, 
     sizeof(struct sockaddr_in)) == -1) {
     // If the connection failed
+    close(squidlet->_sock);
+    squidlet->_sock = -1;
     return false;
   }
+
+printf("squad: connected to squidlet\n");
 
   // Declare a variable to memorize the timeout and set it to 1 second
   struct timeval tv;
   tv.tv_sec = 1;
   tv.tv_usec = 0;  
-  if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, 
+
+  // Set the timeout of the socket for sending
+  if (setsockopt(squidlet->_sock, SOL_SOCKET, SO_SNDTIMEO, 
+    (char*)&tv, sizeof(tv)) == -1) {
+    // If we couldn't set the timeout
+    close(squidlet->_sock);
+    squidlet->_sock = -1;
+    return false;
+  }
+
+printf("squad: set timeout\n");
+
+  // Send the task request
+  int flags = 0;
+  if (send(squidlet->_sock, request, sizeof(SquidletTaskRequest), flags) == -1) {
+    // If we couldn't send the request
+    close(squidlet->_sock);
+    squidlet->_sock = -1;
+    return false;
+  }
+
+printf("squad: sent task request\n");
+
+  // Set the timeout of the socket for receiving to 2 seconds
+  tv.tv_sec = 2;
+  if (setsockopt(squidlet->_sock, SOL_SOCKET, SO_RCVTIMEO, 
+    (char*)&tv, sizeof(tv)) == -1) {
+    // If we couldn't set the timeout
+    close(squidlet->_sock);
+    squidlet->_sock = -1;
+    return false;
+  }
+
+printf("squad: set timeout\n");
+
+  // Wait for the reply from the squidlet
+  char reply = THESQUID_TASKREFUSED;
+  if (recv(squidlet->_sock, &reply, sizeof(reply), flags) == -1 ||
+    reply == THESQUID_TASKREFUSED) {
+    // If we couldn't receive the reply or the replied timedout or
+    // the squidlet refused the task
+    close(squidlet->_sock);
+    squidlet->_sock = -1;
+    return false;
+  }
+
+printf("squad: task request accepted\n");
+
+  // Return the success code
+  return true;
+}
+
+// Send the data associated to a dummy task from the Squad 'that' to 
+// the Squidlet 'squidlet'
+// Return true if the data could be sent, false else
+bool SquadSendTaskData_Dummy(Squad* const that, 
+  SquidletInfo* const squidlet,
+  int data) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Prepare the data as JSON
+  char buffer[100];
+  memset(buffer, 0, 100);
+  sprintf(buffer + sizeof(size_t), "{\"v\":\"%d\"}", data);
+
+  // Declare a variable to memorize the timeout and set it to 1 second
+  struct timeval tv;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;  
+
+  // Set the timeout of the socket for sending
+  if (setsockopt(squidlet->_sock, SOL_SOCKET, SO_SNDTIMEO, 
     (char*)&tv, sizeof(tv)) == -1) {
     // If we couldn't set the timeout
     return false;
   }
 
-  // Send the task request
+printf("squad: set timeout\n");
+
+  // Send the task data
   int flags = 0;
-  if (send(fd, request, sizeof(SquidletTaskRequest), flags) == -1) {
-    // If we couldn't set the timeout
+  size_t len = strlen(buffer + sizeof(size_t));
+  *(size_t*)buffer = len;
+  if (send(squidlet->_sock, 
+    buffer, sizeof(size_t) + len, flags) == -1) {
+    // If we couldn't send the data
     return false;
   }
+
+printf("squad: sent task data %d %s\n", *(size_t*)buffer, 
+  buffer + sizeof(size_t));
 
   // Return the success code
   return true;
@@ -388,27 +484,68 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
   // Declare a buffer to receive the payload of the connection
   SquidletTaskRequest taskRequest;
   taskRequest._id = SquidletTaskID_Null;
+  taskRequest._sock = -1;
 
   // Declare a variable to memorize the info about the incoming connection
   struct sockaddr_in incomingSock;
   socklen_t incomingSockSize = sizeof(incomingSock);
   
   // Accept a connection
-  int connection = accept(that->_fd, (struct sockaddr *)&incomingSock,
+  taskRequest._sock = accept(that->_fd, (struct sockaddr *)&incomingSock,
     &incomingSockSize);
+
+SquidletPrint(that, stdout);
+printf(" : accepted connection\n");
   
   // If the connection was accepted
-  if (connection >= 0) {
+  if (taskRequest._sock >= 0) {
 
     // Receive the payload
     int flags = 0;
-    int sizePayload = recv(connection, &taskRequest, 
-      sizeof(SquidletTaskRequest), flags);
+    int sizePayload = recv(taskRequest._sock, &taskRequest, 
+      sizeof(SquidletTaskID), flags);
+
+SquidletPrint(that, stdout);
+printf(" : received payload %d\n", taskRequest._id);
+
+    // Declare a variable to memorize the reply to the request
+    char reply = THESQUID_TASKREFUSED;
 
     // If we couldn't received the payload
-    if(sizePayload != sizeof(SquidletTaskRequest)) {
+    if(sizePayload != sizeof(SquidletTaskID)) {
       taskRequest._id = SquidletTaskID_Null;
+      reply = THESQUID_TASKREFUSED;
+    } else {
+      reply = THESQUID_TASKACCEPTED;
     }
+    
+    // Declare a variable to memorize the timeout and set it to 1 second
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;  
+
+    // Set the timeout of the socket for sending the reply to the task
+    if (setsockopt(taskRequest._sock, SOL_SOCKET, SO_SNDTIMEO, 
+      (char*)&tv, sizeof(tv)) == -1) {
+      // If we couldn't set the timeout, do not process the task
+      taskRequest._id = SquidletTaskID_Null;
+      reply = THESQUID_TASKREFUSED;
+    } else {
+
+SquidletPrint(that, stdout);
+printf(" : set timeout\n");
+
+      // Send the reply to the task request
+      if (send(taskRequest._sock, &reply, sizeof(reply), flags) == -1) {
+        // If we couldn't send the reply, do not process the task
+        taskRequest._id = SquidletTaskID_Null;
+      }
+
+SquidletPrint(that, stdout);
+printf(" : sent reply to task request %d\n", reply);
+    
+    }
+    
   }
 
   // Return the received task request
@@ -417,7 +554,7 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
 
 // Process the task request 'request' with the Squidlet 'that'
 void SquidletProcessRequest(Squidlet* const that, 
-  const SquidletTaskRequest* const request) {
+  SquidletTaskRequest* const request) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -433,16 +570,23 @@ void SquidletProcessRequest(Squidlet* const that,
   // Switch according to the request id
   switch (request->_id) {
     case SquidletTaskID_Dummy:
-      SquidletProcessRequest_Dummy(that);
+      SquidletProcessRequest_Dummy(that, request);
       break;
     default:
       break;
+  }
+
+  // Close the socket for this task
+  if (request->_sock >= 0) {
+    close(request->_sock);
+    request->_sock = -1;
   }
 }
 
 // Process a dummy task request with the Squidlet 'that'
 // This task only sleep for 2 seconds and serve only unit test purpose
-void SquidletProcessRequest_Dummy(Squidlet* const that) {
+void SquidletProcessRequest_Dummy(Squidlet* const that,
+  SquidletTaskRequest* const request) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -450,6 +594,49 @@ void SquidletProcessRequest_Dummy(Squidlet* const that) {
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Sleep for 2 seconds
-  sleep(2);
+  // Declare a variable to memorize the timeout and set it to 1 second
+  struct timeval tv;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;  
+sleep(2);
+  // Set the timeout of the socket for receiving
+  if (setsockopt(request->_sock, SOL_SOCKET, SO_RCVTIMEO, 
+    (char*)&tv, sizeof(tv)) != -1) {
+
+    // Receive the input data
+    size_t size = 0;
+    char* buffer = NULL;
+    int flags = 0;
+    unsigned int sizePayload = recv(request->_sock, &size, 
+      sizeof(size_t), flags);
+
+SquidletPrint(that, stdout);
+printf(" : %d\n", size);
+
+    if(sizePayload == sizeof(size_t) && size > 0) {
+      buffer = PBErrMalloc(TheSquidErr, size);
+      sizePayload = recv(request->_sock, buffer, size, flags);
+
+SquidletPrint(that, stdout);
+printf(" : %s\n", buffer);
+
+      if (sizePayload != size) {
+        free(buffer);
+        buffer = NULL;
+      }
+    }
+
+    if (buffer != NULL) {
+      // Sleep for 2 seconds
+SquidletPrint(that, stdout);
+printf(" : process dummy task %s\n", buffer);
+      sleep(2);
+
+      // Free memory
+      free(buffer);
+    }
+
+    // Send the output data
+  }
+
 }  

@@ -27,6 +27,8 @@
 #define THESQUID_NBMAXPENDINGCONN 2
 #define THESQUID_PORTMIN 9000
 #define THESQUID_PORTMAX 9999
+#define THESQUID_TASKREFUSED 0
+#define THESQUID_TASKACCEPTED 1
 
 // -------------- SquidletInfo
 
@@ -37,6 +39,8 @@ typedef struct SquidletInfo {
   char* _ip;
   // Port of the squidlet
   int _port;
+  // Socket to communicate with this squidlet
+  short _sock;
 } SquidletInfo;
 
 // Return a new SquidletInfo with IP 'ip' and port 'port'
@@ -55,6 +59,8 @@ typedef enum SquidletTaskID {
 typedef struct SquidletTaskRequest {
   // Task ID
   SquidletTaskID _id;
+  // Socket to send reply for this task 
+  int _sock;
 } SquidletTaskRequest;
 
 // -------------- Squad
@@ -91,6 +97,13 @@ bool SquadLoad(Squad* const that, FILE* const stream);
 // Return true if the request could be sent, false else
 bool SquadSendTaskRequest(Squad* const that, 
   const SquidletTaskRequest* const request, SquidletInfo* const squidlet);
+
+// Send the data associated to a dummy task from the Squad 'that' to 
+// the Squidlet 'squidlet'
+// Return true if the data could be sent, false else
+bool SquadSendTaskData_Dummy(Squad* const that, 
+  SquidletInfo* const squidlet,
+  int data);
 
 // -------------- Squidlet
 
@@ -132,11 +145,12 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that);
 
 // Process the task request 'request' with the Squidlet 'that'
 void SquidletProcessRequest(Squidlet* const that, 
-  const SquidletTaskRequest* const request);
+  SquidletTaskRequest* const request);
   
 // Process a dummy task request with the Squidlet 'that'
 // This task only sleep for 2 seconds and serve only unit test purpose
-void SquidletProcessRequest_Dummy(Squidlet* const that);
+void SquidletProcessRequest_Dummy(Squidlet* const that,
+  SquidletTaskRequest* const request);
   
 // Get the PID of the Squidlet 'that'
 #if BUILDMODE != 0 
