@@ -55,6 +55,7 @@ void UnitTestDummy() {
   int squidletId = -1;
   int port[2] = {9000, 9001};
   int nbRequest = 3;
+  // Create the squidlet processes
   for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
     if (fork() == 0) {
       squidletId = iSquidlet;
@@ -62,6 +63,9 @@ void UnitTestDummy() {
     }
   }
   if (squidletId != -1) {
+    
+    // In a squidlet process
+    
     Squidlet* squidlet = SquidletCreateOnPort(port[squidletId]);
     if (squidlet == NULL) {
       printf("Failed to create the squidlet #%d\n", squidletId);
@@ -80,11 +84,15 @@ void UnitTestDummy() {
     printf("Squidlet #%d ended\n", squidletId);
     fflush(stdout);
   } else {
+    
+    // In the squad process
+    
     Squad* squad = SquadCreate();
     if (squad == NULL) {
       printf("Failed to create the squad\n");
       printf("errno: %s\n", strerror(errno));
     }
+    // Automatically create the config file
     FILE* fp = fopen("unitTestDummy.json", "w");
     char hostname[256];
     gethostname(hostname, sizeof(hostname));
@@ -102,7 +110,9 @@ void UnitTestDummy() {
     fp = fopen("unitTestDummy.json", "r");
     SquadLoad(squad, fp);
     fclose(fp);
+    // Wait to be sure the squidlet are up and running
     sleep(2);
+    // Send the task request to the squid
     SquidletTaskRequest request = {._id = SquidletTaskID_Dummy};
     int data = 1;
     do {
@@ -112,8 +122,8 @@ void UnitTestDummy() {
         SquidletInfo* squidlet = GSetIterGet(&iter);
         bool ret = SquadSendTaskRequest(squad, &request, squidlet);
         if (!ret) {
-          printf("Failed to send request to %s:%d\n", squidlet->_ip, 
-            squidlet->_port);
+          printf("Failed to send task request to %s:%d\n", 
+            squidlet->_ip, squidlet->_port);
           printf("errno: %s\n", strerror(errno));
         } else {
           ret = SquadSendTaskData_Dummy(squad, squidlet, data);
@@ -125,7 +135,10 @@ void UnitTestDummy() {
         }
         ++data;
       } while (GSetIterStep(&iter));
+
+      // Todo : get the result from the squidlet
       sleep(2);
+
       --nbRequest;
     } while (nbRequest > 0);
     SquadFree(&squad);
@@ -136,7 +149,7 @@ void UnitTestDummy() {
 }
 
 int main() {
-  UnitTestAll();
+  //UnitTestAll();
   UnitTestDummy();
 
   // Return success code
