@@ -76,10 +76,10 @@ void UnitTestDummy() {
     printf("\n");
     do {
       SquidletTaskRequest request = SquidletWaitRequest(squidlet);
-      printf("Squidlet #%d received task %d\n", squidletId, request._id);
       SquidletProcessRequest(squidlet, &request);
       --nbRequest;
     } while (nbRequest > 0);
+    sleep(2);
     SquidletFree(&squidlet);
     printf("Squidlet #%d ended\n", squidletId);
     fflush(stdout);
@@ -87,6 +87,7 @@ void UnitTestDummy() {
     
     // In the squad process
     
+    // Create the Squad
     Squad* squad = SquadCreate();
     if (squad == NULL) {
       printf("Failed to create the squad\n");
@@ -107,40 +108,30 @@ void UnitTestDummy() {
     }
     fprintf(fp, "]}");
     fclose(fp);
+    // Load the info about the squidlet from the config file
     fp = fopen("unitTestDummy.json", "r");
     SquadLoad(squad, fp);
     fclose(fp);
-    // Wait to be sure the squidlet are up and running
+    // Wait to be sure the squidlets are up and running
     sleep(2);
-    // Send the task request to the squid
-    SquidletTaskRequest request = {._id = SquidletTaskID_Dummy};
-    int data = 1;
+    // Create all the tasks
+    for (unsigned long id = 0; 
+      id < (unsigned long)(nbRequest * nbSquidlet); ++id) {
+      SquadAddTask_Dummy(squad, id);
+    }
+    // Loop until all the tasks are completed
     do {
-      GSetIterForward iter = 
-        GSetIterForwardCreateStatic(SquadSquidlets(squad));
-      do {
-        SquidletInfo* squidlet = GSetIterGet(&iter);
-        bool ret = SquadSendTaskRequest(squad, &request, squidlet);
-        if (!ret) {
-          printf("Failed to send task request to %s:%d\n", 
-            squidlet->_ip, squidlet->_port);
-          printf("errno: %s\n", strerror(errno));
-        } else {
-          ret = SquadSendTaskData_Dummy(squad, squidlet, data);
-          if (!ret) {
-            printf("Failed to send data to %s:%d\n", squidlet->_ip, 
-              squidlet->_port);
-            printf("errno: %s\n", strerror(errno));
-          }
-        }
-        ++data;
-      } while (GSetIterStep(&iter));
-
-      // Todo : get the result from the squidlet
-      sleep(2);
-
-      --nbRequest;
-    } while (nbRequest > 0);
+      
+      // Step the Squad
+      GSet completedTasks = SquadStep(squad);
+      
+      while (GSetNbElem(&completedTasks) > 0L) {
+        SquidletTaskRequest* task = GSetPop(&completedTasks);
+        printf("squad: completed task #%ld\n", task->_id);
+        SquidletTaskRequestFree(&task);
+      }
+      
+    } while (SquadGetNbTaskToComplete(squad) > 0L);
     SquadFree(&squad);
     printf("Squad ended\n");
     printf("UnitTestDummy OK\n");

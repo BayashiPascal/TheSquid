@@ -19,6 +19,98 @@ const GSet* SquadSquidlets(const Squad* const that) {
   return &(that->_squidlets);  
 }
 
+// Get the set of task to execute of the Squad 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const GSet* SquadTasks(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return &(that->_tasks);  
+}
+
+// Get the set of running tasks of the Squad 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const GSet* SquadRunningTasks(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return &(that->_runningTasks);  
+}
+
+// Return the number of task not yet completed
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquadGetNbTaskToComplete(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return GSetNbElem(SquadTasks(that)) + 
+    GSetNbElem(SquadRunningTasks(that));  
+}
+
+// Return the number of running tasks
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquadGetNbRunningTasks(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return GSetNbElem(SquadRunningTasks(that));  
+}
+
+// Return the number of tasks to execute
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquadGetNbTasks(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return GSetNbElem(SquadTasks(that));  
+}
+
+// Return the number of available squidlets
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquadGetNbSquidlets(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return GSetNbElem(SquadSquidlets(that));  
+}
+
+
 // -------------- Squidlet
 
 // ================ Functions implementation ====================
