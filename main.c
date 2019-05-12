@@ -55,11 +55,15 @@ void UnitTestDummy() {
   int squidletId = -1;
   int port[2] = {9000, 9001};
   int nbRequest = 3;
+  pid_t pidSquidlet[2];
   // Create the squidlet processes
   for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
-    if (fork() == 0) {
+    int pid = fork();
+    if (pid == 0) {
       squidletId = iSquidlet;
       break;
+    } else {
+      pidSquidlet[iSquidlet] = pid;
     }
   }
   if (squidletId != -1) {
@@ -77,9 +81,7 @@ void UnitTestDummy() {
     do {
       SquidletTaskRequest request = SquidletWaitRequest(squidlet);
       SquidletProcessRequest(squidlet, &request);
-      --nbRequest;
-    } while (nbRequest > 0);
-    sleep(2);
+    } while (!Squidlet_CtrlC);
     SquidletFree(&squidlet);
     printf("Squidlet #%d ended\n", squidletId);
     fflush(stdout);
@@ -115,23 +117,35 @@ void UnitTestDummy() {
     // Wait to be sure the squidlets are up and running
     sleep(2);
     // Create all the tasks
+    time_t maxWait = 5;
     for (unsigned long id = 0; 
       id < (unsigned long)(nbRequest * nbSquidlet); ++id) {
-      SquadAddTask_Dummy(squad, id);
+      SquadAddTask_Dummy(squad, id, maxWait);
     }
-    // Loop until all the tasks are completed
+    // Loop until all the tasks are completed or give up after 10s
+    time_t startTime = time(NULL);
     do {
       
       // Step the Squad
       GSet completedTasks = SquadStep(squad);
-      
+      sleep(1);
       while (GSetNbElem(&completedTasks) > 0L) {
         SquidletTaskRequest* task = GSetPop(&completedTasks);
-        printf("squad: completed task #%ld\n", task->_id);
+        printf("squad : completed task #%ld\n", task->_id);
         SquidletTaskRequestFree(&task);
       }
       
-    } while (SquadGetNbTaskToComplete(squad) > 0L);
+    } while (SquadGetNbTaskToComplete(squad) > 0L && 
+      time(NULL) - startTime <= 60);
+    // Kill the child process
+    for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+      if (kill(pidSquidlet[iSquidlet], SIGINT) < 0) {
+        printf("Couldn't kill squidlet %d\n", pidSquidlet[iSquidlet]);
+      }
+    }
+    // Wait for the child to be killed
+    sleep(2);
+    // Free memory
     SquadFree(&squad);
     printf("Squad ended\n");
     printf("UnitTestDummy OK\n");

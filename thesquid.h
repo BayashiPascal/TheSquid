@@ -65,11 +65,13 @@ typedef struct SquidletTaskRequest {
   char* _data;
   // Buffer to receive the result from the squidlet
   char* _buffer;
+  // Time in second after which we give up waiting for this task
+  time_t _maxWaitTime;
 } SquidletTaskRequest;
 
 // Return a new SquidletTaskRequest with 'id' and 'type' and 'data'
 SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type, 
-  unsigned long id, const char* const data);
+  unsigned long id, const char* const data, const time_t maxWait);
 
 // Free the memory used by the SquidletTaskRequest 'that'
 void SquidletTaskRequestFree(SquidletTaskRequest** that);
@@ -83,6 +85,8 @@ typedef struct SquadRunningTask {
   SquidletTaskRequest* _request;
   // The squidlet
   SquidletInfo* _squidlet;
+  // Time when the SquadRunningTask is created
+  time_t _startTime;
 } SquadRunningTask;
 
 // Return a new SquadRunningTask with the 'request' and 'squidlet'
@@ -155,8 +159,10 @@ bool SquadSendTaskData(Squad* const that,
 bool SquadReceiveTaskResult(Squad* const that, 
   SquadRunningTask* const runningTask);
 
-// Add a new dummy task with 'id' to execute to the squad 'that'
-void SquadAddTask_Dummy(Squad* const that, const unsigned long id);
+// Add a // Add a new dummy task with 'id' to execute to the squad 'that'
+// Wait for a maximum of 'maxWait' seconds for the task to complete
+void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
+  const time_t maxWait);
   
 // Return the number of task not yet completed
 #if BUILDMODE != 0 
@@ -189,6 +195,11 @@ GSet SquadStep(Squad* const squad);
 
 // -------------- Squidlet
 
+// ================= Global variable ==================
+
+// Variable to handle the signal Ctrl-C
+extern bool Squidlet_CtrlC;
+
 // ================= Data structure ===================
 
 typedef struct Squidlet {
@@ -209,6 +220,9 @@ typedef struct Squidlet {
 } Squidlet;
 
 // ================ Functions declaration ====================
+
+// Handler for the signal Ctrl-C
+void SquidletHandlerCtrlC(const int sig);
 
 // Return a new Squidlet listening to the port 'port'
 // If 'port' equals -1 select automatically one available
