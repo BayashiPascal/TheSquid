@@ -95,7 +95,7 @@ unsigned long SquadGetNbTasks(const Squad* const that) {
   return GSetNbElem(SquadTasks(that));  
 }
 
-// Return the number of available squidlets
+// Return the number of currently available squidlets
 #if BUILDMODE != 0 
 inline 
 #endif 

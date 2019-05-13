@@ -54,7 +54,8 @@ void SquidletInfoFree(SquidletInfo** that);
 // ================= Data structure ===================
 
 typedef enum SquidletTaskType {
-  SquidletTaskType_Null, SquidletTaskType_Dummy} SquidletTaskType;
+  SquidletTaskType_Null, SquidletTaskType_Dummy, 
+  SquidletTaskType_Benchmark} SquidletTaskType;
 
 typedef struct SquidletTaskRequest {
   // Task type
@@ -159,10 +160,16 @@ bool SquadSendTaskData(Squad* const that,
 bool SquadReceiveTaskResult(Squad* const that, 
   SquadRunningTask* const runningTask);
 
-// Add a // Add a new dummy task with 'id' to execute to the squad 'that'
+// Add a new dummy task with 'id' to execute to the squad 'that'
 // Wait for a maximum of 'maxWait' seconds for the task to complete
 void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
   const time_t maxWait);
+  
+// Add a new benchmark task with 'id' to execute to the squad 'that'
+// Wait for a maximum of 'maxWait' seconds for the task to complete
+// Uses a payload of 'payloadSize' bytes
+void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
+  const time_t maxWait, const int nb, const size_t payloadSize);
   
 // Return the number of task not yet completed
 #if BUILDMODE != 0 
@@ -182,7 +189,7 @@ inline
 #endif 
 unsigned long SquadGetNbTasks(const Squad* const that);
 
-// Return the number of available squidlets
+// Return the number of currently available squidlets
 #if BUILDMODE != 0 
 inline 
 #endif 
@@ -246,8 +253,11 @@ void SquidletProcessRequest(Squidlet* const that,
   SquidletTaskRequest* const request);
   
 // Process a dummy task request with the Squidlet 'that'
-// This task only sleep for 2 seconds and serve only unit test purpose
 void SquidletProcessRequest_Dummy(Squidlet* const that,
+  SquidletTaskRequest* const request);
+  
+// Process a benchmark task request with the Squidlet 'that'
+void SquidletProcessRequest_Benchmark(Squidlet* const that,
   SquidletTaskRequest* const request);
   
 // Get the PID of the Squidlet 'that'
@@ -274,17 +284,12 @@ inline
 #endif 
 int SquidletGetPort(const Squidlet* const that);
 
-// ================ Polymorphism ====================
-/*
-#define FracNoiseGet(Noise, U) _Generic(U, \
-  VecFloat*: _FracNoiseGet, \
-  const VecFloat*: _FracNoiseGet, \
-  VecFloat2D*: _FracNoiseGet, \
-  const VecFloat2D*: _FracNoiseGet, \
-  VecFloat3D*: _FracNoiseGet, \
-  const VecFloat3D*: _FracNoiseGet, \
-  default:PBErrInvalidPolymorphism) (Noise, (const VecFloat*)(U))
-*/
+// -------------- TheSquid 
+
+// ================ Functions declaration ====================
+
+// Function for benchmark purpose
+int TheSquidBenchmark(const char* const buffer);
 
 // ================ Inliner ====================
 

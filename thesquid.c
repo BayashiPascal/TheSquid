@@ -397,6 +397,38 @@ void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
+// Add a new benchmark task with 'id' to execute to the squad 'that'
+// Wait for a maximum of 'maxWait' seconds for the task to complete
+// Uses a payload of 'payloadSize' bytes
+void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
+  const time_t maxWait, const int nb, const size_t payloadSize) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Create the new task
+  // Prepare the data as JSON
+
+  char* payload = PBErrMalloc(TheSquidErr, payloadSize);
+  payload[0] = nb;
+  for (size_t i = 1; i < payloadSize - 1; ++i)
+    payload[i] = 'a' + i % 26;
+  payload[payloadSize - 1] = 0;
+
+  char* buffer = PBErrMalloc(TheSquidErr, payloadSize + 8);
+  sprintf(buffer, "{\"v\":\"%s\"}", payload);
+  free(payload);
+  SquidletTaskRequest* task = SquidletTaskRequestCreate(
+    SquidletTaskType_Benchmark, id, buffer, maxWait);
+  free(buffer);
+  
+  // Add the new task to the set of task to execute
+  GSetAppend((GSet*)SquadTasks(that), task);
+}
+
 // Send the data associated to 'task' from the Squad 'that' to 
 // the Squidlet 'squidlet'
 // Return true if the data could be sent, false else
@@ -891,7 +923,6 @@ printf(" : ready for next task\n");
 }
 
 // Process a dummy task request with the Squidlet 'that'
-// This task only sleep for 2 seconds and serve only unit test purpose
 void SquidletProcessRequest_Dummy(Squidlet* const that,
   SquidletTaskRequest* const request) {
 #if BUILDMODE == 0
@@ -905,7 +936,7 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
   // Declare a variable to memorize if the process has been successful
   bool success = false;
 
-  // Declare a varibale to memorize the result of processing
+  // Declare a variable to memorize the result of processing
   int result = 0; 
 
   // Declare a variable to memorize the size in byte of the input data
@@ -998,6 +1029,105 @@ printf(" : sent result %s\n", bufferResult);
 
 }  
 
+// Process a benchmark task request with the Squidlet 'that'
+void SquidletProcessRequest_Benchmark(Squidlet* const that,
+  SquidletTaskRequest* const request) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  (void)request;
+  // Declare a variable to memorize if the process has been successful
+  bool success = false;
+
+  // Declare a variable to memorize the size in byte of the input data
+  size_t sizeInputData = 0;
+
+  // Variable to memorize the result of the benchmark function
+  int result = 0;
+
+  // Wait to receive the size of the input data with a time limit of 5s
+  if (SocketRecv(that->_sockReply, sizeof(size_t), 
+    (char*)&sizeInputData, 5)) {
+
+    // Declare a buffer for the raw input data
+    char* buffer = NULL;
+
+    // If there are input data
+    if (sizeInputData > 0) {
+
+      // Allocate memory for the input data
+      buffer = PBErrMalloc(TheSquidErr, sizeInputData + 1);
+      memset(buffer, 0, sizeInputData + 1);
+      
+      // Wait to receive the input data with a time limit proportional
+      // to the size of input data
+      int timeLimit = 5 + (int)round((float)sizeInputData / 1000.0);
+      if (!SocketRecv(that->_sockReply, sizeInputData, buffer, 
+        timeLimit)) {
+        // If we coudln't received the input data
+        free(buffer);
+        buffer = NULL;
+      }
+    }
+
+    // If we could receive the expected data
+    if (sizeInputData == 0 || buffer != NULL) {
+      
+      // Decode the input from JSON
+      JSONNode* json = JSONCreate();
+      if (JSONLoadFromStr(json, buffer)) {
+        // Get the value to process
+        JSONNode* prop = JSONProperty(json, "v");
+        if (prop != NULL) {
+          
+          // Run the benchmark function
+          result = TheSquidBenchmark(JSONLabel(JSONValue(prop, 0)));
+
+          // Set the flag for successfull process
+          success = true;
+        }
+      }
+      JSONFree(&json);
+      
+      // Free memory
+      free(buffer);
+    }
+  }
+
+  // Prepare the result data as JSON
+  char bufferResult[100];
+  memset(bufferResult, 0, 100);
+  if (success) {
+    sprintf(bufferResult, "{\"success\":\"1\", \"v\":\"%d\"}", result);
+  } else {
+    sprintf(bufferResult, "{\"success\":\"0\"}");
+  }
+
+  // Send the task data size
+  int flags = 0;
+  size_t len = strlen(bufferResult);
+  if (send(that->_sockReply, 
+    (char*)&len, sizeof(size_t), flags) != -1) {
+
+SquidletPrint(that, stdout);
+printf(" : wait for acknowledgement\n");
+
+    char ack = 0;
+    (void)SocketRecv(that->_sockReply, 1, &ack, 60);
+
+
+    if (send(that->_sockReply, bufferResult, len, flags) != -1) {
+SquidletPrint(that, stdout);
+printf(" : sent result %s\n", bufferResult);
+    }
+  }
+
+}  
+
 // Function to receive in blocking mode 'nb' bytes of data from
 // the socket 'sock' and store them into 'buffer' (which must be big 
 // enough). Give up after 'sec' seconds.
@@ -1042,3 +1172,28 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
   }
 
 } 
+
+// -------------- TheSquad 
+
+// ================ Functions implementation ====================
+
+// Function for benchmark purpose
+int TheSquidBenchmark(const char* const buffer) {
+  // Get the number of loop
+  int nbLoop = (int)buffer[0];
+  // Variable to memorize the dummy result
+  int res = 0;
+  // Loop on sample code
+  for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
+    GSet set = GSetCreateStatic();
+    for(unsigned int i = strlen(buffer); i--;) {
+      GSetPush(&set, NULL);
+      set._head->_sortVal = (float)(buffer[i]);
+    }
+    GSetSort(&set);
+    res = (int)round(set._head->_sortVal);
+    GSetFlush(&set);
+  }
+  // Return the dummy result
+  return res;
+}
