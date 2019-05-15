@@ -11,12 +11,17 @@ int main(int argc, char** argv) {
       ++iArg;
       port = atoi(argv[iArg]);
     }
+    if (strcmp(argv[iArg], "-help") == 0) {
+      printf("squidlet [-port <port>] [-help]\n");
+      exit(0);
+    }
   }
   
   // Create the squidlet
   Squidlet* squidlet = SquidletCreateOnPort(port);
   if (squidlet == NULL) {
     printf("Failed to create the squidlet\n");
+    printf("TheSquidErr: %s\n", TheSquidErr->_msg);
     printf("errno: %s\n", strerror(errno));
   }
   printf("Squidlet : ");

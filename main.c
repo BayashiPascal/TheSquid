@@ -154,7 +154,7 @@ void UnitTestBenchmark() {
   printf("Execution on local device:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
 
-  for (size_t sizePayload = 100; sizePayload <= 10000000; 
+  /*for (size_t sizePayload = 100; sizePayload <= 10000000; 
     sizePayload *= 10) {
     char* buffer = PBErrMalloc(TheSquidErr, sizePayload);
     buffer[0] = 1;
@@ -173,8 +173,9 @@ void UnitTestBenchmark() {
       stop.tv_usec - start.tv_usec;
     float timePerTaskMs = (float) deltams / (float)nb;
     printf("001\t%08u\t%07lu\t%011.2f\n", sizePayload, nb, timePerTaskMs);
+    fflush(stdout);
     free(buffer);
-  }
+  }*/
 
   printf("Execution on TheSquid:\n");
 
@@ -203,9 +204,10 @@ void UnitTestBenchmark() {
       do {
         
         // Create benchmark tasks
-        for (int i = SquadGetNbSquidlets(squad); i--;)
+        for (int i = SquadGetNbSquidlets(squad); i--;) {
           SquadAddTask_Benchmark(squad, id++, maxWait, nbLoop, 
             sizePayload);
+        }
 
         // Step the Squad
         GSet completedTasks = SquadStep(squad);
@@ -222,6 +224,7 @@ void UnitTestBenchmark() {
       float timePerTaskMs = (float) deltams / (float)nb;
       printf("%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, nb, 
         timePerTaskMs);
+      fflush(stdout);
     }
   }
   // Free memory
@@ -235,12 +238,13 @@ void UnitTestAll() {
   UnitTestSquad();
   UnitTestSquidlet();
   UnitTestDummy();
-  //UnitTestBenchmark();
+  UnitTestBenchmark();
   printf("UnitTestAll OK\n");
 }
 
 int main() {
-  UnitTestAll();
+  //UnitTestAll();
+  UnitTestBenchmark();
   // Return success code
   return 0;
 }

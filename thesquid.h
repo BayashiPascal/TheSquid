@@ -289,7 +289,7 @@ int SquidletGetPort(const Squidlet* const that);
 // ================ Functions declaration ====================
 
 // Function for benchmark purpose
-int TheSquidBenchmark(const char* const buffer);
+int TheSquidBenchmark(int nbLoop, const char* const buffer);
 
 // ================ Inliner ====================
 

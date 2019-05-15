@@ -413,13 +413,15 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   // Prepare the data as JSON
 
   char* payload = PBErrMalloc(TheSquidErr, payloadSize);
-  payload[0] = nb;
-  for (size_t i = 1; i < payloadSize - 1; ++i)
+  for (size_t i = 0; i < payloadSize - 1; ++i)
     payload[i] = 'a' + i % 26;
   payload[payloadSize - 1] = 0;
 
-  char* buffer = PBErrMalloc(TheSquidErr, payloadSize + 8);
-  sprintf(buffer, "{\"v\":\"%s\"}", payload);
+  char bufferNb[100];
+  sprintf(bufferNb, "%d", nb);
+  int nbSize = strlen(bufferNb);
+  char* buffer = PBErrMalloc(TheSquidErr, payloadSize + nbSize + 16);
+  sprintf(buffer, "{\"nb\":\"%d\",\"v\":\"%s\"}", nb, payload);
   free(payload);
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
     SquidletTaskType_Benchmark, id, buffer, maxWait);
@@ -447,18 +449,22 @@ bool SquadSendTaskData(Squad* const that,
   if (send(squidlet->_sock, 
     (char*)&len, sizeof(size_t), flags) == -1) {
     // If we couldn't send the data size
+printf("squad : couldn't send task data size %d\n", len);
     return false;
-  }
-
+  } else {
 printf("squad : sent task data size %d\n", len);
+  }
 
   // Send the task data
   if (send(squidlet->_sock, task->_data, len, flags) == -1) {
     // If we couldn't send the data
+printf("squad : couldn't send task data\n");
     return false;
+  } else {
+printf("squad : sent task data\n");
   }
 
-printf("squad : sent task data %s\n", task->_data);
+printf("squad : data %s\n", task->_data);
 
   // Return the success code
   return true;
@@ -662,6 +668,7 @@ Squidlet* SquidletCreateOnPort(int port) {
   if (that->_fd == -1) {
     // Free memory and return null
     free(that);
+    sprintf(TheSquidErr->_msg, "socket() failed");
     return NULL;
   }
 
@@ -679,6 +686,7 @@ Squidlet* SquidletCreateOnPort(int port) {
     // If we couldn't set the timeout, free memory and return null
     close(that->_fd);
     free(that);
+    sprintf(TheSquidErr->_msg, "setsockopt() failed");
     return NULL;
   }
 
@@ -688,6 +696,7 @@ Squidlet* SquidletCreateOnPort(int port) {
     // return null
     close(that->_fd);
     free(that);
+    sprintf(TheSquidErr->_msg, "gethostname() failed");
     return NULL;
   }
   
@@ -698,6 +707,7 @@ Squidlet* SquidletCreateOnPort(int port) {
     // return null
     close(that->_fd);
     free(that);
+    sprintf(TheSquidErr->_msg, "gethostbyname() failed");
     return NULL;
   }
   
@@ -718,12 +728,14 @@ Squidlet* SquidletCreateOnPort(int port) {
       sizeof(struct sockaddr_in)) == -1 && 
       that->_port < THESQUID_PORTMAX) {
       ++(that->_port);
+      that->_sock.sin_port = htons(that->_port);
     }
     if (that->_port == THESQUID_PORTMAX) {
       // If we couldn't bind the socket, close it, free memory and 
       // return null
       close(that->_fd);
       free(that);
+      sprintf(TheSquidErr->_msg, "bind() failed");
       return NULL;
     }
   // Else if the port is specified by the user, try to bind only on 
@@ -735,6 +747,7 @@ Squidlet* SquidletCreateOnPort(int port) {
       // return null
       close(that->_fd);
       free(that);
+      sprintf(TheSquidErr->_msg, "bind() failed");
       return NULL;
     }
   }
@@ -745,6 +758,7 @@ Squidlet* SquidletCreateOnPort(int port) {
     // return null
     close(that->_fd);
     free(that);
+    sprintf(TheSquidErr->_msg, "listen() failed");
     return NULL;
   }
 
@@ -891,10 +905,16 @@ void SquidletProcessRequest(Squidlet* const that,
   }
 #endif
 
+SquidletPrint(that, stdout);
+printf(" : process task\n");
+
   // Switch according to the request type
   switch (request->_type) {
     case SquidletTaskType_Dummy:
       SquidletProcessRequest_Dummy(that, request);
+      break;
+    case SquidletTaskType_Benchmark:
+      SquidletProcessRequest_Benchmark(that, request);
       break;
     default:
       break;
@@ -911,13 +931,20 @@ SquidletPrint(that, stdout);
 printf(" : wait for acknowledgement\n");
 
     char ack = 0;
-    (void)SocketRecv(that->_sockReply, 1, &ack, 60);
+    if (SocketRecv(that->_sockReply, 1, &ack, 60)) {
+SquidletPrint(that, stdout);
+printf(" : received acknowledgement\n");
+    } else {
+SquidletPrint(that, stdout);
+printf(" : couldn't receive acknowledgement\n");
+    }
 
     close(that->_sockReply);
     that->_sockReply = -1;
 
 SquidletPrint(that, stdout);
 printf(" : ready for next task\n");
+fflush(stdout);
 
   }
 }
@@ -1071,6 +1098,12 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
         // If we coudln't received the input data
         free(buffer);
         buffer = NULL;
+SquidletPrint(that, stdout);
+printf(" : couldn't receive data\n");
+      } else {
+  
+SquidletPrint(that, stdout);
+printf(" : received data\n");
       }
     }
 
@@ -1081,21 +1114,48 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       JSONNode* json = JSONCreate();
       if (JSONLoadFromStr(json, buffer)) {
         // Get the value to process
-        JSONNode* prop = JSONProperty(json, "v");
+        JSONNode* prop = JSONProperty(json, "nb");
         if (prop != NULL) {
-          
-          // Run the benchmark function
-          result = TheSquidBenchmark(JSONLabel(JSONValue(prop, 0)));
+          int nb = atoi(JSONLabel(JSONValue(prop, 0)));
+          prop = JSONProperty(json, "v");
+          if (prop != NULL) {
+            
+            // Run the benchmark function
+            result = TheSquidBenchmark(nb, 
+              JSONLabel(JSONValue(prop, 0)));
 
-          // Set the flag for successfull process
-          success = true;
+            // Set the flag for successfull process
+            success = true;
+
+          } else {
+    
+SquidletPrint(that, stdout);
+printf(" : invalid data (v)\n");
+          }
+
+        } else {
+  
+SquidletPrint(that, stdout);
+printf(" : invalid data (nb)\n");
+
         }
+
+      } else {
+  
+SquidletPrint(that, stdout);
+printf(" : couldn't load json %s\n", buffer + 1);
+
       }
       JSONFree(&json);
       
       // Free memory
       free(buffer);
     }
+  } else {
+
+SquidletPrint(that, stdout);
+printf(" : couldn't receive data size\n");
+
   }
 
   // Prepare the result data as JSON
@@ -1116,14 +1176,24 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 SquidletPrint(that, stdout);
 printf(" : wait for acknowledgement\n");
 
+    // Receive the acknoledgement
     char ack = 0;
-    (void)SocketRecv(that->_sockReply, 1, &ack, 60);
+    if (SocketRecv(that->_sockReply, 1, &ack, 60)) {
 
-
-    if (send(that->_sockReply, bufferResult, len, flags) != -1) {
+      if (send(that->_sockReply, bufferResult, len, flags) != -1) {
 SquidletPrint(that, stdout);
 printf(" : sent result %s\n", bufferResult);
+      } else {
+SquidletPrint(that, stdout);
+printf(" : couldn't sent result %s\n", bufferResult);
+      }
+    } else {
+SquidletPrint(that, stdout);
+printf(" : couldn't receive acknowledgement\n");
     }
+  } else {
+SquidletPrint(that, stdout);
+printf(" : couldn't send data size\n");
   }
 
 }  
@@ -1178,9 +1248,7 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
 // ================ Functions implementation ====================
 
 // Function for benchmark purpose
-int TheSquidBenchmark(const char* const buffer) {
-  // Get the number of loop
-  int nbLoop = (int)buffer[0];
+int TheSquidBenchmark(int nbLoop, const char* const buffer) {
   // Variable to memorize the dummy result
   int res = 0;
   // Loop on sample code
