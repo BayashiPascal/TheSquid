@@ -49,6 +49,10 @@ SquidletInfo* SquidletInfoCreate(char* ip, int port);
 // Free the memory used by the SquidletInfo 'that'
 void SquidletInfoFree(SquidletInfo** that);
 
+// Print the SquidletInfo 'that' on the 'stream'
+void SquidletInfoPrint(const SquidletInfo* const that, 
+  FILE* const stream);
+
 // -------------- SquidletTaskRequest
 
 // ================= Data structure ===================
@@ -77,6 +81,10 @@ SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type,
 // Free the memory used by the SquidletTaskRequest 'that'
 void SquidletTaskRequestFree(SquidletTaskRequest** that);
 
+// Print the SquidletTaskRequest 'that' on the 'stream'
+void SquidletTaskRequestPrint(const SquidletTaskRequest* const that, 
+  FILE* const stream);
+
 // -------------- SquadRunningTask
 
 // ================= Data structure ===================
@@ -96,6 +104,10 @@ SquadRunningTask* SquadRunningTaskCreate(
 
 // Free the memory used by the SquadRunningTask 'that'
 void SquadRunningTaskFree(SquadRunningTask** that);
+
+// Print the SquadRunningTask 'that' on the 'stream'
+void SquadRunningTaskPrint(const SquadRunningTask* const that, 
+  FILE* const stream);
 
 // -------------- Squad
 
@@ -241,7 +253,7 @@ void SquidletFree(Squidlet** that);
 
 // Print the PID, Hostname, IP and Port of the Squidlet 'that' on the 
 // 'stream'
-// Example: 100 localhost 0.0.0.0 3000
+// Example: 100 localhost 0.0.0.0:3000
 void SquidletPrint(const Squidlet* const that, FILE* const stream);
 
 // Wait for a task request to be received by the Squidlet 'that'
