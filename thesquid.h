@@ -111,6 +111,18 @@ void SquadRunningTaskPrint(const SquadRunningTask* const that,
 
 // -------------- Squad
 
+// ================= Define ==================
+
+#define SQUAD_TXTOMETER_LINE1 \
+  "NbRunning xxxxx NbQueued xxxxx NbSquidlet xxxxx                     "
+#define SQUAD_TXTOMETER_FORMAT1 \
+  "NbRunning %05ld NbQueued %05ld NbSquidlet %05ld                     "
+#define SQUAD_TXTOMETER_FORMATHISTORY "%s"
+#define SQUAD_TXTOMETER_FORMATRUNNING "Running: %s"
+#define SQUAD_TXTOMETER_FORMATQUEUED  " Queued: %s"
+#define SQUAD_TXTOMETER_NBLINEHISTORY 10
+#define SQUAD_TXTOMETER_NBTASKDISPLAYED 32
+
 // ================= Data structure ===================
 
 typedef struct Squad {
@@ -122,6 +134,12 @@ typedef struct Squad {
   GSet _tasks;
   // GSet of SquadRunningTask (tasks under execution)
   GSet _runningTasks;
+  // Flag to memorize if we display info with a TextOMeter
+  bool _flagTextOMeter;
+  // TextOMeter to display info 
+  TextOMeter* _textOMeter;
+  // Buffer internally used to display info in the TextOMeter
+  char _history[SQUAD_TXTOMETER_NBLINEHISTORY][100];
 } Squad;
 
 // ================ Functions declaration ====================
@@ -212,6 +230,16 @@ unsigned long SquadGetNbSquidlets(const Squad* const that);
 // Return a GSet of completed SquidletTaskRequest at this step
 GSet SquadStep(Squad* const squad);
 
+// Set the flag memorizing if the TextOMeter is displayed for
+// the Squad 'that' to 'flag'
+void SquadSetFlagTextOMeter(Squad* const that, const bool flag);
+
+// Return the flag for the TextOMeter of the Squad 'that'
+#if BUILDMODE != 0
+inline
+#endif
+bool SquadGetFlagTextOMeter(const Squad* const that);
+
 // -------------- Squidlet
 
 // ================= Global variable ==================
@@ -236,6 +264,9 @@ typedef struct Squidlet {
   struct hostent* _host; 
   // Socket to send the result of a task 
   int _sockReply;
+  // Stream to ouput infos, if null the squidlet is silent
+  // By default it's null
+  FILE* _streamInfo; 
 } Squidlet;
 
 // ================ Functions declaration ====================
@@ -295,6 +326,19 @@ const char* SquidletIP(const Squidlet* const that);
 inline 
 #endif 
 int SquidletGetPort(const Squidlet* const that);
+
+// Get the stream to output info of the Squidlet 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+FILE* SquidletStreamInfo(const Squidlet* const that);
+
+// Set the stream to output info of the Squidlet 'that' to 'stream'
+// 'stream' may be null to mute the Squidlet
+#if BUILDMODE != 0 
+inline 
+#endif 
+void SquidletSetStreamInfo(Squidlet* const that, FILE* const stream);
 
 // -------------- TheSquid 
 

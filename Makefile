@@ -42,3 +42,7 @@ squidlet.o: \
 		$($(repo)_INC_H_EXE) \
 		$($(repo)_EXE_DEP)
 	$(COMPILER) $(BUILD_ARG) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squidlet.c
+
+valgrind_squidlet :
+	valgrind -v --track-origins=yes --leak-check=full \
+	--gen-suppressions=yes --show-leak-kinds=all ./squidlet

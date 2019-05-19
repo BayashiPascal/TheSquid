@@ -207,6 +207,11 @@ Squad* SquadCreate(void) {
   that->_squidlets = GSetCreateStatic();
   that->_tasks = GSetCreateStatic();
   that->_runningTasks = GSetCreateStatic();
+  that->_flagTextOMeter = false;
+  that->_textOMeter = NULL;
+  for (int i = 0; i < SQUAD_TXTOMETER_NBLINEHISTORY; ++i) {
+    that->_history[i][0] = 0;
+  }
 
   // Return the new squad
   return that;
@@ -745,6 +750,62 @@ printf(" running\n");
   return completedTasks;
 }
 
+// Set the flag memorizing if the TextOMeter is displayed for
+// the Squad 'that' to 'flag'
+void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
+    sprintf(PBImgAnalysisErr->_msg, "'that' is null");
+    PBErrCatch(PBImgAnalysisErr);
+  }
+#endif
+  // If the requested flag is different from the current flag;
+  if (that->_flagTextOMeter != flag) {
+    if (flag && that->_textOMeter == NULL) {
+      char title[] = "Squad";
+      int width = strlen(SQUAD_TXTOMETER_LINE1) + 1;
+      int height = SQUAD_TXTOMETER_NBLINEHISTORY + 
+        SQUAD_TXTOMETER_NBTASKDISPLAYED + 1;
+      that->_textOMeter = TextOMeterCreate(title, width, height);
+    }
+    if (!flag && that->_textOMeter != NULL) {
+      TextOMeterFree(&(that->_textOMeter));
+    }
+    that->_flagTextOMeter = flag;
+  }
+}
+
+// Refresh the content of the TextOMeter attached to the 
+// Squad 'that'
+void SquadUpdateTextOMeter(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
+    sprintf(PBImgAnalysisErr->_msg, "'that' is null");
+    PBErrCatch(PBImgAnalysisErr);
+  }
+  if (that->_textOMeter == NULL) {
+    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
+    sprintf(PBImgAnalysisErr->_msg, "'that->_textOMeter' is null");
+    PBErrCatch(PBImgAnalysisErr);
+  }
+#endif
+  // Clear the TextOMeter
+  TextOMeterClear(that->_textOMeter);
+  // .........................
+  char buffer[100];
+  sprintf(buffer, SQUAD_TXTOMETER_FORMAT1, 
+    SquadGetNbRunningTasks(that), SquadGetNbTasks(that),
+    SquadGetNbSquidlets(that));
+  TextOMeterPrint(that->_textOMeter, buffer);
+
+  // TODO
+
+  // Flush the content of the TextOMeter
+  TextOMeterFlush(that->_textOMeter);
+}
+
 // -------------- Squidlet
 
 // ================= Global variable ==================
@@ -879,6 +940,9 @@ Squidlet* SquidletCreateOnPort(int port) {
 
   // Set the handler to catch the signal Ctrl-C
   signal(SIGINT, SquidletHandlerCtrlC);
+
+  // Init the stream for output
+  that->_streamInfo = NULL;
   
   // Return the new squidlet
   return that;
@@ -946,9 +1010,10 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
 
   // If the connection was accepted
   if (that->_sockReply >= 0) {
-
-SquidletPrint(that, stdout);
-printf(" : accepted connection\n");
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), " : accepted connection\n");
+    }
   
     // Set the timeout for sending and receiving on this socket to 1 sec
     struct timeval tv;
@@ -970,18 +1035,20 @@ printf(" : accepted connection\n");
       if (SocketRecv(that->_sockReply, sizeof(SquidletTaskType), 
         (char*)&taskRequest, 5)) {
         reply = THESQUID_TASKACCEPTED;
-
-SquidletPrint(that, stdout);
-printf(" : received task type %d\n", taskRequest._type);
-
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : received task type %d\n", taskRequest._type);
+        }
       } else {
         // If we couldn't received the task type
         taskRequest._type = SquidletTaskType_Null;
         reply = THESQUID_TASKREFUSED;
-
-SquidletPrint(that, stdout);
-printf(" : couldn't receive task type\n");
-
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that),
+            " : couldn't receive task type\n");
+        }
       }
 
       // Send the reply to the task request
@@ -989,15 +1056,17 @@ printf(" : couldn't receive task type\n");
       if (send(that->_sockReply, &reply, sizeof(reply), flags) == -1) {
         // If we couldn't send the reply, do not process the task
         taskRequest._type = SquidletTaskType_Null;
-
-SquidletPrint(that, stdout);
-printf(" : couldn't sent reply to task request %d\n", reply);
-    
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that),
+            " : couldn't sent reply to task request %d\n", reply);
+        }
       } else {
-
-SquidletPrint(that, stdout);
-printf(" : sent reply to task request %d\n", reply);
-    
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that),
+            " : sent reply to task request %d\n", reply);
+        }
       }
     }
     
@@ -1023,10 +1092,12 @@ void SquidletProcessRequest(Squidlet* const that,
   }
 #endif
 
-if (request->_type != SquidletTaskType_Null) {
-  SquidletPrint(that, stdout);
-  printf(" : process task\n");
-}
+    if (request->_type != SquidletTaskType_Null) {
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), " : process task\n");
+      }
+    }
 
   // Switch according to the request type
   switch (request->_type) {
@@ -1047,25 +1118,42 @@ if (request->_type != SquidletTaskType_Null) {
     // acknowledgement
     // Give up after 60s
 
-SquidletPrint(that, stdout);
-printf(" : wait for acknowledgement from squad\n");
+    if (request->_type != SquidletTaskType_Null) {
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : wait for acknowledgement from squad\n");
+      }
+    }
 
     char ack = 0;
     if (SocketRecv(that->_sockReply, 1, &ack, 60)) {
-SquidletPrint(that, stdout);
-printf(" : received acknowledgement from squad\n");
+      if (request->_type != SquidletTaskType_Null) {
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : received acknowledgement from squad\n");
+        }
+      }
     } else {
-SquidletPrint(that, stdout);
-printf(" : couldn't receive acknowledgement from squad\n");
+      if (request->_type != SquidletTaskType_Null) {
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : couldn't receive acknowledgement from squad\n");
+        }
+      }
     }
 
     close(that->_sockReply);
     that->_sockReply = -1;
-
-SquidletPrint(that, stdout);
-printf(" : ready for next task\n");
-fflush(stdout);
-
+    if (request->_type != SquidletTaskType_Null) {
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : ready for next task\n");
+      }
+    }
   }
 }
 
@@ -1093,8 +1181,11 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
   if (SocketRecv(that->_sockReply, sizeof(size_t), 
     (char*)&sizeInputData, 5)) {
 
-SquidletPrint(that, stdout);
-printf(" : size input data %d\n", sizeInputData);
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : size input data %d\n", sizeInputData);
+    }
 
     // Declare a buffer for the raw input data
     char* buffer = NULL;
@@ -1121,8 +1212,11 @@ printf(" : size input data %d\n", sizeInputData);
     if (sizeInputData == 0 || buffer != NULL) {
       
       // Process the data
-SquidletPrint(that, stdout);
-printf(" : process dummy task %s\n", buffer);
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : process dummy task %s\n", buffer);
+      }
 
       // Decode the input from JSON
       JSONNode* json = JSONCreate();
@@ -1161,16 +1255,22 @@ printf(" : process dummy task %s\n", buffer);
   if (send(that->_sockReply, 
     (char*)&len, sizeof(size_t), flags) != -1) {
 
-SquidletPrint(that, stdout);
-printf(" : wait for acknowledgement from squad\n");
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : wait for acknowledgement from squad\n");
+      }
 
     char ack = 0;
     (void)SocketRecv(that->_sockReply, 1, &ack, 60);
 
 
     if (send(that->_sockReply, bufferResult, len, flags) != -1) {
-SquidletPrint(that, stdout);
-printf(" : sent result %s\n", bufferResult);
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : sent result %s\n", bufferResult);
+      }
     }
   }
 
@@ -1205,8 +1305,11 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 
     // If there are input data
     if (sizeInputData > 0) {
-SquidletPrint(that, stdout);
-printf(" : received size task data %d\n", sizeInputData);
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : received size task data %d\n", sizeInputData);
+      }
 
       // Allocate memory for the input data
       buffer = PBErrMalloc(TheSquidErr, sizeInputData + 1);
@@ -1220,12 +1323,17 @@ printf(" : received size task data %d\n", sizeInputData);
         // If we coudln't received the input data
         free(buffer);
         buffer = NULL;
-SquidletPrint(that, stdout);
-printf(" : couldn't receive task data\n");
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : couldn't receive task data\n");
+        }
       } else {
-  
-SquidletPrint(that, stdout);
-printf(" : received task data %s\n", buffer);
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : received task data %s\n", buffer);
+        }
       }
     }
 
@@ -1241,38 +1349,50 @@ printf(" : received task data %s\n", buffer);
           int nb = atoi(JSONLabel(JSONValue(prop, 0)));
           prop = JSONProperty(json, "v");
           if (prop != NULL) {
-            
-    
-SquidletPrint(that, stdout);
-printf(" : run benchmark\n");
-
+            if (SquidletStreamInfo(that)){
+              SquidletPrint(that, SquidletStreamInfo(that));
+              fprintf(SquidletStreamInfo(that), 
+                " : run benchmark\n");
+            }
             // Run the benchmark function
             result = TheSquidBenchmark(nb, 
               JSONLabel(JSONValue(prop, 0)));
     
-SquidletPrint(that, stdout);
-printf(" : benchmark complete\n");
+            if (SquidletStreamInfo(that)){
+              SquidletPrint(that, SquidletStreamInfo(that));
+              fprintf(SquidletStreamInfo(that), 
+                " : benchmark complete\n");
+            }
 
             // Set the flag for successfull process
             success = true;
 
           } else {
     
-SquidletPrint(that, stdout);
-printf(" : invalid data (v)\n");
+            if (SquidletStreamInfo(that)){
+              SquidletPrint(that, SquidletStreamInfo(that));
+              fprintf(SquidletStreamInfo(that), 
+                " : invalid data (v)\n");
+            }
           }
 
         } else {
   
-SquidletPrint(that, stdout);
-printf(" : invalid data (nb)\n");
+          if (SquidletStreamInfo(that)){
+            SquidletPrint(that, SquidletStreamInfo(that));
+            fprintf(SquidletStreamInfo(that), 
+              " : invalid data (nb)\n");
+          }
 
         }
 
       } else {
   
-SquidletPrint(that, stdout);
-printf(" : couldn't load json %s\n", buffer + 1);
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : couldn't load json %s\n", buffer);
+        }
 
       }
       JSONFree(&json);
@@ -1282,8 +1402,11 @@ printf(" : couldn't load json %s\n", buffer + 1);
     }
   } else {
 
-SquidletPrint(that, stdout);
-printf(" : couldn't receive data size\n");
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : couldn't receive data size\n");
+    }
 
   }
 
@@ -1302,10 +1425,14 @@ printf(" : couldn't receive data size\n");
   if (send(that->_sockReply, 
     (char*)&len, sizeof(size_t), flags) != -1) {
 
-SquidletPrint(that, stdout);
-printf(" : sent result size\n");
-SquidletPrint(that, stdout);
-printf(" : wait for acknowledgement from squad\n");
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : sent result size\n");
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : wait for acknowledgement from squad\n");
+    }
 
     // Receive the acknowledgement
     char ack = 0;
@@ -1313,23 +1440,38 @@ printf(" : wait for acknowledgement from squad\n");
     if (SocketRecv(that->_sockReply, sizeof(char), &ack, 
       waitDelayMaxSec)) {
 
-SquidletPrint(that, stdout);
-printf(" : received acknowledgement from squad\n");
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : received acknowledgement from squad\n");
+      }
 
       if (send(that->_sockReply, bufferResult, len, flags) != -1) {
-SquidletPrint(that, stdout);
-printf(" : sent result %s\n", bufferResult);
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : sent result %s\n", bufferResult);
+        }
       } else {
-SquidletPrint(that, stdout);
-printf(" : couldn't sent result %s\n", bufferResult);
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : couldn't sent result %s\n", bufferResult);
+        }
       }
     } else {
-SquidletPrint(that, stdout);
-printf(" : couldn't receive acknowledgement\n");
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : couldn't receive acknowledgement\n");
+      }
     }
   } else {
-SquidletPrint(that, stdout);
-printf(" : couldn't send data size\n");
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : couldn't send data size\n");
+    }
   }
 
 }  

@@ -110,6 +110,21 @@ unsigned long SquadGetNbSquidlets(const Squad* const that) {
   return GSetNbElem(SquadSquidlets(that));  
 }
 
+// Return the flag for the TextOMeter of the Squad 'that'
+#if BUILDMODE != 0
+inline
+#endif
+bool SquadGetFlagTextOMeter(const Squad* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_flagTextOMeter;
+}
+
 
 // -------------- Squidlet
 
@@ -174,4 +189,36 @@ int SquidletGetPort(const Squidlet* const that) {
 #endif
   return that->_port;  
 }
+
+// Get the stream to output info of the Squidlet 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+FILE* SquidletStreamInfo(const Squidlet* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_streamInfo;  
+}
+
+// Set the stream to output info of the Squidlet 'that' to 'stream'
+// 'stream' may be null to mute the Squidlet
+#if BUILDMODE != 0 
+inline 
+#endif 
+void SquidletSetStreamInfo(Squidlet* const that, FILE* const stream) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  that->_streamInfo = stream;  
+}
+
 
