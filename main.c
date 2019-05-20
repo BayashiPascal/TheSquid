@@ -51,6 +51,7 @@ void UnitTestDummy() {
   int port[2] = {9000, 9001};
   int nbRequest = 3;
   pid_t pidSquidlet[2];
+  char buffer[100];
   // Create the squidlet processes
   for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
     int pid = fork();
@@ -70,7 +71,9 @@ void UnitTestDummy() {
       printf("Failed to create the squidlet #%d\n", squidletId);
       printf("errno: %s\n", strerror(errno));
     }
-    SquidletSetStreamInfo(squidlet, stdout);
+    sprintf(buffer, "unitTestDummySquidlet%d.log", squidletId);
+    FILE* stream = fopen(buffer, "w");
+    SquidletSetStreamInfo(squidlet, stream);
     printf("Squidlet #%d : ", squidletId);
     SquidletPrint(squidlet, stdout);
     printf("\n");
@@ -79,6 +82,7 @@ void UnitTestDummy() {
       SquidletProcessRequest(squidlet, &request);
     } while (!Squidlet_CtrlC);
     SquidletFree(&squidlet);
+    fclose(stream);
     printf("Squidlet #%d ended\n", squidletId);
     fflush(stdout);
     exit(0);
@@ -92,6 +96,8 @@ void UnitTestDummy() {
       printf("Failed to create the squad\n");
       printf("errno: %s\n", strerror(errno));
     }
+    // Turn on the TextOMeter
+    SquadSetFlagTextOMeter(squad, true);
     // Automatically create the config file
     FILE* fp = fopen("unitTestDummy.json", "w");
     char hostname[256];
@@ -135,7 +141,7 @@ void UnitTestDummy() {
           printf(" failed !!\n");
           flagStop = true;
         } else {
-          printf("succeeded\n");
+          printf(" succeeded\n");
         }
         SquidletTaskRequestFree(&task);
       }
@@ -209,10 +215,10 @@ void UnitTestBenchmark() {
     // Loop on nbLoop
     for (int nbLoop = 1; !flagStop && nbLoop <= 32; nbLoop *= 2) {
 
-      // Loop until all the tasks are completed or give up after 10s
+      // Loop for 10s
       struct timeval stop, start;
       gettimeofday(&start, NULL);
-      unsigned long nb = 0;
+      unsigned long nbComplete = 0;
       do {
         
         // Create benchmark tasks if there are no more
@@ -224,7 +230,7 @@ void UnitTestBenchmark() {
 
         // Step the Squad
         GSet completedTasks = SquadStep(squad);
-        nb += GSetNbElem(&completedTasks);
+        nbComplete += GSetNbElem(&completedTasks);
         while (GSetNbElem(&completedTasks) > 0L) {
           SquidletTaskRequest* task = GSetPop(&completedTasks);
           // If the task failed
@@ -241,8 +247,8 @@ void UnitTestBenchmark() {
       unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
         stop.tv_usec - start.tv_usec;
       float timePerTaskMs = (float) deltams / (float)nb;
-      printf("%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, nb, 
-        timePerTaskMs);
+      printf("%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, 
+        nbComplete, timePerTaskMs);
       fflush(stdout);
     }
   }

@@ -46,3 +46,19 @@ squidlet.o: \
 valgrind_squidlet :
 	valgrind -v --track-origins=yes --leak-check=full \
 	--gen-suppressions=yes --show-leak-kinds=all ./squidlet
+
+squad: \
+		squad.o \
+		$($(repo)_EXE_DEP) \
+		$($(repo)_DEP)
+	$(COMPILER) `echo "$($(repo)_EXE_DEP) squad.o" | tr ' ' '\n' | sort -u` $(LINK_ARG) $($(repo)_LINK_ARG) -o squad 
+	
+squad.o: \
+		$($(repo)_DIR)/squad.c \
+		$($(repo)_INC_H_EXE) \
+		$($(repo)_EXE_DEP)
+	$(COMPILER) $(BUILD_ARG) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squad.c
+
+valgrind_squad :
+	valgrind -v --track-origins=yes --leak-check=full \
+	--gen-suppressions=yes --show-leak-kinds=all ./squad

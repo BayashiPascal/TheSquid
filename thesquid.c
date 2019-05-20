@@ -7,7 +7,7 @@
   #include "thesquid-inline.c"
 #endif
 
-// ================ Functions definition ====================
+// ================ Functions declaration ====================
 
 // Function to receive in blocking mode 'nb' bytes of data from
 // the socket 'sock' and store them into 'buffer' (which must be big 
@@ -181,10 +181,18 @@ void SquadRunningTaskPrint(const SquadRunningTask* const that,
 
 // -------------- Squad
 
-// ================ Functions definition ====================
+// ================ Functions declaration ====================
 
 // Decode the JSON info of a Squad
 bool SquadDecodeAsJSON(Squad* that, JSONNode* json);
+
+// Refresh the content of the TextOMeter attached to the 
+// Squad 'that'
+void SquadUpdateTextOMeter(const Squad* const that);
+
+// Add one line to the history of messages for the TextOMeter
+// 'msg' must be less than 100 characters long
+void SquadPushHistory(Squad* const that, char* msg);
 
 // ================ Functions implementation ====================
 
@@ -210,8 +218,10 @@ Squad* SquadCreate(void) {
   that->_flagTextOMeter = false;
   that->_textOMeter = NULL;
   for (int i = 0; i < SQUAD_TXTOMETER_NBLINEHISTORY; ++i) {
-    that->_history[i][0] = 0;
+    that->_history[i][0] = '\n';
+    that->_history[i][1] = '\0';
   }
+  that->_countLineHistory = 0;
 
   // Return the new squad
   return that;
@@ -238,6 +248,9 @@ void SquadFree(Squad** that) {
   while (GSetNbElem(SquadRunningTasks(*that)) > 0) {
     SquadRunningTask* task = GSetPop((GSet*)SquadRunningTasks(*that));
     SquadRunningTaskFree(&task);
+  }
+  if ((*that)->_textOMeter != NULL) {
+    TextOMeterFree(&((*that)->_textOMeter));
   }
   free(*that);
   *that = NULL;
@@ -390,9 +403,20 @@ bool SquadSendTaskRequest(Squad* const that,
     return false;
   }
 
-printf("squad : connected to squidlet (");
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
+  // Declare some variables to process the lines of history
+  char lineHistory[100];
+  char bufferHistory[100];
+  FILE* streamBufferHistory = NULL;
+
+  if (SquadGetFlagTextOMeter(that) == true) {
+    streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+    SquidletInfoPrint(squidlet, streamBufferHistory);
+    fclose(streamBufferHistory);
+    sprintf(lineHistory, 
+      "connected to squidlet (%s)\n", 
+      bufferHistory);
+    SquadPushHistory(that, lineHistory);
+  }
 
   // Set the timeout of the socket for sending and receiving to 1s
   struct timeval tv;
@@ -411,7 +435,8 @@ printf(")\n");
     return false;
   }
 
-printf("squad : set timeout\n");
+  if (SquadGetFlagTextOMeter(that) == true) 
+    SquadPushHistory(that, "set timeout\n");
 
   // Send the task request
   int flags = 0;
@@ -423,7 +448,8 @@ printf("squad : set timeout\n");
     return false;
   }
 
-printf("squad : sent task request\n");
+  if (SquadGetFlagTextOMeter(that) == true) 
+    SquadPushHistory(that, "sent task request\n");
 
   // Wait for the reply from the squidlet up to 5s
   char reply = THESQUID_TASKREFUSED;
@@ -433,11 +459,15 @@ printf("squad : sent task request\n");
     // the squidlet refused the task
     close(squidlet->_sock);
     squidlet->_sock = -1;
-printf("squad : task request refused\n");
+
+    if (SquadGetFlagTextOMeter(that) == true) 
+      SquadPushHistory(that, "task request refused\n");
+
     return false;
   }
 
-printf("squad : task request accepted\n");
+  if (SquadGetFlagTextOMeter(that) == true) 
+    SquadPushHistory(that, "task request accepted\n");
 
   // Return the success code
   return true;
@@ -517,30 +547,50 @@ bool SquadSendTaskData(Squad* const that,
     PBErrCatch(TheSquidErr);
   }
 #endif
+  // Declare some variables to process the lines of history
+  char lineHistory[100];
+  char bufferHistory[100];
+  FILE* streamBufferHistory = NULL;
+
   // Send the task data size
   int flags = 0;
   size_t len = strlen(task->_data);
   if (send(squidlet->_sock, 
     (char*)&len, sizeof(size_t), flags) == -1) {
     // If we couldn't send the data size
-printf("squad : couldn't send task data size %d\n", len);
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      sprintf(lineHistory, 
+        "couldn't send task data size %d\n", len);
+      SquadPushHistory(that, lineHistory);
+    }
+
     return false;
   } else {
-printf("squad : sent task data size %d to (", len);
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "sent task data size %d to (%s)\n", len, 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
   }
 
   // Send the task data
   if (send(squidlet->_sock, task->_data, len, flags) == -1) {
     // If we couldn't send the data
-printf("squad : couldn't send task data\n");
+
+    if (SquadGetFlagTextOMeter(that) == true)
+      SquadPushHistory(that, "couldn't send task data\n");
+
     return false;
   } else {
-printf("squad : sent task data\n");
+    if (SquadGetFlagTextOMeter(that) == true)
+      SquadPushHistory(that, "sent task data\n");
   }
-
-printf("squad : data %s\n", task->_data);
 
   // Return the success code
   return true;
@@ -573,6 +623,11 @@ bool SquadReceiveTaskResult(Squad* const that,
   SquidletInfo* squidlet = runningTask->_squidlet;
   SquidletTaskRequest* task = runningTask->_request;
 
+  // Declare some variables to process the lines of history
+  char lineHistory[100];
+  char bufferHistory[100];
+  FILE* streamBufferHistory = NULL;
+  
   // Make sure the buffer to receive the task is empty
   if (task->_buffer != NULL) {
     free(task->_buffer);
@@ -586,17 +641,30 @@ bool SquadReceiveTaskResult(Squad* const that,
     // If the result is ready
     if (sizeResultData > 0) {
 
-printf("squad : received the size of result from (");
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
+      if (SquadGetFlagTextOMeter(that) == true) {
+        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+        SquidletInfoPrint(squidlet, streamBufferHistory);
+        fclose(streamBufferHistory);
+        sprintf(lineHistory, 
+          "received the size of result from (%s)\n", 
+          bufferHistory);
+        SquadPushHistory(that, lineHistory);
+      }
 
       // Send the acknowledgement of received result
       char ack = 1;
       int flags = 0;
       (void)send(squidlet->_sock, &ack, sizeof(char), flags);
-printf("squad : send ack of received result data to (");
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
+
+      if (SquadGetFlagTextOMeter(that) == true) {
+        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+        SquidletInfoPrint(squidlet, streamBufferHistory);
+        fclose(streamBufferHistory);
+        sprintf(lineHistory, 
+          "send ack of received result data to (%s)\n", 
+          bufferHistory);
+        SquadPushHistory(that, lineHistory);
+      }
 
       // Allocate memory for the result data
       task->_buffer = PBErrMalloc(TheSquidErr, sizeResultData + 1);
@@ -616,20 +684,44 @@ printf(")\n");
         // Send the acknowledgement of received result
         (void)send(squidlet->_sock, &ack, 1, flags);
         
-printf("squad : received result data %s from (", task->_buffer);
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
-printf("squad : size result data %d\n", sizeResultData);
+        if (SquadGetFlagTextOMeter(that) == true) {
+          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+          SquidletInfoPrint(squidlet, streamBufferHistory);
+          fclose(streamBufferHistory);
+          sprintf(lineHistory, 
+            "received result data from (%s)\n", 
+            bufferHistory);
+          SquadPushHistory(that, lineHistory);
+          sprintf(lineHistory, "size result data %d\n", 
+            sizeResultData);
+          SquadPushHistory(that, lineHistory);
+        }
+
       }
     } else {
-printf("squad : received a null size of result from (");
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
+
+      if (SquadGetFlagTextOMeter(that) == true) {
+        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+        SquidletInfoPrint(squidlet, streamBufferHistory);
+        fclose(streamBufferHistory);
+        sprintf(lineHistory, 
+          "received a null size of result from (%s)\n", 
+          bufferHistory);
+        SquadPushHistory(that, lineHistory);
+      }
+
     }
   } else {
-printf("squad : haven't received result from (");
-SquidletInfoPrint(squidlet, stdout);
-printf(")\n");
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "haven't received result from (%s)\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
   }
   
   // Return the result
@@ -649,6 +741,11 @@ GSet SquadStep(Squad* const that) {
 #endif
   // Create the set of completed tasks
   GSet completedTasks = GSetCreateStatic();
+
+  // Declare some variables to process the lines of history
+  char lineHistory[100];
+  char bufferHistory[100];
+  FILE* streamBufferHistory = NULL;
   
   // If there are running tasks
   if (SquadGetNbRunningTasks(that) > 0L) {
@@ -663,9 +760,14 @@ GSet SquadStep(Squad* const that) {
       // Check if the task is complete
       if (SquadReceiveTaskResult(that, runningTask)) {
 
-printf("squad : task ");
-SquadRunningTaskPrint(runningTask, stdout);
-printf(" complete\n");
+        if (SquadGetFlagTextOMeter(that) == true) {
+          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+          SquadRunningTaskPrint(runningTask, streamBufferHistory);
+          fclose(streamBufferHistory);
+          sprintf(lineHistory, "task %s complete\n", 
+            bufferHistory);
+          SquadPushHistory(that, lineHistory);
+        }
 
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
@@ -681,9 +783,14 @@ printf(" complete\n");
       } else if (time(NULL) - runningTask->_startTime > 
         runningTask->_request->_maxWaitTime) {
 
-printf("squad : task ");
-SquadRunningTaskPrint(runningTask, stdout);
-printf(" gave up\n");
+        if (SquadGetFlagTextOMeter(that) == true) {
+          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+          SquadRunningTaskPrint(runningTask, streamBufferHistory);
+          fclose(streamBufferHistory);
+          sprintf(lineHistory, "task %s gave up\n", 
+            bufferHistory);
+          SquadPushHistory(that, lineHistory);
+        }
 
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
@@ -697,9 +804,14 @@ printf(" gave up\n");
         flag = GSetIterRemoveElem(&iter);
       } else {
 
-printf("squad : task ");
-SquadRunningTaskPrint(runningTask, stdout);
-printf(" still running\n");
+        if (SquadGetFlagTextOMeter(that) == true) {
+          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+          SquadRunningTaskPrint(runningTask, streamBufferHistory);
+          fclose(streamBufferHistory);
+          sprintf(lineHistory, "task %s still running\n", 
+            bufferHistory);
+          SquadPushHistory(that, lineHistory);
+        }
 
       }
     } while (flag || GSetIterStep(&iter));
@@ -728,9 +840,14 @@ printf(" still running\n");
             SquadRunningTask* runningTask = 
               SquadRunningTaskCreate(task, squidlet);
 
-printf("squad : task ");
-SquadRunningTaskPrint(runningTask, stdout);
-printf(" running\n");
+            if (SquadGetFlagTextOMeter(that) == true) {
+              streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+              SquadRunningTaskPrint(runningTask, streamBufferHistory);
+              fclose(streamBufferHistory);
+              sprintf(lineHistory, "task %s running\n", 
+                bufferHistory);
+              SquadPushHistory(that, lineHistory);
+            }
 
             GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
             // Remove the squidlet from the available squidlet
@@ -746,6 +863,11 @@ printf(" running\n");
     } while (flag || GSetIterStep(&iter));
   }
   
+  // Update the TextOMeter if necessary
+  if (SquadGetFlagTextOMeter(that) == true) {
+    SquadUpdateTextOMeter(that);
+  }
+   
   // Return the set of completed tasks
   return completedTasks;
 }
@@ -766,7 +888,7 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
       char title[] = "Squad";
       int width = strlen(SQUAD_TXTOMETER_LINE1) + 1;
       int height = SQUAD_TXTOMETER_NBLINEHISTORY + 
-        SQUAD_TXTOMETER_NBTASKDISPLAYED + 1;
+        SQUAD_TXTOMETER_NBTASKDISPLAYED + 4;
       that->_textOMeter = TextOMeterCreate(title, width, height);
     }
     if (!flag && that->_textOMeter != NULL) {
@@ -774,6 +896,37 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
     }
     that->_flagTextOMeter = flag;
   }
+}
+
+// Add one line to the history of messages for the TextOMeter
+// 'msg' must be less than 100 characters long
+void SquadPushHistory(Squad* const that, char* msg) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
+    sprintf(PBImgAnalysisErr->_msg, "'that' is null");
+    PBErrCatch(PBImgAnalysisErr);
+  }
+  if (msg == NULL) {
+    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
+    sprintf(PBImgAnalysisErr->_msg, "'msg' is null");
+    PBErrCatch(PBImgAnalysisErr);
+  }
+  if (strlen(msg) >= 100) {
+    PBImgAnalysisErr->_type = PBErrTypeInvalidArg;
+    sprintf(PBImgAnalysisErr->_msg, "'msg' is too long (%d<100)",
+      strlen(msg));
+    PBErrCatch(PBImgAnalysisErr);
+  }
+#endif
+  for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY - 1; 
+    ++iLine) {
+    strcpy(that->_history[iLine], that->_history[iLine + 1]);
+  }
+  ++(that->_countLineHistory);
+  sprintf(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1], 
+    "[%05u] %s", that->_countLineHistory, msg);
+  SquadUpdateTextOMeter(that);
 }
 
 // Refresh the content of the TextOMeter attached to the 
@@ -799,9 +952,62 @@ void SquadUpdateTextOMeter(const Squad* const that) {
     SquadGetNbRunningTasks(that), SquadGetNbTasks(that),
     SquadGetNbSquidlets(that));
   TextOMeterPrint(that->_textOMeter, buffer);
-
-  // TODO
-
+  for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY; ++iLine) {
+    TextOMeterPrint(that->_textOMeter, that->_history[iLine]);
+  }
+  sprintf(buffer, SQUAD_TXTOMETER_TASKHEADER);
+  TextOMeterPrint(that->_textOMeter, buffer);
+  int iLine = 0;
+  if (SquadGetNbRunningTasks(that) > 0) {
+    GSetIterForward iter = GSetIterForwardCreateStatic(
+      (GSet*)SquadRunningTasks(that));
+    do {
+      SquadRunningTask* task = GSetIterGet(&iter);
+      if (task != NULL) {
+        char bufferTask[100];
+        FILE* stream = fmemopen(bufferTask, 100, "w");
+        SquadRunningTaskPrint(task, stream);
+        fclose(stream);
+        sprintf(buffer, SQUAD_TXTOMETER_FORMATRUNNING, bufferTask);
+      } else {
+        buffer[0] = '\0';
+      }
+      TextOMeterPrint(that->_textOMeter, buffer);
+      ++iLine;
+    } while (GSetIterStep(&iter) && 
+      iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED);
+  }
+  if (SquadGetNbTasks(that) > 0 &&
+    iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED) {
+    GSetIterForward iter = GSetIterForwardCreateStatic(
+      (GSet*)SquadTasks(that));
+    do {
+      SquidletTaskRequest* task = GSetIterGet(&iter);
+      if (task != NULL) {
+        char bufferTask[100];
+        FILE* stream = fmemopen(bufferTask, 100, "w");
+        SquidletTaskRequestPrint(task, stream);
+        fclose(stream);
+        sprintf(buffer, SQUAD_TXTOMETER_FORMATQUEUED, bufferTask);
+      } else {
+        buffer[0] = '\0';
+      }
+      TextOMeterPrint(that->_textOMeter, buffer);
+      ++iLine;
+    } while (GSetIterStep(&iter) && 
+      iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED);
+  }
+  if (iLine == SQUAD_TXTOMETER_NBTASKDISPLAYED) {
+    sprintf(buffer, "...\n");
+    TextOMeterPrint(that->_textOMeter, buffer);
+  } else {
+    sprintf(buffer, "\n");
+    for (; iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED; ++iLine) {
+      TextOMeterPrint(that->_textOMeter, buffer);
+    }
+  }
+  sprintf(buffer, "\n");
+  TextOMeterPrint(that->_textOMeter, buffer);
   // Flush the content of the TextOMeter
   TextOMeterFlush(that->_textOMeter);
 }

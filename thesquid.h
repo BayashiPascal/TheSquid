@@ -114,13 +114,15 @@ void SquadRunningTaskPrint(const SquadRunningTask* const that,
 // ================= Define ==================
 
 #define SQUAD_TXTOMETER_LINE1 \
-  "NbRunning xxxxx NbQueued xxxxx NbSquidlet xxxxx                     "
+  "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail xxxxx             \n"
 #define SQUAD_TXTOMETER_FORMAT1 \
-  "NbRunning %05ld NbQueued %05ld NbSquidlet %05ld                     "
-#define SQUAD_TXTOMETER_FORMATHISTORY "%s"
-#define SQUAD_TXTOMETER_FORMATRUNNING "Running: %s"
-#define SQUAD_TXTOMETER_FORMATQUEUED  " Queued: %s"
-#define SQUAD_TXTOMETER_NBLINEHISTORY 10
+  "NbRunning %05ld NbQueued %05ld NbSquidletAvail %05ld             \n"
+#define SQUAD_TXTOMETER_FORMATHISTORY "%s\n"
+#define SQUAD_TXTOMETER_TASKHEADER \
+  "------------------    Tasks    ---------------------             \n"
+#define SQUAD_TXTOMETER_FORMATRUNNING "Running: %s\n"
+#define SQUAD_TXTOMETER_FORMATQUEUED  " Queued: %s\n"
+#define SQUAD_TXTOMETER_NBLINEHISTORY 20
 #define SQUAD_TXTOMETER_NBTASKDISPLAYED 32
 
 // ================= Data structure ===================
@@ -140,6 +142,8 @@ typedef struct Squad {
   TextOMeter* _textOMeter;
   // Buffer internally used to display info in the TextOMeter
   char _history[SQUAD_TXTOMETER_NBLINEHISTORY][100];
+  // Counter for history
+  unsigned int _countLineHistory;
 } Squad;
 
 // ================ Functions declaration ====================
