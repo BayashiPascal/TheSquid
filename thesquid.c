@@ -381,12 +381,31 @@ bool SquadSendTaskRequest(Squad* const that,
     return true;
   }
   
+  // Declare some variables to process the lines of history
+  char lineHistory[100];
+  char bufferHistory[100];
+  FILE* streamBufferHistory = NULL;
+
   // Create a socket
   squidlet->_sock = socket(AF_INET, SOCK_STREAM, 0);
   
   // If we couldn't create the socket
-  if (squidlet->_sock == -1)
+  if (squidlet->_sock == -1) {
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "can't create socket to squidlet (%s)\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+      sprintf(lineHistory, "errno: %s\n", strerror(errno));
+      SquadPushHistory(that, lineHistory);
+    }
+
     return false;
+  }
   
   // Create the data for the connection to the squidlet
   struct sockaddr_in remote = {0};
@@ -400,13 +419,19 @@ bool SquadSendTaskRequest(Squad* const that,
     // If the connection failed
     close(squidlet->_sock);
     squidlet->_sock = -1;
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "connection to squidlet (%s) failed\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
+
     return false;
   }
-
-  // Declare some variables to process the lines of history
-  char lineHistory[100];
-  char bufferHistory[100];
-  FILE* streamBufferHistory = NULL;
 
   if (SquadGetFlagTextOMeter(that) == true) {
     streamBufferHistory = fmemopen(bufferHistory, 100, "w");
@@ -432,6 +457,17 @@ bool SquadSendTaskRequest(Squad* const that,
     // If we couldn't set the timeout
     close(squidlet->_sock);
     squidlet->_sock = -1;
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "setsockopt to squidlet (%s) failed\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
+
     return false;
   }
 
@@ -445,6 +481,17 @@ bool SquadSendTaskRequest(Squad* const that,
     // If we couldn't send the request
     close(squidlet->_sock);
     squidlet->_sock = -1;
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "send to squidlet (%s) failed\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
+
     return false;
   }
 
@@ -460,14 +507,28 @@ bool SquadSendTaskRequest(Squad* const that,
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
-    if (SquadGetFlagTextOMeter(that) == true) 
-      SquadPushHistory(that, "task request refused\n");
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, 
+        "task refused by squidlet (%s)\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
 
     return false;
   }
 
-  if (SquadGetFlagTextOMeter(that) == true) 
-    SquadPushHistory(that, "task request accepted\n");
+  if (SquadGetFlagTextOMeter(that) == true) {
+    streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+    SquidletInfoPrint(squidlet, streamBufferHistory);
+    fclose(streamBufferHistory);
+    sprintf(lineHistory, 
+      "task accepted by squidlet (%s)\n", 
+      bufferHistory);
+    SquadPushHistory(that, lineHistory);
+  }
 
   // Return the success code
   return true;
@@ -852,7 +913,29 @@ GSet SquadStep(Squad* const that) {
             GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
             // Remove the squidlet from the available squidlet
             flag = GSetIterRemoveElem(&iter);
+          } else {
+
+            if (SquadGetFlagTextOMeter(that) == true) {
+              streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+              SquidletInfoPrint(squidlet, streamBufferHistory);
+              fclose(streamBufferHistory);
+              sprintf(lineHistory, "couldn't send data to %s\n", 
+                bufferHistory);
+              SquadPushHistory(that, lineHistory);
+            }
+            
           }
+        } else {
+
+          if (SquadGetFlagTextOMeter(that) == true) {
+            streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+            SquidletInfoPrint(squidlet, streamBufferHistory);
+            fclose(streamBufferHistory);
+            sprintf(lineHistory, "task refused by %s\n", 
+              bufferHistory);
+            SquadPushHistory(that, lineHistory);
+          }
+
         }
         // If the squidlet refused the task or the data couldn't be sent
         if (!ret) {
@@ -1163,6 +1246,10 @@ void SquidletFree(Squidlet** that) {
   // Close the socket
   close((*that)->_fd);
 
+  // Close the socket fo reply if opened
+  if ((*that)->_sockReply != -1)
+    close((*that)->_sockReply);
+
   // Free memory
   free(*that);
   *that = NULL;
@@ -1220,7 +1307,7 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), " : accepted connection\n");
     }
-  
+    
     // Set the timeout for sending and receiving on this socket to 1 sec
     struct timeval tv;
     tv.tv_sec = 1;
@@ -1235,6 +1322,12 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
       // If we couldn't set the timeout, do not process the task
       taskRequest._type = SquidletTaskType_Null;
       reply = THESQUID_TASKREFUSED;
+
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), " : setsockopt failed\n");
+      }
+
     } else {
 
       // Receive the task type, give up after 5 seconds
@@ -1275,7 +1368,6 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
         }
       }
     }
-    
   }
 
   // Return the received task request
@@ -1298,12 +1390,12 @@ void SquidletProcessRequest(Squidlet* const that,
   }
 #endif
 
-    if (request->_type != SquidletTaskType_Null) {
-      if (SquidletStreamInfo(that)){
-        SquidletPrint(that, SquidletStreamInfo(that));
-        fprintf(SquidletStreamInfo(that), " : process task\n");
-      }
+  if (request->_type != SquidletTaskType_Null) {
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), " : process task\n");
     }
+  }
 
   // Switch according to the request type
   switch (request->_type) {
@@ -1353,6 +1445,7 @@ void SquidletProcessRequest(Squidlet* const that,
 
     close(that->_sockReply);
     that->_sockReply = -1;
+
     if (request->_type != SquidletTaskType_Null) {
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
@@ -1694,9 +1787,6 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Convert the socket (file descriptor) to a FILE pointer
-  FILE* fp = fdopen(sock, "r");
-
   // Declare a pointer to the next received byte
   char* freadPtr = buffer;
   
@@ -1711,9 +1801,9 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
   // limit is not reached
   while (freadPtr != freadPtrEnd && elapsedTime <= sec && 
     !Squidlet_CtrlC) {
-    // Try to read one more byte, if successfuul moves the pointer to
+    // Try to read one more byte, if successful moves the pointer to
     // the next byte to read by one byte
-    freadPtr += fread(freadPtr, 1, 1, fp);
+    freadPtr += read(sock, freadPtr, 1);
     // Update the elpased time
     elapsedTime = time(NULL) - startTime;
   }

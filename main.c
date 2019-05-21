@@ -171,7 +171,7 @@ void UnitTestBenchmark() {
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
   //size_t maxSizePayload = 10000000;
   size_t maxSizePayload = 100;
-  for (size_t sizePayload = 100; sizePayload <= maxSizePayload; 
+  /*for (size_t sizePayload = 100; sizePayload <= maxSizePayload; 
     sizePayload *= 10) {
     char* buffer = PBErrMalloc(TheSquidErr, sizePayload);
     for (size_t i = 0; i < sizePayload - 1; ++i)
@@ -191,7 +191,7 @@ void UnitTestBenchmark() {
     printf("001\t%08u\t%07lu\t%011.2f\n", sizePayload, nb, timePerTaskMs);
     fflush(stdout);
     free(buffer);
-  }
+  }*/
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -202,6 +202,9 @@ void UnitTestBenchmark() {
     printf("Failed to create the squad\n");
     printf("errno: %s\n", strerror(errno));
   }
+
+  SquadSetFlagTextOMeter(squad, true);
+
   // Load the info about the squidlet from the config file
   FILE* fp = fopen("unitTestBenchmark.json", "r");
   SquadLoad(squad, fp);
@@ -246,7 +249,7 @@ void UnitTestBenchmark() {
       } while (!flagStop && (stop.tv_sec - start.tv_sec) < 10);
       unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
         stop.tv_usec - start.tv_usec;
-      float timePerTaskMs = (float) deltams / (float)nb;
+      float timePerTaskMs = (float) deltams / (float)nbComplete;
       printf("%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, 
         nbComplete, timePerTaskMs);
       fflush(stdout);
@@ -269,8 +272,8 @@ void UnitTestAll() {
 
 int main() {
   //UnitTestAll();
-  //UnitTestDummy();
-  UnitTestBenchmark();
+  UnitTestDummy();
+  //UnitTestBenchmark();
   // Return success code
   return 0;
 }
