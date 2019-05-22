@@ -13,7 +13,7 @@
 // the socket 'sock' and store them into 'buffer' (which must be big 
 // enough). Give up after 'sec' seconds.
 // Return true if we could read all the requested byte, false else
-bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec);
+bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec);
 
 // -------------- SquidletInfo
 
@@ -387,6 +387,10 @@ bool SquadSendTaskRequest(Squad* const that,
   FILE* streamBufferHistory = NULL;
 
   // Create a socket
+  
+  if (squidlet->_sock != -1)
+    close(squidlet->_sock);
+  
   squidlet->_sock = socket(AF_INET, SOCK_STREAM, 0);
   
   // If we couldn't create the socket
@@ -500,7 +504,7 @@ bool SquadSendTaskRequest(Squad* const that,
 
   // Wait for the reply from the squidlet up to 5s
   char reply = THESQUID_TASKREFUSED;
-  if (!SocketRecv(squidlet->_sock, sizeof(reply), &reply, 5) ||
+  if (!SocketRecv(&(squidlet->_sock), sizeof(reply), &reply, 5) ||
     reply == THESQUID_TASKREFUSED) {
     // If we couldn't receive the reply or the reply timed out or
     // the squidlet refused the task
@@ -696,7 +700,7 @@ bool SquadReceiveTaskResult(Squad* const that,
   }
   
   // Try to receive the size of the input data and give up immediately
-  if (SocketRecv(squidlet->_sock, sizeof(size_t), 
+  if (SocketRecv(&(squidlet->_sock), sizeof(size_t), 
     (char*)&sizeResultData, 1)) {
 
     // If the result is ready
@@ -734,7 +738,7 @@ bool SquadReceiveTaskResult(Squad* const that,
       // Wait to receive the result data with a time limit proportional
       // to the size of result data
       int timeLimit = 5 + (int)round((float)sizeResultData / 1000.0);
-      if (!SocketRecv(squidlet->_sock, sizeResultData, 
+      if (!SocketRecv(&(squidlet->_sock), sizeResultData, 
         task->_buffer, timeLimit)) {
         // If we coudln't received the result data
         free(task->_buffer);
@@ -1008,7 +1012,7 @@ void SquadPushHistory(Squad* const that, char* msg) {
   }
   ++(that->_countLineHistory);
   sprintf(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1], 
-    "[%05u] %s", that->_countLineHistory, msg);
+    "[%06u] %s", that->_countLineHistory, msg);
   SquadUpdateTextOMeter(that);
 }
 
@@ -1298,6 +1302,10 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
   socklen_t incomingSockSize = sizeof(incomingSock);
   
   // Accept a connection
+  
+  if (that->_sockReply != -1)
+    close(that->_sockReply);
+  
   that->_sockReply = accept(that->_fd, (struct sockaddr *)&incomingSock,
     &incomingSockSize);
 
@@ -1331,7 +1339,7 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
     } else {
 
       // Receive the task type, give up after 5 seconds
-      if (SocketRecv(that->_sockReply, sizeof(SquidletTaskType), 
+      if (SocketRecv(&(that->_sockReply), sizeof(SquidletTaskType), 
         (char*)&taskRequest, 5)) {
         reply = THESQUID_TASKACCEPTED;
         if (SquidletStreamInfo(that)){
@@ -1414,7 +1422,7 @@ void SquidletProcessRequest(Squidlet* const that,
 
     // Close the output socket for this task after receiving the 
     // acknowledgement
-    // Give up after 60s
+    // Give up after 10s
 
     if (request->_type != SquidletTaskType_Null) {
       if (SquidletStreamInfo(that)){
@@ -1425,7 +1433,7 @@ void SquidletProcessRequest(Squidlet* const that,
     }
 
     char ack = 0;
-    if (SocketRecv(that->_sockReply, 1, &ack, 60)) {
+    if (SocketRecv(&(that->_sockReply), 1, &ack, 10)) {
       if (request->_type != SquidletTaskType_Null) {
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
@@ -1442,9 +1450,6 @@ void SquidletProcessRequest(Squidlet* const that,
         }
       }
     }
-
-    close(that->_sockReply);
-    that->_sockReply = -1;
 
     if (request->_type != SquidletTaskType_Null) {
       if (SquidletStreamInfo(that)){
@@ -1477,7 +1482,7 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
   size_t sizeInputData = 0;
 
   // Wait to receive the size of the input data with a time limit of 5s
-  if (SocketRecv(that->_sockReply, sizeof(size_t), 
+  if (SocketRecv(&(that->_sockReply), sizeof(size_t), 
     (char*)&sizeInputData, 5)) {
 
     if (SquidletStreamInfo(that)){
@@ -1499,7 +1504,7 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
       // Wait to receive the input data with a time limit proportional
       // to the size of input data
       int timeLimit = 5 + (int)round((float)sizeInputData / 1000.0);
-      if (!SocketRecv(that->_sockReply, sizeInputData, buffer, 
+      if (!SocketRecv(&(that->_sockReply), sizeInputData, buffer, 
         timeLimit)) {
         // If we coudln't received the input data
         free(buffer);
@@ -1508,7 +1513,7 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
     }
 
     // If we could receive the expected data
-    if (sizeInputData == 0 || buffer != NULL) {
+    if (sizeInputData > 0 && buffer != NULL) {
       
       // Process the data
       if (SquidletStreamInfo(that)){
@@ -1561,7 +1566,7 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
       }
 
     char ack = 0;
-    (void)SocketRecv(that->_sockReply, 1, &ack, 60);
+    (void)SocketRecv(&(that->_sockReply), 1, &ack, 60);
 
 
     if (send(that->_sockReply, bufferResult, len, flags) != -1) {
@@ -1596,7 +1601,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   int result = 0;
 
   // Wait to receive the size of the input data with a time limit of 5s
-  if (SocketRecv(that->_sockReply, sizeof(size_t), 
+  if (SocketRecv(&(that->_sockReply), sizeof(size_t), 
     (char*)&sizeInputData, 5)) {
 
     // Declare a buffer for the raw input data
@@ -1617,7 +1622,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       // Wait to receive the input data with a time limit proportional
       // to the size of input data
       int timeLimit = 5 + (int)round((float)sizeInputData / 1000.0);
-      if (!SocketRecv(that->_sockReply, sizeInputData, buffer, 
+      if (!SocketRecv(&(that->_sockReply), sizeInputData, buffer, 
         timeLimit)) {
         // If we coudln't received the input data
         free(buffer);
@@ -1637,7 +1642,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
     }
 
     // If we could receive the expected data
-    if (sizeInputData == 0 || buffer != NULL) {
+    if (sizeInputData > 0 && buffer != NULL) {
       
       // Decode the input from JSON
       JSONNode* json = JSONCreate();
@@ -1736,7 +1741,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
     // Receive the acknowledgement
     char ack = 0;
     int waitDelayMaxSec = 60;
-    if (SocketRecv(that->_sockReply, sizeof(char), &ack, 
+    if (SocketRecv(&(that->_sockReply), sizeof(char), &ack, 
       waitDelayMaxSec)) {
 
       if (SquidletStreamInfo(that)){
@@ -1779,7 +1784,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 // the socket 'sock' and store them into 'buffer' (which must be big 
 // enough). Give up after 'sec' seconds.
 // Return true if we could read all the requested byte, false else
-bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
+bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec) {
 #if BUILDMODE == 0
   if (buffer == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -1787,7 +1792,8 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
     PBErrCatch(TheSquidErr);
   }
 #endif
-  //FILE* fp = fdopen(sock, "r");
+
+  FILE* fp = fdopen(*sock, "r");
 
   // Declare a pointer to the next received byte
   char* freadPtr = buffer;
@@ -1805,13 +1811,19 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
     !Squidlet_CtrlC) {
     // Try to read one more byte, if successful moves the pointer to
     // the next byte to read by one byte
-    ssize_t nbReadByte = read(sock, freadPtr, 1);
-    if (nbReadByte > 0)
+    //ssize_t nbReadByte = read(sock, freadPtr, nb);
+    ssize_t nbReadByte = fread(freadPtr, 1, nb, fp);
+    if (nbReadByte > 0) {
       freadPtr += nbReadByte;
-    //freadPtr += fread(freadPtr, 1, 1, fp);
+    }
     // Update the elpased time
     elapsedTime = time(NULL) - startTime;
   }
+
+  
+
+  *sock = dup(*sock);
+  fclose(fp);
 
   // Return the success/failure code
   if (freadPtr != freadPtrEnd) {
@@ -1833,9 +1845,11 @@ int TheSquidBenchmark(int nbLoop, const char* const buffer) {
   // Loop on sample code
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
     GSet set = GSetCreateStatic();
-    for(unsigned int i = strlen(buffer); i--;) {
-      GSetPush(&set, NULL);
-      set._head->_sortVal = (float)(buffer[i]);
+    for (unsigned int inflation = 0; inflation < 1024; ++inflation) {
+      for(unsigned int i = strlen(buffer); i--;) {
+        GSetPush(&set, NULL);
+        set._head->_sortVal = (float)(buffer[i]);
+      }
     }
     GSetSort(&set);
     res = (int)round(set._head->_sortVal);

@@ -171,27 +171,31 @@ void UnitTestBenchmark() {
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
   //size_t maxSizePayload = 10000000;
   size_t maxSizePayload = 100;
-  /*for (size_t sizePayload = 100; sizePayload <= maxSizePayload; 
+  for (size_t sizePayload = 100; sizePayload <= maxSizePayload; 
     sizePayload *= 10) {
     char* buffer = PBErrMalloc(TheSquidErr, sizePayload);
     for (size_t i = 0; i < sizePayload - 1; ++i)
       buffer[i] = 'a' + i % 26;
     buffer[sizePayload - 1] = 0;
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
-    unsigned long nb = 0;
-    do {
-      TheSquidBenchmark(1, buffer);
-      ++nb;
-      gettimeofday(&stop, NULL);
-    } while (stop.tv_sec - start.tv_sec < 10);
-    unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
-      stop.tv_usec - start.tv_usec;
-    float timePerTaskMs = (float) deltams / (float)nb;
-    printf("001\t%08u\t%07lu\t%011.2f\n", sizePayload, nb, timePerTaskMs);
-    fflush(stdout);
+    // Loop on nbLoop
+    for (int nbLoop = 1; nbLoop <= 32; nbLoop *= 2) {
+      struct timeval stop, start;
+      gettimeofday(&start, NULL);
+      unsigned long nbComplete = 0;
+      do {
+        TheSquidBenchmark(nbLoop, buffer);
+        ++nbComplete;
+        gettimeofday(&stop, NULL);
+      } while (stop.tv_sec - start.tv_sec < 10);
+      unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
+        stop.tv_usec - start.tv_usec;
+      float timePerTaskMs = (float) deltams / (float)nbComplete;
+      printf("%03d\t%08u\t%07lu\t%011.2f\n", 
+        nbLoop, sizePayload, nbComplete, timePerTaskMs);
+      fflush(stdout);
+    }
     free(buffer);
-  }*/
+  }
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -203,7 +207,7 @@ void UnitTestBenchmark() {
     printf("errno: %s\n", strerror(errno));
   }
 
-  SquadSetFlagTextOMeter(squad, true);
+  //SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
   FILE* fp = fopen("unitTestBenchmark.json", "r");
@@ -271,9 +275,7 @@ void UnitTestAll() {
 }
 
 int main() {
-  //UnitTestAll();
-  UnitTestDummy();
-  //UnitTestBenchmark();
+  UnitTestAll();
   // Return success code
   return 0;
 }

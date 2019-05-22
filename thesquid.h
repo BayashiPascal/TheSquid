@@ -267,7 +267,7 @@ typedef struct Squidlet {
   // Information about the host
   struct hostent* _host; 
   // Socket to send the result of a task 
-  int _sockReply;
+  short _sockReply;
   // Stream to ouput infos, if null the squidlet is silent
   // By default it's null
   FILE* _streamInfo; 
