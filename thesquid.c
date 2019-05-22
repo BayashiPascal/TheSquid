@@ -1787,6 +1787,8 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
     PBErrCatch(TheSquidErr);
   }
 #endif
+  //FILE* fp = fdopen(sock, "r");
+
   // Declare a pointer to the next received byte
   char* freadPtr = buffer;
   
@@ -1803,7 +1805,10 @@ bool SocketRecv(short sock, unsigned long nb, char* buffer, int sec) {
     !Squidlet_CtrlC) {
     // Try to read one more byte, if successful moves the pointer to
     // the next byte to read by one byte
-    freadPtr += read(sock, freadPtr, 1);
+    ssize_t nbReadByte = read(sock, freadPtr, 1);
+    if (nbReadByte > 0)
+      freadPtr += nbReadByte;
+    //freadPtr += fread(freadPtr, 1, 1, fp);
     // Update the elpased time
     elapsedTime = time(NULL) - startTime;
   }
