@@ -169,16 +169,16 @@ void UnitTestBenchmark() {
   printf("-- Benchmark --\n");
   printf("Execution on local device:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
-  //size_t maxSizePayload = 10000000;
-  size_t maxSizePayload = 100;
-  for (size_t sizePayload = 100; sizePayload <= maxSizePayload; 
-    sizePayload *= 10) {
-    char* buffer = PBErrMalloc(TheSquidErr, sizePayload);
-    for (size_t i = 0; i < sizePayload - 1; ++i)
-      buffer[i] = 'a' + i % 26;
-    buffer[sizePayload - 1] = 0;
+  int lengthTest = 30;
+  //size_t maxSizePayload = 100000000;
+  size_t maxSizePayload = 10000;
+  int nbMaxLoop = 128;
+    char* buffer = PBErrMalloc(TheSquidErr, 27);
+    for (size_t i = 0; i < 26; ++i)
+      buffer[i] = 'a' + i;
+    buffer[26] = 0;
     // Loop on nbLoop
-    for (int nbLoop = 1; nbLoop <= 32; nbLoop *= 2) {
+    for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
       struct timeval stop, start;
       gettimeofday(&start, NULL);
       unsigned long nbComplete = 0;
@@ -186,16 +186,15 @@ void UnitTestBenchmark() {
         TheSquidBenchmark(nbLoop, buffer);
         ++nbComplete;
         gettimeofday(&stop, NULL);
-      } while (stop.tv_sec - start.tv_sec < 10);
+      } while (stop.tv_sec - start.tv_sec < lengthTest);
       unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
         stop.tv_usec - start.tv_usec;
       float timePerTaskMs = (float) deltams / (float)nbComplete;
       printf("%03d\t%08u\t%07lu\t%011.2f\n", 
-        nbLoop, sizePayload, nbComplete, timePerTaskMs);
+        nbLoop, 1, nbComplete, timePerTaskMs);
       fflush(stdout);
     }
     free(buffer);
-  }
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -217,10 +216,10 @@ void UnitTestBenchmark() {
   time_t maxWait = 100;
   unsigned int id = 0;
   bool flagStop = false;
-  for (size_t sizePayload = 100; !flagStop && 
-    sizePayload <= maxSizePayload; sizePayload *= 10) {
+  for (size_t sizePayload = 1; !flagStop && 
+    sizePayload <= maxSizePayload; sizePayload *= 100) {
     // Loop on nbLoop
-    for (int nbLoop = 1; !flagStop && nbLoop <= 32; nbLoop *= 2) {
+    for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; nbLoop *= 2) {
 
       // Loop for 10s
       struct timeval stop, start;
@@ -250,7 +249,24 @@ void UnitTestBenchmark() {
         }
         
         gettimeofday(&stop, NULL);
-      } while (!flagStop && (stop.tv_sec - start.tv_sec) < 10);
+      } while (!flagStop && (stop.tv_sec - start.tv_sec) < lengthTest);
+      // Wait for the running tasks to finish
+      while (SquadGetNbRunningTasks(squad) > 0) {
+        GSet completedTasks = SquadStep(squad);
+        nbComplete += GSetNbElem(&completedTasks);
+        while (GSetNbElem(&completedTasks) > 0L) {
+          SquidletTaskRequest* task = GSetPop(&completedTasks);
+          // If the task failed
+          if (strstr(task->_buffer, "\"success\":\"0\"")) {
+            SquidletTaskRequestPrint(task, stdout);
+            printf(" failed !!\n");
+            flagStop = true;
+          }
+          SquidletTaskRequestFree(&task);
+        }
+      } 
+      gettimeofday(&stop, NULL);
+      
       unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
         stop.tv_usec - start.tv_usec;
       float timePerTaskMs = (float) deltams / (float)nbComplete;
@@ -275,7 +291,8 @@ void UnitTestAll() {
 }
 
 int main() {
-  UnitTestAll();
+  //UnitTestAll();
+  UnitTestBenchmark();
   // Return success code
   return 0;
 }

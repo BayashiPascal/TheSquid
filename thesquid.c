@@ -576,10 +576,10 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   // Create the new task
   // Prepare the data as JSON
 
-  char* payload = PBErrMalloc(TheSquidErr, payloadSize);
-  for (size_t i = 0; i < payloadSize - 1; ++i)
-    payload[i] = 'a' + i % 26;
-  payload[payloadSize - 1] = 0;
+  char* payload = PBErrMalloc(TheSquidErr, 27);
+  for (size_t i = 0; i < 26; ++i)
+    payload[i] = 'a' + i;
+  payload[26] = 0;
 
   char bufferNb[100];
   sprintf(bufferNb, "%d", nb);
@@ -588,9 +588,12 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   sprintf(bufferId, "%ld", id);
   int idSize = strlen(bufferId);
   char* buffer = PBErrMalloc(TheSquidErr, 
-    payloadSize + idSize + nbSize + 25);
+    payloadSize + idSize + nbSize + 25 + 26);
   sprintf(buffer, "{\"id\":\"%s\",\"nb\":\"%s\",\"v\":\"%s\"}", 
     bufferId, bufferNb, payload);
+  unsigned long bufferLen = strlen(buffer);
+  memset(buffer + bufferLen, ' ', payloadSize);
+  buffer[bufferLen + payloadSize] = '\0';
   free(payload);
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
     SquidletTaskType_Benchmark, id, buffer, maxWait);
@@ -1846,9 +1849,10 @@ int TheSquidBenchmark(int nbLoop, const char* const buffer) {
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
     GSet set = GSetCreateStatic();
     for (unsigned int inflation = 0; inflation < 1024; ++inflation) {
-      for(unsigned int i = strlen(buffer); i--;) {
+      for(unsigned long i = strlen(buffer); i--;) {
         GSetPush(&set, NULL);
-        set._head->_sortVal = (float)(buffer[i]);
+        set._head->_sortVal = 
+          (float)(buffer[(i + iLoop) % strlen(buffer)]);
       }
     }
     GSetSort(&set);
