@@ -1,0 +1,35 @@
+1) Download the Raspbian Stretch Lite image (1.9Gb) from https://www.raspberrypi.org/downloads/raspbian/
+2) If not already installed, install Etcher, cf https://www.balena.io/etcher/
+3) Launch Etcher
+4) Plug the 8Gb microSD card
+5) Select the downloaded image
+6) Select the microSD card
+7) Flash!
+8) Create an empy file named "ssh" on the boot drive of the miccroSD card
+9) Insert the microSD into the Raspberry Pi
+10) Connect the Raspberry Pi to the network
+11) Turn on the Raspberry Pi
+12) Get the IP adress of the local computer with ifconfig, lets say its a.b.c.d
+13) Scan the devices on the local network with the command `nmap -sP a.b.c.0/24`
+14) Connect to the Raspberry Pi through ssh with the command `ssh pi@ip.addr.goes.here`, defulat password is raspberry
+15) Setup the Raspberry Pi with `sudo raspi-config`
+16) Change the password, locale and timezone, expand the file system, and exit
+17) Set the hostname with the following commands
+sudo hostname Squidlet001  # whatever name you chose
+sudo nano /etc/hostname    # change the hostname here too
+sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
+18) Ensure the system time is right with the command `sudo apt install ntpdate -y`
+19) Reboot with the command `sudo reboot`
+20) Check the info about the CPUs and memory Raspberry Pi with the commands `cat /proc/cpuinfo`, `cat /proc/meminfo` and `vcgencmd measure_clock arm`
+21) Check the temperature of the Raspberry Pi with the command `vcgencmd measure_temp`, should be kept under around 70 degrees celsius
+22) Cf https://www.maketecheasier.com/finding-raspberry-pi-system-information/ for more information
+23) Make a directory to clone the git repositories with the command `mkdir ~/GitHub`
+24) Move to the ~/GitHub directory
+25) Clone the repository PBMake with the command `git clone https://github.com/BayashiPascal/PBMake.git`
+26) Edit the root Makefile with the command `nano ~/GitHub/PBMake/Makefile.inc` and change the value of ROOT_DIR with /home/pi/GitHub/
+27) Clone the repository TheSquid with the command `git clone https://github.com/BayashiPascal/TheSquid.git`
+28) Move to the ~/GitHub/TheSquid directory
+29) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1'
+30) Compile the repository with the command `make`, others repository are automatically installed
+
+

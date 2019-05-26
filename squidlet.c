@@ -6,11 +6,20 @@
 int main(int argc, char** argv) {
   // Process arguments
   int port = -1;
+  uint32_t ip = 0;
   char* outputFilePath = NULL;
   for (int iArg = 0; iArg < argc; ++iArg) {
     if (strcmp(argv[iArg], "-port") == 0) {
       ++iArg;
       port = atoi(argv[iArg]);
+    }
+    if (strcmp(argv[iArg], "-ip") == 0) {
+      ++iArg;
+      unsigned int v[4];
+      sscanf(argv[iArg], "%d.%d.%d.%d", v, v + 1, v + 2, v + 3);
+      for (int i = 0; i < 4; ++i) {
+        ((unsigned char*)(&ip))[i] = v[i];
+      }
     }
     if (strcmp(argv[iArg], "-verbose") == 0) {
       ++iArg;
@@ -18,13 +27,13 @@ int main(int argc, char** argv) {
     }
     if (strcmp(argv[iArg], "-help") == 0) {
       printf("squidlet [-verbose <stdout | file path>] ");
-      printf("[-port <port>] [-help]\n");
+      printf("[-ip <a.b.c.d>] [-port <port>] [-help]\n");
       exit(0);
     }
   }
   
   // Create the squidlet
-  Squidlet* squidlet = SquidletCreateOnPort(port);
+  Squidlet* squidlet = SquidletCreateOnPort(ip, port);
   if (squidlet == NULL) {
     printf("Failed to create the squidlet\n");
     printf("TheSquidErr: %s\n", TheSquidErr->_msg);

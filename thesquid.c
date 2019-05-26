@@ -432,6 +432,8 @@ bool SquadSendTaskRequest(Squad* const that,
         "connection to squidlet (%s) failed\n", 
         bufferHistory);
       SquadPushHistory(that, lineHistory);
+      sprintf(lineHistory, "errno: %s\n", strerror(errno));
+      SquadPushHistory(that, lineHistory);
     }
 
     return false;
@@ -470,6 +472,8 @@ bool SquadSendTaskRequest(Squad* const that,
         "setsockopt to squidlet (%s) failed\n", 
         bufferHistory);
       SquadPushHistory(that, lineHistory);
+      sprintf(lineHistory, "errno: %s\n", strerror(errno));
+      SquadPushHistory(that, lineHistory);
     }
 
     return false;
@@ -493,6 +497,8 @@ bool SquadSendTaskRequest(Squad* const that,
       sprintf(lineHistory, 
         "send to squidlet (%s) failed\n", 
         bufferHistory);
+      SquadPushHistory(that, lineHistory);
+      sprintf(lineHistory, "errno: %s\n", strerror(errno));
       SquadPushHistory(that, lineHistory);
     }
 
@@ -1121,9 +1127,11 @@ void SquidletHandlerCtrlC(const int sig) {
   fflush(stdout);
 }
 
-// Return a new Squidlet listening to the port 'port'
-// If 'port' equals -1 select automatically one available
-Squidlet* SquidletCreateOnPort(int port) {
+// Return a new Squidlet listening to the ip 'addr' and port 'port'
+// If 'addr' equals 0, select automatically the first network address 
+// of the host 
+// If 'port' equals -1, select automatically one available
+Squidlet* SquidletCreateOnPort(const uint32_t addr, const int port) {
   // Allocate memory for the squidlet
   Squidlet* that = PBErrMalloc(TheSquidErr, sizeof(Squidlet));
   
@@ -1178,13 +1186,16 @@ Squidlet* SquidletCreateOnPort(int port) {
   }
   
   // Init the port and socket info
+  memset(&(that->_sock), 0, sizeof(struct sockaddr_in));
+  that->_sock.sin_family = AF_INET;
+  if (addr != 0)
+    that->_sock.sin_addr.s_addr = addr;
+  else
+    that->_sock.sin_addr.s_addr = *(uint32_t*)(that->_host->h_addr_list[0]);
   if (port != -1)
     that->_port = port;
   else
     that->_port = THESQUID_PORTMIN;
-  memset(&(that->_sock), 0, sizeof(struct sockaddr_in));
-  that->_sock.sin_family = AF_INET;
-  that->_sock.sin_addr.s_addr = *(uint32_t*)(that->_host->h_addr_list[0]);
   that->_sock.sin_port = htons(that->_port);
   
   // If the port is not specified by the user, bind the socket on the 

@@ -66,7 +66,7 @@ void UnitTestDummy() {
     
     // In a squidlet process
     
-    Squidlet* squidlet = SquidletCreateOnPort(port[squidletId]);
+    Squidlet* squidlet = SquidletCreateOnPort(0, port[squidletId]);
     if (squidlet == NULL) {
       printf("Failed to create the squidlet #%d\n", squidletId);
       printf("errno: %s\n", strerror(errno));
@@ -173,28 +173,28 @@ void UnitTestBenchmark() {
   //size_t maxSizePayload = 100000000;
   size_t maxSizePayload = 10000;
   int nbMaxLoop = 128;
-    char* buffer = PBErrMalloc(TheSquidErr, 27);
-    for (size_t i = 0; i < 26; ++i)
-      buffer[i] = 'a' + i;
-    buffer[26] = 0;
-    // Loop on nbLoop
-    for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
-      struct timeval stop, start;
-      gettimeofday(&start, NULL);
-      unsigned long nbComplete = 0;
-      do {
-        TheSquidBenchmark(nbLoop, buffer);
-        ++nbComplete;
-        gettimeofday(&stop, NULL);
-      } while (stop.tv_sec - start.tv_sec < lengthTest);
-      unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
-        stop.tv_usec - start.tv_usec;
-      float timePerTaskMs = (float) deltams / (float)nbComplete;
-      printf("%03d\t%08u\t%07lu\t%011.2f\n", 
-        nbLoop, 1, nbComplete, timePerTaskMs);
-      fflush(stdout);
-    }
-    free(buffer);
+  char* buffer = PBErrMalloc(TheSquidErr, 27);
+  for (size_t i = 0; i < 26; ++i)
+    buffer[i] = 'a' + i;
+  buffer[26] = 0;
+  // Loop on nbLoop
+  for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
+    unsigned long nbComplete = 0;
+    do {
+      TheSquidBenchmark(nbLoop, buffer);
+      ++nbComplete;
+      gettimeofday(&stop, NULL);
+    } while (stop.tv_sec - start.tv_sec < lengthTest);
+    unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
+      stop.tv_usec - start.tv_usec;
+    float timePerTaskMs = (float) deltams / (float)nbComplete;
+    printf("%03d\t%08u\t%07lu\t%011.2f\n", 
+      nbLoop, 1, nbComplete, timePerTaskMs);
+    fflush(stdout);
+  }
+  free(buffer);
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -206,7 +206,7 @@ void UnitTestBenchmark() {
     printf("errno: %s\n", strerror(errno));
   }
 
-  //SquadSetFlagTextOMeter(squad, true);
+  SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
   FILE* fp = fopen("unitTestBenchmark.json", "r");

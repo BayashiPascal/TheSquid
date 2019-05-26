@@ -278,10 +278,12 @@ typedef struct Squidlet {
 // Handler for the signal Ctrl-C
 void SquidletHandlerCtrlC(const int sig);
 
-// Return a new Squidlet listening to the port 'port'
-// If 'port' equals -1 select automatically one available
-Squidlet* SquidletCreateOnPort(int port);
-#define SquidletCreate() SquidletCreateOnPort(-1)
+// Return a new Squidlet listening to the ip 'addr' and port 'port'
+// If 'addr' equals 0, select automatically the first network address 
+// of the host 
+// If 'port' equals -1, select automatically one available
+Squidlet* SquidletCreateOnPort(const uint32_t addr, const int port);
+#define SquidletCreate() SquidletCreateOnPort(0, -1)
 
 // Free the memory used by the Squidlet 'that'
 void SquidletFree(Squidlet** that);

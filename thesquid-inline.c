@@ -172,7 +172,8 @@ const char* SquidletIP(const Squidlet* const that) {
     PBErrCatch(TheSquidErr);
   }
 #endif
-  return inet_ntoa(*((struct in_addr*)that->_host->h_addr_list[0]));
+  return inet_ntoa(that->_sock.sin_addr);
+  //return inet_ntoa(*((struct in_addr*)that->_host->h_addr_list[0]));
 }
 
 // Get the port of the Squidlet 'that'
