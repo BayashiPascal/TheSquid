@@ -137,7 +137,7 @@ void UnitTestDummy() {
         SquidletTaskRequest* task = GSetPop(&completedTasks);
         printf("squad : ");
         SquidletTaskRequestPrint(task, stdout);
-        if (strstr(task->_buffer, "\"success\":\"0\"")) {
+        if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
           printf(" failed !!\n");
           flagStop = true;
         } else {
@@ -173,7 +173,7 @@ void UnitTestBenchmark() {
   //size_t maxSizePayload = 100000000;
   size_t maxSizePayload = 10000;
   int nbMaxLoop = 128;
-  char* buffer = PBErrMalloc(TheSquidErr, 27);
+  /*char* buffer = PBErrMalloc(TheSquidErr, 27);
   for (size_t i = 0; i < 26; ++i)
     buffer[i] = 'a' + i;
   buffer[26] = 0;
@@ -194,7 +194,7 @@ void UnitTestBenchmark() {
       nbLoop, 1, nbComplete, timePerTaskMs);
     fflush(stdout);
   }
-  free(buffer);
+  free(buffer);*/
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -206,7 +206,7 @@ void UnitTestBenchmark() {
     printf("errno: %s\n", strerror(errno));
   }
 
-  SquadSetFlagTextOMeter(squad, true);
+  //SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
   FILE* fp = fopen("unitTestBenchmark.json", "r");
@@ -240,7 +240,7 @@ void UnitTestBenchmark() {
         while (GSetNbElem(&completedTasks) > 0L) {
           SquidletTaskRequest* task = GSetPop(&completedTasks);
           // If the task failed
-          if (strstr(task->_buffer, "\"success\":\"0\"")) {
+          if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
             SquidletTaskRequestPrint(task, stdout);
             printf(" failed !!\n");
             flagStop = true;
