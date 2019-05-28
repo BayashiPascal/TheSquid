@@ -21,7 +21,7 @@ sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
 18) Ensure the system time is right with the command `sudo apt install ntpdate -y`
 19) Reboot with the command `sudo reboot`
 20) Check the info about the CPUs and memory Raspberry Pi with the commands `cat /proc/cpuinfo`, `cat /proc/meminfo` and `vcgencmd measure_clock arm`. More usefull commands: `watch -n 1 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`, `while true; do /opt/vc/bin/vcgencmd measure_temp && sleep 1; done`, `lscpu`
-21) Check the temperature of the Raspberry Pi with the command `vcgencmd measure_temp`, should be kept under around 70 degrees celsius
+21) Check the temperature of the Raspberry Pi with the command `vcgencmd measure_temp`, should be kept under around 70 degrees celsius (official limit is 85)
 22) Cf https://www.maketecheasier.com/finding-raspberry-pi-system-information/ for more information
 23) Make a directory to clone the git repositories with the command `mkdir ~/GitHub`
 24) Move to the ~/GitHub directory
