@@ -1,0 +1,33 @@
+4056 bayashi-X101CH 127.0.1.1:9001 : accepted connection
+4056 bayashi-X101CH 127.0.1.1:9001 : received task type 1
+4056 bayashi-X101CH 127.0.1.1:9001 : sent reply to task request 1
+4056 bayashi-X101CH 127.0.1.1:9001 : process task
+4056 bayashi-X101CH 127.0.1.1:9001 : size input data 9
+4056 bayashi-X101CH 127.0.1.1:9001 : process dummy task {"v":"1"}
+4056 bayashi-X101CH 127.0.1.1:9001 : wait for acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : sent result {"success":"1","v":"-1"}
+4056 bayashi-X101CH 127.0.1.1:9001 : wait for acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : received acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : ready for next task
+4056 bayashi-X101CH 127.0.1.1:9001 : accepted connection
+4056 bayashi-X101CH 127.0.1.1:9001 : received task type 1
+4056 bayashi-X101CH 127.0.1.1:9001 : sent reply to task request 1
+4056 bayashi-X101CH 127.0.1.1:9001 : process task
+4056 bayashi-X101CH 127.0.1.1:9001 : size input data 9
+4056 bayashi-X101CH 127.0.1.1:9001 : process dummy task {"v":"3"}
+4056 bayashi-X101CH 127.0.1.1:9001 : wait for acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : sent result {"success":"1","v":"-3"}
+4056 bayashi-X101CH 127.0.1.1:9001 : wait for acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : received acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : ready for next task
+4056 bayashi-X101CH 127.0.1.1:9001 : accepted connection
+4056 bayashi-X101CH 127.0.1.1:9001 : received task type 1
+4056 bayashi-X101CH 127.0.1.1:9001 : sent reply to task request 1
+4056 bayashi-X101CH 127.0.1.1:9001 : process task
+4056 bayashi-X101CH 127.0.1.1:9001 : size input data 9
+4056 bayashi-X101CH 127.0.1.1:9001 : process dummy task {"v":"5"}
+4056 bayashi-X101CH 127.0.1.1:9001 : wait for acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : sent result {"success":"1","v":"-5"}
+4056 bayashi-X101CH 127.0.1.1:9001 : wait for acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : received acknowledgement from squad
+4056 bayashi-X101CH 127.0.1.1:9001 : ready for next task
