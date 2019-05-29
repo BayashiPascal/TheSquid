@@ -4,6 +4,10 @@
 # 2: fast and furious (no safety, optimisation)
 BUILD_MODE?=1
 
+# Architecture on which the squidlet is running
+# 1: Raspberry Pi 3B
+SQUIDLET_ARCH=0
+
 all: pbmake_wget main squidlet
 	
 # Automatic installation of the repository PBMake in the parent folder

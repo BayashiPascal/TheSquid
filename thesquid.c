@@ -1562,7 +1562,12 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
   char bufferResult[100];
   memset(bufferResult, 0, 100);
   if (success) {
-    sprintf(bufferResult, "{\"success\":\"1\",\"v\":\"%d\"}", result);
+    char* temperature = SquidletGetTemperature(that);
+    sprintf(bufferResult, 
+      "{\"success\":\"1\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
+      result, temperature);
+    if (temperature != NULL)
+      free(temperature);
   } else {
     sprintf(bufferResult, "{\"success\":\"0\"}");
   }
@@ -1794,6 +1799,64 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 
 }  
 
+// Return the temperature of the squidlet 'that' as a string.
+// The result depends on the architecture on which the squidlet is 
+// running and maybe null if the temperature is not availalble
+char* SquidletGetTemperature(const Squidlet* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  (void)that;
+#if SQUIDLET_ARCH == 1
+  // Declare a variable to pipe the shell command
+  FILE* fp = NULL;
+  // Run the command and pipe its output
+  fp = popen("vcgencmd measure_temp", "r");
+  if (fp != NULL) {
+    // Declare a variable to store the output
+    char output[100] = {0};
+    // Read the output
+    while (fgets(output, sizeof(output), fp) != NULL);
+    // Close the pipe
+    pclose(fp);
+    // Return the result
+    return strdup(output);
+  }
+#else
+  return NULL;
+#endif
+}
+
+// -------------- TheSquid 
+
+// ================ Functions implementation ====================
+
+// Function for benchmark purpose
+int TheSquidBenchmark(int nbLoop, const char* const buffer) {
+  // Variable to memorize the dummy result
+  int res = 0;
+  // Loop on sample code
+  for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
+    GSet set = GSetCreateStatic();
+    for (unsigned int inflation = 0; inflation < 1024; ++inflation) {
+      for(unsigned long i = strlen(buffer); i--;) {
+        GSetPush(&set, NULL);
+        set._head->_sortVal = 
+          (float)(buffer[(i + iLoop) % strlen(buffer)]);
+      }
+    }
+    GSetSort(&set);
+    res = (int)round(set._head->_sortVal);
+    GSetFlush(&set);
+  }
+  // Return the dummy result
+  return res;
+}
+
 // Function to receive in blocking mode 'nb' bytes of data from
 // the socket 'sock' and store them into 'buffer' (which must be big 
 // enough). Give up after 'sec' seconds.
@@ -1848,28 +1911,3 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec) {
 
 } 
 
-// -------------- TheSquid 
-
-// ================ Functions implementation ====================
-
-// Function for benchmark purpose
-int TheSquidBenchmark(int nbLoop, const char* const buffer) {
-  // Variable to memorize the dummy result
-  int res = 0;
-  // Loop on sample code
-  for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
-    GSet set = GSetCreateStatic();
-    for (unsigned int inflation = 0; inflation < 1024; ++inflation) {
-      for(unsigned long i = strlen(buffer); i--;) {
-        GSetPush(&set, NULL);
-        set._head->_sortVal = 
-          (float)(buffer[(i + iLoop) % strlen(buffer)]);
-      }
-    }
-    GSetSort(&set);
-    res = (int)round(set._head->_sortVal);
-    GSetFlush(&set);
-  }
-  // Return the dummy result
-  return res;
-}

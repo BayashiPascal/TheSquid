@@ -36,6 +36,11 @@ void UnitTestSquidlet() {
   }
   SquidletPrint(squidlet, stdout);
   printf("\n");
+  char* temperature = SquidletGetTemperature(squidlet);
+  printf("squidlet temperature: %s\n", temperature);
+  if (temperature != NULL) {
+    free(temperature);
+  }
   SquidletFree(&squidlet);
   if (squidlet != NULL) {
     TheSquidErr->_type = PBErrTypeUnitTestFailed;
@@ -173,7 +178,7 @@ void UnitTestBenchmark() {
   //size_t maxSizePayload = 100000000;
   size_t maxSizePayload = 10000;
   int nbMaxLoop = 128;
-  char* buffer = PBErrMalloc(TheSquidErr, 27);
+  /*char* buffer = PBErrMalloc(TheSquidErr, 27);
   for (size_t i = 0; i < 26; ++i)
     buffer[i] = 'a' + i;
   buffer[26] = 0;
@@ -194,7 +199,7 @@ void UnitTestBenchmark() {
       nbLoop, 1, nbComplete, timePerTaskMs);
     fflush(stdout);
   }
-  free(buffer);
+  free(buffer);*/
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");

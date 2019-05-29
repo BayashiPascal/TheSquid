@@ -346,6 +346,11 @@ inline
 #endif 
 void SquidletSetStreamInfo(Squidlet* const that, FILE* const stream);
 
+// Return the temperature of the squidlet 'that' as a string.
+// The result depends on the architecture on which the squidlet is 
+// running and maybe null if the temperature is not availalble
+char* SquidletGetTemperature(const Squidlet* const that);
+
 // -------------- TheSquid 
 
 // ================ Functions declaration ====================
