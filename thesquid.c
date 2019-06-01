@@ -1569,7 +1569,11 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
     if (temperature != NULL)
       free(temperature);
   } else {
-    sprintf(bufferResult, "{\"success\":\"0\"}");
+    char* temperature = SquidletGetTemperature(that);
+    sprintf(bufferResult, "{\"success\":\"0\",\"temperature\":\"%s\"}",
+      temperature);
+    if (temperature != NULL)
+      free(temperature);
   }
 
   // Send the task data size
@@ -1612,6 +1616,9 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   (void)request;
   // Declare a variable to memorize if the process has been successful
   bool success = false;
+  
+  // Declare a variable to store the error message if any
+  char errMsg[200] = {0};
 
   // Declare a variable to memorize the size in byte of the input data
   size_t sizeInputData = 0;
@@ -1651,6 +1658,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
           fprintf(SquidletStreamInfo(that), 
             " : couldn't receive task data\n");
         }
+        sprintf(errMsg, "couldn't receive task data");
       } else {
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
@@ -1697,6 +1705,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
               fprintf(SquidletStreamInfo(that), 
                 " : invalid data (v)\n");
             }
+            sprintf(errMsg, "invalid data (v missing)");
           }
 
         } else {
@@ -1706,6 +1715,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
             fprintf(SquidletStreamInfo(that), 
               " : invalid data (nb)\n");
           }
+          sprintf(errMsg, "invalid data (nb missing)");
 
         }
 
@@ -1716,6 +1726,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
           fprintf(SquidletStreamInfo(that), 
             " : couldn't load json %s\n", buffer);
         }
+        sprintf(errMsg, "couldn't load json");
 
       }
       JSONFree(&json);
@@ -1730,6 +1741,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       fprintf(SquidletStreamInfo(that), 
         " : couldn't receive data size\n");
     }
+    sprintf(errMsg, "couldn't receive data size");
 
   }
 
@@ -1739,7 +1751,12 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   if (success) {
     sprintf(bufferResult, "{\"success\":\"1\", \"v\":\"%d\"}", result);
   } else {
-    sprintf(bufferResult, "{\"success\":\"0\"}");
+    char* temperature = SquidletGetTemperature(that);
+    sprintf(bufferResult, 
+      "{\"success\":\"0\",\"temp\":\"%s\",\"err\":\"%s\"}",
+      temperature, errMsg);
+    if (temperature != NULL)
+      free(temperature);
   }
 
   // Send the task data size

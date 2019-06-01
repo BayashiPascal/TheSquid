@@ -6,17 +6,18 @@
 6) Select the microSD card
 7) Flash!
 8) Create an empy file named "ssh" on the boot drive of the miccroSD card
-9) Edit the file /boot/config.txt with the following content to overclock at 1.35GHz
+9-1) If Raspberry Pi 3B, Edit the file /boot/config.txt with the following content to overclock at 1.35GHz
 arm_freq=1350
 core_freq=500
 over_voltage=4
 disable_splash=1
+9-2) If Raspberry Pi 3B+,
 10) Insert the microSD into the Raspberry Pi
 11) Connect the Raspberry Pi to the network (should use a lan cable of class 7 or more for best results)
 12) Turn on the Raspberry Pi
 13) Get the IP adress of the local computer with ifconfig, lets say its a.b.c.d
 14) Scan the devices on the local network with the command `nmap -sP a.b.c.0/24`
-15) Connect to the Raspberry Pi through ssh with the command `ssh pi@ip.addr.goes.here`, defulat password is raspberry
+15) Connect to the Raspberry Pi through ssh with the command `ssh pi@ip.addr.goes.here`, default password is raspberry
 16) Setup the Raspberry Pi with `sudo raspi-config`
 17) Change the password, locale and timezone, expand the file system, and exit
 18) Set the hostname with the following commands
@@ -36,5 +37,5 @@ sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
 29) Move to the ~/GitHub/TheSquid directory
 30) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1'
 31) Compile the repository with the command `make`, others repository are automatically installed
-
+32) Check everything works fine with `./main`.
 

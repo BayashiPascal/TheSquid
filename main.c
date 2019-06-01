@@ -214,7 +214,8 @@ void UnitTestBenchmark() {
   //SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
-  FILE* fp = fopen("unitTestBenchmark.json", "r");
+  //FILE* fp = fopen("unitTestBenchmark.json", "r");
+  FILE* fp = fopen("/home/bayashi/Desktop/unitTestBenchmark.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
@@ -248,7 +249,8 @@ void UnitTestBenchmark() {
           if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
             SquidletTaskRequestPrint(task, stdout);
             printf(" failed !!\n");
-            flagStop = true;
+            printf("%s\n", task->_buffer);
+            //flagStop = true;
           }
           SquidletTaskRequestFree(&task);
         }
@@ -262,10 +264,11 @@ void UnitTestBenchmark() {
         while (GSetNbElem(&completedTasks) > 0L) {
           SquidletTaskRequest* task = GSetPop(&completedTasks);
           // If the task failed
-          if (strstr(task->_buffer, "\"success\":\"0\"")) {
+          if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
             SquidletTaskRequestPrint(task, stdout);
             printf(" failed !!\n");
-            flagStop = true;
+            printf("%s\n", task->_buffer);
+            //flagStop = true;
           }
           SquidletTaskRequestFree(&task);
         }
