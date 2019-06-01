@@ -1658,7 +1658,8 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
           fprintf(SquidletStreamInfo(that), 
             " : couldn't receive task data\n");
         }
-        sprintf(errMsg, "couldn't receive task data");
+        sprintf(errMsg, "couldn't receive task data (%s)", 
+          strerror(errno));
       } else {
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
@@ -1726,7 +1727,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
           fprintf(SquidletStreamInfo(that), 
             " : couldn't load json %s\n", buffer);
         }
-        sprintf(errMsg, "couldn't load json");
+        sprintf(errMsg, "couldn't load json (%s)", JSONErr->_msg);
 
       }
       JSONFree(&json);
@@ -1741,7 +1742,8 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       fprintf(SquidletStreamInfo(that), 
         " : couldn't receive data size\n");
     }
-    sprintf(errMsg, "couldn't receive data size");
+    sprintf(errMsg, "couldn't receive data size (%s)", 
+      strerror(errno));
 
   }
 
@@ -1796,7 +1798,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
           fprintf(SquidletStreamInfo(that), 
-            " : couldn't sent result %s\n", bufferResult);
+            " : couldn't send result %s\n", bufferResult);
         }
       }
     } else {

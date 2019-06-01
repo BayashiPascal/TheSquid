@@ -35,7 +35,7 @@ sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
 27) Edit the root Makefile with the command `nano ~/GitHub/PBMake/Makefile.inc` and change the value of ROOT_DIR with /home/pi/GitHub/
 28) Clone the repository TheSquid with the command `git clone https://github.com/BayashiPascal/TheSquid.git`
 29) Move to the ~/GitHub/TheSquid directory
-30) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1'
+30) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1', and the SQUIDLET_ARCH is set to '1'
 31) Compile the repository with the command `make`, others repository are automatically installed
 32) Check everything works fine with `./main`.
 
