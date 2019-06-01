@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     }
     if (strcmp(argv[iArg], "-help") == 0) {
       printf("squidlet [-verbose <stdout | file path>] ");
-      printf("[-ip <a.b.c.d>] [-port <port>] [-help]\n");
+      printf("[-ip <a.b.c.d>] [-port <port>] [-temp] [-help]\n");
       exit(0);
     }
   }
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   printf("Squidlet : ");
   SquidletPrint(squidlet, stdout);
   printf("\n");
-
+  
   // Set the output stream
   FILE* stream = NULL;
   if (outputFilePath != NULL) {
@@ -61,6 +61,18 @@ int main(int argc, char** argv) {
     }
   } else {
     SquidletSetStreamInfo(squidlet, NULL);
+  }
+
+  for (int iArg = 0; iArg < argc; ++iArg) {
+    if (strcmp(argv[iArg], "-temp") == 0) {
+      char* temperature = SquidletGetTemperature(squidlet);
+      if (stream == NULL)
+        printf("temperature: %s\n", temperature);
+      else
+        fprintf(stream, "temperature: %s\n", temperature);
+      if (temperature != NULL)
+        free(temperature);
+    }
   }
   
   // Loop until it receives Ctrl-C
