@@ -1647,7 +1647,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       
       // Wait to receive the input data with a time limit proportional
       // to the size of input data
-      int timeLimit = 5 + (int)round((float)sizeInputData / 1000.0);
+      int timeLimit = 5 + (int)round((float)sizeInputData / 100.0);
       if (!SocketRecv(&(that->_sockReply), sizeInputData, buffer, 
         timeLimit)) {
         // If we coudln't received the input data
