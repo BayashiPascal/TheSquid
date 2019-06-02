@@ -22,13 +22,9 @@ int main(int argc, char** argv) {
     }
     if (strcmp(argv[iArg], "-help") == 0) {
       printf("squad [-verbose] [-tasks <path to tasks file>] ");
-      printf("[-squad <path to squad config file>] [-help]\n");
+      printf("[-squad <path to squad config file>] [-check] [-help]\n");
       exit(0);
     }
-  }
-  if (tasksFilePath == NULL) {
-    printf("Squad: No tasks file provided\n");
-    exit(1);
   }
   if (squadFilePath == NULL) {
     printf("Squad: No squad config file provided\n");
@@ -45,18 +41,34 @@ int main(int argc, char** argv) {
   fflush(stdout);
 
   // Load the squad config file
-  if (SquadLoad(squad, squadFilePath) == false) {
-    printf("Squad: Couldn't load the squad config file %s\n",
-      squadFilePath);
-    printf("TheSquidErr: %s\n", TheSquidErr->_msg);
-    printf("errno: %s\n", strerror(errno));
-    SquadFree(&squad);
-    exit(1);
+  FILE* squadFile = fopen(squadFilePath, "r");
+  if (squadFile == NULL) {
+      printf("Squad: Couldn't open the squad file: %s\n", squadFilePath);
+  } else {
+    if (SquadLoad(squad, squadFile) == false) {
+      printf("Squad: Couldn't load the squad config file %s\n",
+        squadFilePath);
+      printf("TheSquidErr: %s\n", TheSquidErr->_msg);
+      printf("errno: %s\n", strerror(errno));
+      SquadFree(&squad);
+      exit(1);
+    }
+    fclose(squadFile);
   }
-  
   // Set the TextOMeter
   SquadSetFlagTextOMeter(squad, flagTextOMeter);
+  // Execute the requested actions
+  for (int iArg = 0; iArg < argc; ++iArg) {
+    if (strcmp(argv[iArg], "-check") == 0) {
+      bool res = SquadCheckSquidlets(squad, stdout);
+      (void)res;
+    }
+  }
+  if (tasksFilePath != NULL) {
+    printf("Squad: Executing task file: %s\n", tasksFilePath);
 
+  }
+  
   // Free memory
   SquadFree(&squad);
   printf("Squad : ended\n");

@@ -14,6 +14,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <time.h>
+#include <sys/time.h>
 #include "pberr.h"
 #include "pbmath.h"
 #include "gset.h"
@@ -35,6 +37,8 @@
 // ================= Data structure ===================
 
 typedef struct SquidletInfo {
+  // Name of the squidlet
+  char* _name;
   // IP of the squidlet
   char* _ip;
   // Port of the squidlet
@@ -43,8 +47,8 @@ typedef struct SquidletInfo {
   short _sock;
 } SquidletInfo;
 
-// Return a new SquidletInfo with IP 'ip' and port 'port'
-SquidletInfo* SquidletInfoCreate(char* ip, int port);
+// Return a new SquidletInfo with 'name', 'ip' and 'port'
+SquidletInfo* SquidletInfoCreate(char* name, char* ip, int port);
 
 // Free the memory used by the SquidletInfo 'that'
 void SquidletInfoFree(SquidletInfo** that);
@@ -243,6 +247,12 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag);
 inline
 #endif
 bool SquadGetFlagTextOMeter(const Squad* const that);
+
+// Check all the squidlets of the Squad 'that' by processing a dummy 
+// task and display information
+// about each on the 'stream'
+// Return true if all the tasks could be performed, false else
+bool SquadCheckSquidlets(Squad* const that, FILE* const stream);
 
 // -------------- Squidlet
 

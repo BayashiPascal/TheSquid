@@ -1,33 +1,11 @@
-4055 bayashi-X101CH 127.0.1.1:9000 : accepted connection
-4055 bayashi-X101CH 127.0.1.1:9000 : received task type 1
-4055 bayashi-X101CH 127.0.1.1:9000 : sent reply to task request 1
-4055 bayashi-X101CH 127.0.1.1:9000 : process task
-4055 bayashi-X101CH 127.0.1.1:9000 : size input data 9
-4055 bayashi-X101CH 127.0.1.1:9000 : process dummy task {"v":"0"}
-4055 bayashi-X101CH 127.0.1.1:9000 : wait for acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : sent result {"success":"1","v":"0"}
-4055 bayashi-X101CH 127.0.1.1:9000 : wait for acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : received acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : ready for next task
-4055 bayashi-X101CH 127.0.1.1:9000 : accepted connection
-4055 bayashi-X101CH 127.0.1.1:9000 : received task type 1
-4055 bayashi-X101CH 127.0.1.1:9000 : sent reply to task request 1
-4055 bayashi-X101CH 127.0.1.1:9000 : process task
-4055 bayashi-X101CH 127.0.1.1:9000 : size input data 9
-4055 bayashi-X101CH 127.0.1.1:9000 : process dummy task {"v":"2"}
-4055 bayashi-X101CH 127.0.1.1:9000 : wait for acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : sent result {"success":"1","v":"-2"}
-4055 bayashi-X101CH 127.0.1.1:9000 : wait for acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : received acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : ready for next task
-4055 bayashi-X101CH 127.0.1.1:9000 : accepted connection
-4055 bayashi-X101CH 127.0.1.1:9000 : received task type 1
-4055 bayashi-X101CH 127.0.1.1:9000 : sent reply to task request 1
-4055 bayashi-X101CH 127.0.1.1:9000 : process task
-4055 bayashi-X101CH 127.0.1.1:9000 : size input data 9
-4055 bayashi-X101CH 127.0.1.1:9000 : process dummy task {"v":"4"}
-4055 bayashi-X101CH 127.0.1.1:9000 : wait for acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : sent result {"success":"1","v":"-4"}
-4055 bayashi-X101CH 127.0.1.1:9000 : wait for acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : received acknowledgement from squad
-4055 bayashi-X101CH 127.0.1.1:9000 : ready for next task
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : size input data 9
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"0"}
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"0","temperature":"(null)"}
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7038 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task

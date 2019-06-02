@@ -1,10 +1,12 @@
 {
   "_squidlets":[
     {
+      "_name":"squidlet1",
       "_ip":"0.0.0.0",
       "_port":"9000"
     },
     {
+      "_name":"squidlet2",
       "_ip":"0.0.0.0",
       "_port":"9001"
     }

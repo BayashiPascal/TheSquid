@@ -5,10 +5,10 @@
 BUILD_MODE?=1
 
 # Architecture on which the squidlet is running
-# 1: Raspberry Pi 3B
+# 1: Raspberry Pi 3B or 3B+
 SQUIDLET_ARCH=0
 
-all: pbmake_wget main squidlet
+all: pbmake_wget main squidlet squad
 	
 # Automatic installation of the repository PBMake in the parent folder
 pbmake_wget:
@@ -30,7 +30,7 @@ $($(repo)_EXENAME).o: \
 		$($(repo)_DIR)/$($(repo)_EXENAME).c \
 		$($(repo)_INC_H_EXE) \
 		$($(repo)_EXE_DEP)
-	$(COMPILER) $(BUILD_ARG) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/$($(repo)_EXENAME).c
+	$(COMPILER) $(BUILD_ARG) -DSQUIDLETARCH=$(SQUIDLET_ARCH) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/$($(repo)_EXENAME).c
 	
 freeports:
 	echo "\nThe list of used ports is given by\nsudo netstat -tunlep | grep LISTEN\nand\ncat /etc/services\nalso, possible ports are in the range 1024-32768"
@@ -45,7 +45,7 @@ squidlet.o: \
 		$($(repo)_DIR)/squidlet.c \
 		$($(repo)_INC_H_EXE) \
 		$($(repo)_EXE_DEP)
-	$(COMPILER) $(BUILD_ARG) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squidlet.c
+	$(COMPILER) $(BUILD_ARG) -DSQUIDLETARCH=$(SQUIDLET_ARCH) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squidlet.c
 
 valgrind_squidlet :
 	valgrind -v --track-origins=yes --leak-check=full \
@@ -61,7 +61,7 @@ squad.o: \
 		$($(repo)_DIR)/squad.c \
 		$($(repo)_INC_H_EXE) \
 		$($(repo)_EXE_DEP)
-	$(COMPILER) $(BUILD_ARG) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squad.c
+	$(COMPILER) $(BUILD_ARG) -DSQUIDLETARCH=$(SQUIDLET_ARCH) $($(repo)_BUILD_ARG) `echo "$($(repo)_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squad.c
 
 valgrind_squad :
 	valgrind -v --track-origins=yes --leak-check=full \

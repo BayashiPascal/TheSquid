@@ -1,7 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
-#include <sys/time.h>
 #include "thesquid.h"
 
 void UnitTestSquad() {
@@ -25,6 +23,94 @@ void UnitTestSquad() {
     PBErrCatch(TheSquidErr);
   }
   printf("UnitTestSquad OK\n");
+}
+
+void UnitTestSquadCheckSquidlets() {
+  const int nbSquidlet = 2;
+  int squidletId = -1;
+  int port[2] = {9000, 9001};
+  pid_t pidSquidlet[2];
+  char buffer[100];
+  // Create the squidlet processes
+  for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+    int pid = fork();
+    if (pid == 0) {
+      squidletId = iSquidlet;
+      break;
+    } else {
+      pidSquidlet[iSquidlet] = pid;
+    }
+  }
+  if (squidletId != -1) {
+    
+    // In a squidlet process
+    
+    Squidlet* squidlet = SquidletCreateOnPort(0, port[squidletId]);
+    if (squidlet == NULL) {
+      printf("Failed to create the squidlet #%d\n", squidletId);
+      printf("errno: %s\n", strerror(errno));
+    }
+    sprintf(buffer, "unitTestDummySquidlet%d.log", squidletId);
+    FILE* stream = fopen(buffer, "w");
+    SquidletSetStreamInfo(squidlet, stream);
+    do {
+      SquidletTaskRequest request = SquidletWaitRequest(squidlet);
+      SquidletProcessRequest(squidlet, &request);
+    } while (!Squidlet_CtrlC);
+    SquidletFree(&squidlet);
+    fclose(stream);
+    exit(0);
+  } else {
+    
+    // In the squad process
+    
+    // Create the Squad
+    Squad* squad = SquadCreate();
+    if (squad == NULL) {
+      printf("Failed to create the squad\n");
+      printf("errno: %s\n", strerror(errno));
+    }
+    // Automatically create the config file
+    FILE* fp = fopen("unitTestDummy.json", "w");
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    struct hostent* host = gethostbyname(hostname); 
+    char* ip = inet_ntoa(*((struct in_addr*)host->h_addr_list[0]));
+    fprintf(fp, "{\"_squidlets\":[");
+    for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+      fprintf(fp, 
+        "{\"_name\":\"UnitTestDummy\"\"_ip\":\"%s\",\"_port\":\"%d\"}", 
+        ip, port[iSquidlet]);
+      if (iSquidlet < nbSquidlet - 1)
+        fprintf(fp, ",");
+    }
+    fprintf(fp, "]}");
+    fclose(fp);
+    // Load the info about the squidlet from the config file
+    fp = fopen("unitTestDummy.json", "r");
+    SquadLoad(squad, fp);
+    fclose(fp);
+    // Wait to be sure the squidlets are up and running
+    sleep(2);
+    // Check the squidlets
+    bool res = SquadCheckSquidlets(squad, stdout);
+    // Kill the child process
+    for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+      if (kill(pidSquidlet[iSquidlet], SIGINT) < 0) {
+        printf("Couldn't kill squidlet %d\n", pidSquidlet[iSquidlet]);
+      }
+    }
+    // Wait for the child to be killed
+    sleep(2);
+    // Free memory
+    SquadFree(&squad);
+    if (res) {
+      printf("UnitTestSquadCheckSquidlets OK\n");
+    } else {
+      printf("UnitTestSquadCheckSquidlets NG\n");
+    }
+    fflush(stdout);
+  }
 }
 
 void UnitTestSquidlet() {
@@ -111,7 +197,8 @@ void UnitTestDummy() {
     char* ip = inet_ntoa(*((struct in_addr*)host->h_addr_list[0]));
     fprintf(fp, "{\"_squidlets\":[");
     for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
-      fprintf(fp, "{\"_ip\":\"%s\",\"_port\":\"%d\"}", 
+      fprintf(fp, 
+        "{\"_name\":\"UnitTestDummy\"\"_ip\":\"%s\",\"_port\":\"%d\"}", 
         ip, port[iSquidlet]);
       if (iSquidlet < nbSquidlet - 1)
         fprintf(fp, ",");
@@ -192,8 +279,8 @@ void UnitTestBenchmark() {
       ++nbComplete;
       gettimeofday(&stop, NULL);
     } while (stop.tv_sec - start.tv_sec < lengthTest);
-    unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
-      stop.tv_usec - start.tv_usec;
+    unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
+      (stop.tv_usec - start.tv_usec) / 1000;
     float timePerTaskMs = (float) deltams / (float)nbComplete;
     printf("%03d\t%08u\t%07lu\t%011.2f\n", 
       nbLoop, 1, nbComplete, timePerTaskMs);
@@ -275,8 +362,8 @@ void UnitTestBenchmark() {
       } 
       gettimeofday(&stop, NULL);
       
-      unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000000 + 
-        stop.tv_usec - start.tv_usec;
+      unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
+        (stop.tv_usec - start.tv_usec) / 1000;
       float timePerTaskMs = (float) deltams / (float)nbComplete;
       printf("%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, 
         nbComplete, timePerTaskMs);
@@ -292,6 +379,7 @@ void UnitTestBenchmark() {
 
 void UnitTestAll() {
   UnitTestSquad();
+  UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
   UnitTestBenchmark();
@@ -299,8 +387,9 @@ void UnitTestAll() {
 }
 
 int main() {
+  UnitTestSquadCheckSquidlets();
   //UnitTestAll();
-  UnitTestBenchmark();
+  //UnitTestBenchmark();
   // Return success code
   return 0;
 }

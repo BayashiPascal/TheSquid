@@ -19,12 +19,13 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec);
 
 // ================ Functions implementation ====================
 
-// Return a new SquidletInfo with IP 'ip' and port 'port'
-SquidletInfo* SquidletInfoCreate(char* ip, int port) {
+// Return a new SquidletInfo with 'name', 'ip' and 'port'
+SquidletInfo* SquidletInfoCreate(char* name, char* ip, int port) {
   // Allocate memory for the squidletInfo
   SquidletInfo* that = PBErrMalloc(TheSquidErr, sizeof(SquidletInfo));
   
   // Init properties
+  that->_name = strdup(name);
   that->_ip = strdup(ip);
   that->_port = port;
   that->_sock = -1;
@@ -44,6 +45,7 @@ void SquidletInfoFree(SquidletInfo** that) {
     close((*that)->_sock);
     
   // Free memory
+  free((*that)->_name);
   free((*that)->_ip);
   free(*that);
   *that = NULL;
@@ -65,7 +67,7 @@ void SquidletInfoPrint(const SquidletInfo* const that,
   }
 #endif
   // Print the info on the stream 
-  fprintf(stream, "%s:%d", that->_ip, that->_port);
+  fprintf(stream, "%s(%s:%d)", that->_name, that->_ip, that->_port);
 }
 
 // -------------- SquidletTaskRequest
@@ -194,6 +196,11 @@ void SquadUpdateTextOMeter(const Squad* const that);
 // 'msg' must be less than 100 characters long
 void SquadPushHistory(Squad* const that, char* msg);
 
+// Request the execution of a task on a squidlet for the squad 'that'
+// Return true if the request was successfull, fals else
+bool SquadSendTaskOnSquidlet(Squad* const that, 
+  SquidletInfo* const squidlet, SquidletTaskRequest* const task);
+  
 // ================ Functions implementation ====================
 
 // Return a new Squad
@@ -320,6 +327,15 @@ bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
     // Get the JSON node for this squidlet
     JSONNode* propSquidlet = JSONValue(prop, iSquidlet);
     
+    // Get the property _name of the squidlet
+    JSONNode* propName = JSONProperty(propSquidlet, "_name");
+    if (propName == NULL) {
+      TheSquidErr->_type = PBErrTypeInvalidData;
+      sprintf(TheSquidErr->_msg, "_name not found for squidlet %d",
+        iSquidlet);
+      return false;
+    }
+
     // Get the property _ip of the squidlet
     JSONNode* propIp = JSONProperty(propSquidlet, "_ip");
     if (propIp == NULL) {
@@ -339,9 +355,10 @@ bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
     }
 
     // Create a SquidletInfo
+    char* name = JSONLabel(JSONValue(propName, 0));
     char* ip = JSONLabel(JSONValue(propIp, 0));
     int port = atoi(JSONLabel(JSONValue(propPort, 0)));
-    SquidletInfo* squidletInfo = SquidletInfoCreate(ip, port);
+    SquidletInfo* squidletInfo = SquidletInfoCreate(name, ip, port);
     
     // Add the the squidlet to the set of squidlets
     GSetAppend((GSet*)SquadSquidlets(that), squidletInfo);
@@ -802,6 +819,78 @@ bool SquadReceiveTaskResult(Squad* const that,
   return receivedFlag;
 }
 
+// Request the execution of a task on a squidlet for the squad 'that'
+// Return true if the request was successfull, fals else
+bool SquadSendTaskOnSquidlet(Squad* const that, 
+  SquidletInfo* const squidlet, SquidletTaskRequest* const task) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (squidlet == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'squidlet' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Declare some variables to process the lines of history
+  char lineHistory[100];
+  char bufferHistory[100];
+  FILE* streamBufferHistory = NULL;
+  // Request the execution of the task by the squidlet
+  bool ret = SquadSendTaskRequest(that, task, squidlet);
+  if (ret) {
+    // If the squidlet accepted to execute the task
+    if (SquadSendTaskData(that, squidlet, task)) {
+      // Create a new running task and add it to the set
+      SquadRunningTask* runningTask = 
+        SquadRunningTaskCreate(task, squidlet);
+
+      if (SquadGetFlagTextOMeter(that) == true) {
+        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+        SquadRunningTaskPrint(runningTask, streamBufferHistory);
+        fclose(streamBufferHistory);
+        sprintf(lineHistory, "task %s running\n", 
+          bufferHistory);
+        SquadPushHistory(that, lineHistory);
+      }
+
+      GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
+    } else {
+
+      if (SquadGetFlagTextOMeter(that) == true) {
+        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+        SquidletInfoPrint(squidlet, streamBufferHistory);
+        fclose(streamBufferHistory);
+        sprintf(lineHistory, "couldn't send data to %s\n", 
+          bufferHistory);
+        SquadPushHistory(that, lineHistory);
+      }
+      ret = false;
+    }
+  } else {
+
+    if (SquadGetFlagTextOMeter(that) == true) {
+      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+      SquidletInfoPrint(squidlet, streamBufferHistory);
+      fclose(streamBufferHistory);
+      sprintf(lineHistory, "task refused by %s\n", 
+        bufferHistory);
+      SquadPushHistory(that, lineHistory);
+    }
+
+  }
+  // Return the result
+  return ret;
+}
+
 // Step the Squad 'that', i.e. tries to affect remaining tasks to 
 // available Squidlet and check for completion of running task.
 // Return a GSet of completed SquidletTaskRequest at this step
@@ -905,55 +994,15 @@ GSet SquadStep(Squad* const that) {
       SquidletTaskRequest* task = GSetPop((GSet*)SquadTasks(that));
       // If there is a task
       if (task != NULL) {
-        // Request the execution of the task by the squidlet
-        bool ret = SquadSendTaskRequest(that, task, squidlet);
-        if (ret) {
-          // If the squidlet accepted to execute the task
-          if (SquadSendTaskData(that, squidlet, task)) {
-            // Create a new running task and add it to the set
-            SquadRunningTask* runningTask = 
-              SquadRunningTaskCreate(task, squidlet);
-
-            if (SquadGetFlagTextOMeter(that) == true) {
-              streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-              SquadRunningTaskPrint(runningTask, streamBufferHistory);
-              fclose(streamBufferHistory);
-              sprintf(lineHistory, "task %s running\n", 
-                bufferHistory);
-              SquadPushHistory(that, lineHistory);
-            }
-
-            GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
-            // Remove the squidlet from the available squidlet
-            flag = GSetIterRemoveElem(&iter);
-          } else {
-
-            if (SquadGetFlagTextOMeter(that) == true) {
-              streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-              SquidletInfoPrint(squidlet, streamBufferHistory);
-              fclose(streamBufferHistory);
-              sprintf(lineHistory, "couldn't send data to %s\n", 
-                bufferHistory);
-              SquadPushHistory(that, lineHistory);
-            }
-            
-          }
-        } else {
-
-          if (SquadGetFlagTextOMeter(that) == true) {
-            streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-            SquidletInfoPrint(squidlet, streamBufferHistory);
-            fclose(streamBufferHistory);
-            sprintf(lineHistory, "task refused by %s\n", 
-              bufferHistory);
-            SquadPushHistory(that, lineHistory);
-          }
-
-        }
+        // Request the task on the squidlet
+        bool ret = SquadSendTaskOnSquidlet(that, squidlet, task);
         // If the squidlet refused the task or the data couldn't be sent
         if (!ret) {
           // Put back the task in the set
           GSetPush((GSet*)SquadTasks(that), task);
+        } else {
+          // Remove the squidlet from the available squidlet
+          flag = GSetIterRemoveElem(&iter);
         }
       }
     } while (flag || GSetIterStep(&iter));
@@ -973,9 +1022,9 @@ GSet SquadStep(Squad* const that) {
 void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
-    sprintf(PBImgAnalysisErr->_msg, "'that' is null");
-    PBErrCatch(PBImgAnalysisErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   // If the requested flag is different from the current flag;
@@ -999,20 +1048,20 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
 void SquadPushHistory(Squad* const that, char* msg) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
-    sprintf(PBImgAnalysisErr->_msg, "'that' is null");
-    PBErrCatch(PBImgAnalysisErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
   if (msg == NULL) {
-    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
-    sprintf(PBImgAnalysisErr->_msg, "'msg' is null");
-    PBErrCatch(PBImgAnalysisErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'msg' is null");
+    PBErrCatch(TheSquidErr);
   }
   if (strlen(msg) >= 100) {
-    PBImgAnalysisErr->_type = PBErrTypeInvalidArg;
-    sprintf(PBImgAnalysisErr->_msg, "'msg' is too long (%d<100)",
+    TheSquidErr->_type = PBErrTypeInvalidArg;
+    sprintf(TheSquidErr->_msg, "'msg' is too long (%d<100)",
       strlen(msg));
-    PBErrCatch(PBImgAnalysisErr);
+    PBErrCatch(TheSquidErr);
   }
 #endif
   for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY - 1; 
@@ -1030,14 +1079,14 @@ void SquadPushHistory(Squad* const that, char* msg) {
 void SquadUpdateTextOMeter(const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
-    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
-    sprintf(PBImgAnalysisErr->_msg, "'that' is null");
-    PBErrCatch(PBImgAnalysisErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
   }
   if (that->_textOMeter == NULL) {
-    PBImgAnalysisErr->_type = PBErrTypeNullPointer;
-    sprintf(PBImgAnalysisErr->_msg, "'that->_textOMeter' is null");
-    PBErrCatch(PBImgAnalysisErr);
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that->_textOMeter' is null");
+    PBErrCatch(TheSquidErr);
   }
 #endif
   // Clear the TextOMeter
@@ -1106,6 +1155,93 @@ void SquadUpdateTextOMeter(const Squad* const that) {
   TextOMeterPrint(that->_textOMeter, buffer);
   // Flush the content of the TextOMeter
   TextOMeterFlush(that->_textOMeter);
+}
+
+// Check all the squidlets of the Squad 'that' by processing a dummy 
+// task and display information
+// about each on the 'stream'
+// Return true if all the tasks could be performed, false else
+bool SquadCheckSquidlets(Squad* const that, FILE* const stream) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (stream == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'stream' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Declare a variable to memorize the result
+  bool res = true;
+  // Declare variables to create a dummy task request
+  char* buffer = "{\"v\":\"0\"}";
+  time_t maxWait = 5;
+  // Loop on the squidlets
+  if (SquadGetNbSquidlets(that) > 0) {
+    GSetIterForward iter = 
+      GSetIterForwardCreateStatic(SquadSquidlets(that));
+    do {
+      // Get the squidlet
+      SquidletInfo* squidlet = GSetIterGet(&iter);
+      // Display info about the squidlet
+      SquidletInfoPrint(squidlet, stream);
+      fprintf(stream, "\n");
+      // Request a dummy task from the squidlet
+      SquidletTaskRequest* task = SquidletTaskRequestCreate(
+        SquidletTaskType_Dummy, 0, buffer, maxWait);
+      GSetAppend((GSet*)SquadTasks(that), task);
+      struct timeval start;
+      gettimeofday(&start, NULL);
+      bool ret = SquadSendTaskOnSquidlet(that, squidlet, task);
+      struct timeval timeToSend;
+      gettimeofday(&timeToSend, NULL);
+      if (!ret) {
+        res = false;
+        fprintf(stream, "\tThe request for a dummy task failed.\n");
+      } else {
+        // Get the running tasks
+        SquadRunningTask* runningTask = 
+          GSetPop((GSet*)SquadRunningTasks(that));
+        // Loop until the task ends
+        bool flagStop = false;
+        while (!flagStop && time(NULL) - runningTask->_startTime <= 
+          runningTask->_request->_maxWaitTime) {
+          // If the task is completed
+          if (SquadReceiveTaskResult(that, runningTask)) {
+            struct timeval timeToProcess;
+            gettimeofday(&timeToProcess, NULL);
+            // Stop the loop
+            flagStop = true;
+            // Process the result
+            SquidletTaskRequest* request = runningTask->_request;
+            fprintf(stream, "\tRequest for dummy task succeeded.\n");
+            fprintf(stream, "\t%s\n", request->_buffer);
+            unsigned long delayToSendms = 
+              (timeToSend.tv_sec - start.tv_sec) * 1000 + 
+              (timeToSend.tv_usec - start.tv_usec) / 1000;
+            unsigned long delayToProcessms = 
+              (timeToProcess.tv_sec - timeToSend.tv_sec) * 1000 + 
+              (timeToProcess.tv_usec - timeToSend.tv_usec) / 1000;
+            fprintf(stream, 
+              "\tdelay to send: %lums, delay to process: %lums\n", 
+              delayToSendms, delayToProcessms);
+          }
+        }
+        if (!flagStop) {
+          fprintf(stream, "\tGave up due to time limit.\n");
+        }
+        // Free memory
+        runningTask->_request = NULL;
+        runningTask->_squidlet = NULL;
+        SquadRunningTaskFree(&runningTask);
+      }
+    } while (GSetIterStep(&iter));
+  }
+  // Return the result
+  return res;
 }
 
 // -------------- Squidlet
@@ -1830,7 +1966,7 @@ char* SquidletGetTemperature(const Squidlet* const that) {
   }
 #endif
   (void)that;
-#if SQUIDLET_ARCH == 1
+#if SQUIDLETARCH == 1
   // Declare a variable to pipe the shell command
   FILE* fp = NULL;
   // Run the command and pipe its output
@@ -1842,8 +1978,14 @@ char* SquidletGetTemperature(const Squidlet* const that) {
     while (fgets(output, sizeof(output), fp) != NULL);
     // Close the pipe
     pclose(fp);
+    // Remove the line return
+    if (strlen(output) > 0)
+      output[strlen(output) - 1] = '\0';
     // Return the result
     return strdup(output);
+  } else {
+    // Return the result
+    return strdup("popen() failed");
   }
 #else
   return NULL;
