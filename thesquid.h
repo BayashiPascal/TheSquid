@@ -290,6 +290,9 @@ typedef struct Squidlet {
 // Handler for the signal Ctrl-C
 void SquidletHandlerCtrlC(const int sig);
 
+// Handler for the signal SIGPIPE
+void SquidletHandlerSigPipe(const int sig);
+
 // Return a new Squidlet listening to the ip 'addr' and port 'port'
 // If 'addr' equals 0, select automatically the first network address 
 // of the host 

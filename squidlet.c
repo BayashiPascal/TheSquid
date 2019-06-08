@@ -75,6 +75,9 @@ int main(int argc, char** argv) {
     }
   }
   
+  // Set the handler for SIGPIPE
+  signal(SIGINT, SquidletHandlerSigPipe);
+  
   // Loop until it receives Ctrl-C
   do {
     SquidletTaskRequest request = SquidletWaitRequest(squidlet);

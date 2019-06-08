@@ -441,7 +441,7 @@ bool SquadSendTaskRequest(Squad* const that,
     // If the connection failed
     close(squidlet->_sock);
     squidlet->_sock = -1;
-
+printf("toto A\n");
     if (SquadGetFlagTextOMeter(that) == true) {
       streamBufferHistory = fmemopen(bufferHistory, 100, "w");
       SquidletInfoPrint(squidlet, streamBufferHistory);
@@ -507,6 +507,7 @@ bool SquadSendTaskRequest(Squad* const that,
     // If we couldn't send the request
     close(squidlet->_sock);
     squidlet->_sock = -1;
+printf("toto B\n");
 
     if (SquadGetFlagTextOMeter(that) == true) {
       streamBufferHistory = fmemopen(bufferHistory, 100, "w");
@@ -535,6 +536,7 @@ bool SquadSendTaskRequest(Squad* const that,
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
+printf("toto C\n");
     if (SquadGetFlagTextOMeter(that) == true) {
       streamBufferHistory = fmemopen(bufferHistory, 100, "w");
       SquidletInfoPrint(squidlet, streamBufferHistory);
@@ -1047,9 +1049,9 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
   if (that->_flagTextOMeter != flag) {
     if (flag && that->_textOMeter == NULL) {
       char title[] = "Squad";
-      int width = strlen(SQUAD_TXTOMETER_LINE1) + 1;
+      int width = 150;
       int height = SQUAD_TXTOMETER_NBLINEHISTORY + 
-        SQUAD_TXTOMETER_NBTASKDISPLAYED + 5;
+        SQUAD_TXTOMETER_NBTASKDISPLAYED + 4;
       that->_textOMeter = TextOMeterCreate(title, width, height);
     }
     if (!flag && that->_textOMeter != NULL) {
@@ -1276,6 +1278,15 @@ void SquidletHandlerCtrlC(const int sig) {
   time_t intTime = time(NULL);
   char* strIntTime = ctime(&intTime);
   printf(" !!! Interrupted by Ctrl-C !!! %s", strIntTime);
+  fflush(stdout);
+}
+
+// Handler for the signal SIGPIPE
+void SquidletHandlerSigPipe(const int sig) {
+  (void)sig;
+  time_t intTime = time(NULL);
+  char* strIntTime = ctime(&intTime);
+  printf(" !!! Received SIGPIPE !!! %s", strIntTime);
   fflush(stdout);
 }
 

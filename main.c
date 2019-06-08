@@ -264,7 +264,7 @@ void UnitTestBenchmark() {
   int lengthTest = 30;
   //size_t maxSizePayload = 100000000;
   size_t maxSizePayload = 10000;
-  int nbMaxLoop = 128;
+  int nbMaxLoop = 1024;
   /*char* buffer = PBErrMalloc(TheSquidErr, 27);
   for (size_t i = 0; i < 26; ++i)
     buffer[i] = 'a' + i;
@@ -298,24 +298,23 @@ void UnitTestBenchmark() {
     printf("errno: %s\n", strerror(errno));
   }
 
-  SquadSetFlagTextOMeter(squad, true);
+  //SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
   //FILE* fp = fopen("unitTestBenchmark.json", "r");
-  FILE* fp = fopen("/home/bayashi/Desktop/squad.json", "r");
+  FILE* fp = fopen("/home/bayashi/Desktop/squad2.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
   time_t maxWait = 100;
   unsigned int id = 0;
   bool flagStop = false;
-  //for (size_t sizePayload = 1; !flagStop && 
-  for (size_t sizePayload = maxSizePayload; !flagStop && 
+  for (size_t sizePayload = 1; !flagStop && 
     sizePayload <= maxSizePayload; sizePayload *= 100) {
     // Loop on nbLoop
     for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; nbLoop *= 2) {
 
-      // Loop for 10s
+      // Loop during lengthTest seconds
       struct timeval stop, start;
       gettimeofday(&start, NULL);
       unsigned long nbComplete = 0;
