@@ -31,6 +31,8 @@
 #define THESQUID_PORTMAX 9999
 #define THESQUID_TASKREFUSED 0
 #define THESQUID_TASKACCEPTED 1
+#define THESQUID_ACCEPT_TIMEOUT 1 // in seconds
+#define THESQUID_PROC_TIMEOUT 60 // in seconds
 
 // -------------- SquidletInfo
 

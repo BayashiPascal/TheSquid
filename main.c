@@ -224,7 +224,7 @@ void UnitTestDummy() {
       
       // Step the Squad
       GSet completedTasks = SquadStep(squad);
-      sleep(1);
+      //sleep(1);
       while (GSetNbElem(&completedTasks) > 0L) {
         SquidletTaskRequest* task = GSetPop(&completedTasks);
         printf("squad : ");
@@ -301,8 +301,8 @@ void UnitTestBenchmark() {
   //SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
-  //FILE* fp = fopen("unitTestBenchmark.json", "r");
-  FILE* fp = fopen("/home/bayashi/Desktop/unitTestBenchmark.json", "r");
+  FILE* fp = fopen("unitTestBenchmark.json", "r");
+  //FILE* fp = fopen("/home/bayashi/Desktop/unitTestBenchmark.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
@@ -387,9 +387,10 @@ void UnitTestAll() {
 }
 
 int main() {
-  UnitTestSquadCheckSquidlets();
+  //UnitTestSquadCheckSquidlets();
+  //UnitTestDummy();
   //UnitTestAll();
-  //UnitTestBenchmark();
+  UnitTestBenchmark();
   // Return success code
   return 0;
 }

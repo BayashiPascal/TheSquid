@@ -5,6 +5,7 @@
 BUILD_MODE?=1
 
 # Architecture on which the squidlet is running
+# 0: PC
 # 1: Raspberry Pi 3B or 3B+
 SQUIDLET_ARCH=0
 

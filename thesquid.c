@@ -725,9 +725,10 @@ bool SquadReceiveTaskResult(Squad* const that,
     task->_buffer = NULL;
   }
   
-  // Try to receive the size of the input data and give up immediately
+  // Try to receive the size of the reply from the squidlet
+  // and give up immediately
   if (SocketRecv(&(squidlet->_sock), sizeof(size_t), 
-    (char*)&sizeResultData, 1)) {
+    (char*)&sizeResultData, 0)) {
 
     // If the result is ready
     if (sizeResultData > 0) {
@@ -742,7 +743,7 @@ bool SquadReceiveTaskResult(Squad* const that,
         SquadPushHistory(that, lineHistory);
       }
 
-      // Send the acknowledgement of received result
+      // Send the acknowledgement of received size of result
       char ack = 1;
       int flags = 0;
       (void)send(squidlet->_sock, &ack, sizeof(char), flags);
@@ -752,7 +753,7 @@ bool SquadReceiveTaskResult(Squad* const that,
         SquidletInfoPrint(squidlet, streamBufferHistory);
         fclose(streamBufferHistory);
         sprintf(lineHistory, 
-          "send ack of received result data to (%s)\n", 
+          "send ack of received size of result data to (%s)\n", 
           bufferHistory);
         SquadPushHistory(that, lineHistory);
       }
@@ -763,12 +764,26 @@ bool SquadReceiveTaskResult(Squad* const that,
       
       // Wait to receive the result data with a time limit proportional
       // to the size of result data
-      int timeLimit = 5 + (int)round((float)sizeResultData / 1000.0);
+      int timeOut = 5 + (int)round((float)sizeResultData / 100.0);
       if (!SocketRecv(&(squidlet->_sock), sizeResultData, 
-        task->_buffer, timeLimit)) {
+        task->_buffer, timeOut)) {
         // If we coudln't received the result data
         free(task->_buffer);
         task->_buffer = NULL;
+
+        if (SquadGetFlagTextOMeter(that) == true) {
+          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
+          SquidletInfoPrint(squidlet, streamBufferHistory);
+          fclose(streamBufferHistory);
+          sprintf(lineHistory, 
+            "couldn't received result data from (%s)\n", 
+            bufferHistory);
+          SquadPushHistory(that, lineHistory);
+          sprintf(lineHistory, "waited for %ds\n", 
+            timeOut);
+          SquadPushHistory(that, lineHistory);
+        }
+
       } else {
         receivedFlag = true;
         
@@ -1282,9 +1297,10 @@ Squidlet* SquidletCreateOnPort(const uint32_t addr, const int port) {
     return NULL;
   }
 
-  // Set the timeout for sending and receiving on this socket to 1 sec
+  // Set the timeout for sending and receiving on this socket to 
+  // THESQUID_ACCEPT_TIMEOUT seconds
   struct timeval tv;
-  tv.tv_sec = 1;
+  tv.tv_sec = THESQUID_ACCEPT_TIMEOUT;
   tv.tv_usec = 0;  
   int reuse = 1;
   if (setsockopt(that->_fd, SOL_SOCKET, SO_SNDTIMEO, 
@@ -1451,24 +1467,29 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
   struct sockaddr_in incomingSock;
   socklen_t incomingSockSize = sizeof(incomingSock);
   
-  // Accept a connection
-  
-  if (that->_sockReply != -1)
+  // Make sure the socket for reply is closed
+  if (that->_sockReply != -1) {
     close(that->_sockReply);
+    that->_sockReply = -1;
+  }
   
+  // Extract the first connection request on the queue of pending 
+  // connections if there was one. If there are not wait wait for
+  // one during THESQUID_ACCEPT_TIMEOUT seconds and then give up
   that->_sockReply = accept(that->_fd, (struct sockaddr *)&incomingSock,
     &incomingSockSize);
 
-  // If the connection was accepted
+  // If we would extract a pending connection
   if (that->_sockReply >= 0) {
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), " : accepted connection\n");
     }
     
-    // Set the timeout for sending and receiving on this socket to 1 sec
+    // Set the timeout for sending and receiving on the
+    // extracted socket to THESQUID_PROC_TIMEOUT sec
     struct timeval tv;
-    tv.tv_sec = 1;
+    tv.tv_sec = THESQUID_PROC_TIMEOUT;
     tv.tv_usec = 0;  
     int reuse = 1;
     if (setsockopt(that->_sockReply, SOL_SOCKET, SO_SNDTIMEO, 
@@ -1488,9 +1509,10 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
 
     } else {
 
-      // Receive the task type, give up after 5 seconds
+      // Receive the task type, give up after 
+      // THESQUID_PROC_TIMEOUT seconds
       if (SocketRecv(&(that->_sockReply), sizeof(SquidletTaskType), 
-        (char*)&taskRequest, 5)) {
+        (char*)&taskRequest, THESQUID_PROC_TIMEOUT)) {
         reply = THESQUID_TASKACCEPTED;
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
@@ -1548,11 +1570,15 @@ void SquidletProcessRequest(Squidlet* const that,
   }
 #endif
 
-  if (request->_type != SquidletTaskType_Null) {
-    if (SquidletStreamInfo(that)){
-      SquidletPrint(that, SquidletStreamInfo(that));
-      fprintf(SquidletStreamInfo(that), " : process task\n");
-    }
+  // If the task is of type null
+  if (request->_type == SquidletTaskType_Null) {
+    // Nothing to do
+    return;
+  }
+
+  if (SquidletStreamInfo(that)){
+    SquidletPrint(that, SquidletStreamInfo(that));
+    fprintf(SquidletStreamInfo(that), " : process task\n");
   }
 
   // Switch according to the request type
@@ -1568,22 +1594,21 @@ void SquidletProcessRequest(Squidlet* const that,
   }
 
   // If there was a reply from the squidlet to the squad
-  if (that->_sockReply >= 0) {
+  //if (that->_sockReply >= 0) {
 
     // Close the output socket for this task after receiving the 
-    // acknowledgement
-    // Give up after 10s
+    // acknowledgement of reception of reply from the squad
+    // Give up after THESQUID_PROC_TIMEOUT seconds
 
-    if (request->_type != SquidletTaskType_Null) {
-      if (SquidletStreamInfo(that)){
-        SquidletPrint(that, SquidletStreamInfo(that));
-        fprintf(SquidletStreamInfo(that), 
-          " : wait for acknowledgement from squad\n");
-      }
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : wait for acknowledgement from squad\n");
     }
 
     char ack = 0;
-    if (SocketRecv(&(that->_sockReply), 1, &ack, 10)) {
+    if (SocketRecv(&(that->_sockReply), 1, &ack, 
+      THESQUID_PROC_TIMEOUT)) {
       if (request->_type != SquidletTaskType_Null) {
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
@@ -1592,23 +1617,19 @@ void SquidletProcessRequest(Squidlet* const that,
         }
       }
     } else {
-      if (request->_type != SquidletTaskType_Null) {
-        if (SquidletStreamInfo(that)){
-          SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : couldn't receive acknowledgement from squad\n");
-        }
-      }
-    }
-
-    if (request->_type != SquidletTaskType_Null) {
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
-          " : ready for next task\n");
+          " : couldn't receive acknowledgement from squad\n");
       }
     }
-  }
+
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : ready for next task\n");
+    }
+  //}
 }
 
 // Process a dummy task request with the Squidlet 'that'
@@ -2054,7 +2075,7 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec) {
     if (nbReadByte > 0) {
       freadPtr += nbReadByte;
     }
-    // Update the elpased time
+    // Update the elapsed time
     elapsedTime = time(NULL) - startTime;
   }
 
