@@ -11,9 +11,10 @@
 
 // Function to receive in blocking mode 'nb' bytes of data from
 // the socket 'sock' and store them into 'buffer' (which must be big 
-// enough). Give up after 'sec' seconds.
+// enough). Give up after 'timeout' seconds.
 // Return true if we could read all the requested byte, false else
-bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec);
+bool SocketRecv(short* sock, unsigned long nb, char* buffer, 
+  int timeout);
 
 // -------------- SquidletInfo
 
@@ -1048,7 +1049,7 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
       char title[] = "Squad";
       int width = strlen(SQUAD_TXTOMETER_LINE1) + 1;
       int height = SQUAD_TXTOMETER_NBLINEHISTORY + 
-        SQUAD_TXTOMETER_NBTASKDISPLAYED + 4;
+        SQUAD_TXTOMETER_NBTASKDISPLAYED + 5;
       that->_textOMeter = TextOMeterCreate(title, width, height);
     }
     if (!flag && that->_textOMeter != NULL) {
@@ -1820,8 +1821,26 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       } else {
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : received task data %s\n", buffer);
+          if (strlen(buffer) > 50) {
+            char tmp[4];
+            tmp[0] = buffer[47];
+            tmp[1] = buffer[48];
+            tmp[2] = buffer[49];
+            tmp[3] = buffer[50];
+            buffer[47] = ' ';
+            buffer[48] = '.';
+            buffer[49] = '.';
+            buffer[50] = '\0';
+            fprintf(SquidletStreamInfo(that), 
+              " : received task data %s\n", buffer);
+            buffer[47] = tmp[0];
+            buffer[48] = tmp[1];
+            buffer[49] = tmp[2];
+            buffer[50] = tmp[3];
+          } else {
+            fprintf(SquidletStreamInfo(that), 
+              " : received task data %s\n", buffer);
+          }
         }
       }
     }
@@ -2041,9 +2060,10 @@ int TheSquidBenchmark(int nbLoop, const char* const buffer) {
 
 // Function to receive in blocking mode 'nb' bytes of data from
 // the socket 'sock' and store them into 'buffer' (which must be big 
-// enough). Give up after 'sec' seconds.
+// enough). Give up after 'timeout' seconds.
 // Return true if we could read all the requested byte, false else
-bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec) {
+bool SocketRecv(short* sock, unsigned long nb, char* buffer, 
+  int timeout) {
 #if BUILDMODE == 0
   if (buffer == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2066,8 +2086,7 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec) {
   
   // While we haven't received all the requested bytes and the time
   // limit is not reached
-  while (freadPtr != freadPtrEnd && elapsedTime <= sec && 
-    !Squidlet_CtrlC) {
+  do {
     // Try to read one more byte, if successful moves the pointer to
     // the next byte to read by one byte
     //ssize_t nbReadByte = read(sock, freadPtr, nb);
@@ -2077,10 +2096,8 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer, int sec) {
     }
     // Update the elapsed time
     elapsedTime = time(NULL) - startTime;
-  }
-
-  
-
+  } while (freadPtr != freadPtrEnd && timeout != 0 && 
+    elapsedTime <= timeout && !Squidlet_CtrlC);
   *sock = dup(*sock);
   fclose(fp);
 

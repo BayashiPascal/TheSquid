@@ -298,18 +298,19 @@ void UnitTestBenchmark() {
     printf("errno: %s\n", strerror(errno));
   }
 
-  //SquadSetFlagTextOMeter(squad, true);
+  SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
-  FILE* fp = fopen("unitTestBenchmark.json", "r");
-  //FILE* fp = fopen("/home/bayashi/Desktop/unitTestBenchmark.json", "r");
+  //FILE* fp = fopen("unitTestBenchmark.json", "r");
+  FILE* fp = fopen("/home/bayashi/Desktop/squad.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
   time_t maxWait = 100;
   unsigned int id = 0;
   bool flagStop = false;
-  for (size_t sizePayload = 1; !flagStop && 
+  //for (size_t sizePayload = 1; !flagStop && 
+  for (size_t sizePayload = maxSizePayload; !flagStop && 
     sizePayload <= maxSizePayload; sizePayload *= 100) {
     // Loop on nbLoop
     for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; nbLoop *= 2) {

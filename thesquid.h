@@ -120,12 +120,12 @@ void SquadRunningTaskPrint(const SquadRunningTask* const that,
 // ================= Define ==================
 
 #define SQUAD_TXTOMETER_LINE1 \
-  "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail xxxxx             \n"
+  "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail xxxxx                          \n"
 #define SQUAD_TXTOMETER_FORMAT1 \
-  "NbRunning %05ld NbQueued %05ld NbSquidletAvail %05ld             \n"
+  "NbRunning %05ld NbQueued %05ld NbSquidletAvail %05ld\n"
 #define SQUAD_TXTOMETER_FORMATHISTORY "%s\n"
 #define SQUAD_TXTOMETER_TASKHEADER \
-  "------------------    Tasks    ---------------------             \n"
+  "------------------    Tasks    ---------------------                          \n"
 #define SQUAD_TXTOMETER_FORMATRUNNING "Running: %s\n"
 #define SQUAD_TXTOMETER_FORMATQUEUED  " Queued: %s\n"
 #define SQUAD_TXTOMETER_NBLINEHISTORY 20
