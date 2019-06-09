@@ -302,8 +302,8 @@ void UnitTestBenchmark() {
 
   // Load the info about the squidlet from the config file
   //FILE* fp = fopen("unitTestBenchmark.json", "r");
-  //FILE* fp = fopen("/home/bayashi/Desktop/squad2.json", "r");
-  FILE* fp = fopen("/home/bayashi/Desktop/squadeee.json", "r");
+  FILE* fp = fopen("/home/bayashi/Desktop/squad2.json", "r");
+  //FILE* fp = fopen("/home/bayashi/Desktop/squadeee.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
