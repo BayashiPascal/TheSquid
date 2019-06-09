@@ -263,7 +263,7 @@ void UnitTestBenchmark() {
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
   int lengthTest = 30;
   //size_t maxSizePayload = 100000000;
-  size_t maxSizePayload = 10000;
+  size_t maxSizePayload = 1024;
   int nbMaxLoop = 1024;
   /*char* buffer = PBErrMalloc(TheSquidErr, 27);
   for (size_t i = 0; i < 26; ++i)
@@ -311,7 +311,7 @@ void UnitTestBenchmark() {
   unsigned int id = 0;
   bool flagStop = false;
   for (size_t sizePayload = 1; !flagStop && 
-    sizePayload <= maxSizePayload; sizePayload *= 100) {
+    sizePayload <= maxSizePayload; sizePayload *= 10) {
     // Loop on nbLoop
     for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; nbLoop *= 2) {
 

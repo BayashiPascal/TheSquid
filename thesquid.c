@@ -563,6 +563,7 @@ bool SquadSendTaskRequest(Squad* const that,
 
 // Add a new dummy task with 'id' to execute to the squad 'that'
 // Wait for a maximum of 'maxWait' seconds for the task to complete
+// The total size of the data must be less than 1024 bytes
 void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
   const time_t maxWait) {
 #if BUILDMODE == 0
@@ -587,6 +588,7 @@ void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
 // Add a new benchmark task with 'id' to execute to the squad 'that'
 // Wait for a maximum of 'maxWait' seconds for the task to complete
 // Uses a payload of 'payloadSize' bytes
+// The total size of the data must be less than 1024 bytes
 void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   const time_t maxWait, const int nb, const size_t payloadSize) {
 #if BUILDMODE == 0
