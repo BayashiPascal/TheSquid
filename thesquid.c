@@ -2016,7 +2016,10 @@ char* SquidletGetTemperature(const Squidlet* const that) {
   }
 #endif
   (void)that;
-#if SQUIDLETARCH == 1
+#if DBUILDARCH == 0
+  return NULL;
+#endif
+#if DBUILDARCH == 1
   // Declare a variable to pipe the shell command
   FILE* fp = NULL;
   // Run the command and pipe its output
@@ -2037,8 +2040,28 @@ char* SquidletGetTemperature(const Squidlet* const that) {
     // Return the result
     return strdup("popen() failed");
   }
-#else
-  return NULL;
+#endif
+#if DBUILDARCH == 2
+  // Declare a variable to pipe the shell command
+  FILE* fp = NULL;
+  // Run the command and pipe its output
+  fp = popen("vcgencmd measure_temp", "r");
+  if (fp != NULL) {
+    // Declare a variable to store the output
+    char output[100] = {0};
+    // Read the output
+    while (fgets(output, sizeof(output), fp) != NULL);
+    // Close the pipe
+    pclose(fp);
+    // Remove the line return
+    if (strlen(output) > 0)
+      output[strlen(output) - 1] = '\0';
+    // Return the result
+    return strdup(output);
+  } else {
+    // Return the result
+    return strdup("popen() failed");
+  }
 #endif
 }
 
