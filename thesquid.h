@@ -147,7 +147,7 @@ typedef struct Squad {
   // TextOMeter to display info 
   TextOMeter* _textOMeter;
   // Buffer internally used to display info in the TextOMeter
-  char _history[SQUAD_TXTOMETER_NBLINEHISTORY][100];
+  char _history[SQUAD_TXTOMETER_NBLINEHISTORY][200];
   // Counter for history
   unsigned int _countLineHistory;
 } Squad;

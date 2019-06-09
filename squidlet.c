@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
   }
   
   // Set the handler for SIGPIPE
-  signal(SIGINT, SquidletHandlerSigPipe);
+  signal(SIGPIPE, SquidletHandlerSigPipe);
   
   // Loop until it receives Ctrl-C
   do {

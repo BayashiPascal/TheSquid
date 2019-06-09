@@ -400,7 +400,7 @@ bool SquadSendTaskRequest(Squad* const that,
   }
   
   // Declare some variables to process the lines of history
-  char lineHistory[100];
+  char lineHistory[200];
   char bufferHistory[100];
   FILE* streamBufferHistory = NULL;
 
@@ -441,7 +441,6 @@ bool SquadSendTaskRequest(Squad* const that,
     // If the connection failed
     close(squidlet->_sock);
     squidlet->_sock = -1;
-printf("toto A\n");
     if (SquadGetFlagTextOMeter(that) == true) {
       streamBufferHistory = fmemopen(bufferHistory, 100, "w");
       SquidletInfoPrint(squidlet, streamBufferHistory);
@@ -507,7 +506,6 @@ printf("toto A\n");
     // If we couldn't send the request
     close(squidlet->_sock);
     squidlet->_sock = -1;
-printf("toto B\n");
 
     if (SquadGetFlagTextOMeter(that) == true) {
       streamBufferHistory = fmemopen(bufferHistory, 100, "w");
@@ -536,7 +534,6 @@ printf("toto B\n");
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
-printf("toto C\n");
     if (SquadGetFlagTextOMeter(that) == true) {
       streamBufferHistory = fmemopen(bufferHistory, 100, "w");
       SquidletInfoPrint(squidlet, streamBufferHistory);
@@ -642,7 +639,7 @@ bool SquadSendTaskData(Squad* const that,
   }
 #endif
   // Declare some variables to process the lines of history
-  char lineHistory[100];
+  char lineHistory[200];
   char bufferHistory[100];
   FILE* streamBufferHistory = NULL;
 
@@ -718,7 +715,7 @@ bool SquadReceiveTaskResult(Squad* const that,
   SquidletTaskRequest* task = runningTask->_request;
 
   // Declare some variables to process the lines of history
-  char lineHistory[100];
+  char lineHistory[200];
   char bufferHistory[100];
   FILE* streamBufferHistory = NULL;
   
@@ -859,7 +856,7 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
   }
 #endif
   // Declare some variables to process the lines of history
-  char lineHistory[100];
+  char lineHistory[200];
   char bufferHistory[100];
   FILE* streamBufferHistory = NULL;
   // Request the execution of the task by the squidlet
@@ -924,7 +921,7 @@ GSet SquadStep(Squad* const that) {
   GSet completedTasks = GSetCreateStatic();
 
   // Declare some variables to process the lines of history
-  char lineHistory[100];
+  char lineHistory[200];
   char bufferHistory[100];
   FILE* streamBufferHistory = NULL;
   
@@ -1110,7 +1107,7 @@ void SquadUpdateTextOMeter(const Squad* const that) {
   // Clear the TextOMeter
   TextOMeterClear(that->_textOMeter);
   // .........................
-  char buffer[100];
+  char buffer[200];
   sprintf(buffer, SQUAD_TXTOMETER_FORMAT1, 
     SquadGetNbRunningTasks(that), SquadGetNbTasks(that),
     SquadGetNbSquidlets(that));
@@ -1787,7 +1784,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   bool success = false;
   
   // Declare a variable to store the error message if any
-  char errMsg[200] = {0};
+  char errMsg[300] = {0};
 
   // Declare a variable to memorize the size in byte of the input data
   size_t sizeInputData = 0;
@@ -1935,8 +1932,8 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   }
 
   // Prepare the result data as JSON
-  char bufferResult[100];
-  memset(bufferResult, 0, 100);
+  char bufferResult[350];
+  memset(bufferResult, 0, 350);
   if (success) {
     sprintf(bufferResult, "{\"success\":\"1\", \"v\":\"%d\"}", result);
   } else {
