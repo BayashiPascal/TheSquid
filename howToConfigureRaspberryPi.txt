@@ -39,3 +39,32 @@ sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
 31) Compile the repository with the command `make`, others repository are automatically installed
 32) Check everything works fine with `./main`.
 
+Mount of NAS
+1) sudo mkdir /mnt/NAS
+2) sudo nano /etc/fstab
+//<IP_TO_NAS>/TheSquid /mnt/NAS cifs user,uid=1000,rw,suid,credentials=/etc/credentials 0 0
+3) sudo nano /etc/credentials
+username=squidlet
+password=mypassword
+4) sudo apt-get install cifs-utils
+
+Installing POV-Ray
+1) sudo apt-get update
+2) sudo apt-get install libboost-all-dev
+3) sudo apt-get install zlib1g-dev
+4) sudo apt-get install libpng-dev
+5) sudo apt-get install libjpeg8-dev
+6) sudo apt-get install libopenexr-dev
+7) sudo apt-get install libtiff5-dev libtiff5 libjbig-dev
+8) sudo apt-get install autoconf
+9) cd ~/GitHub
+10) git clone https://github.com/POV-Ray/povray.git
+11) git checkout 3.7-stable
+12) cd ~/GitHub/povray/unix/
+13) ./prebuild.sh
+14) cd ../
+15) ./configure COMPILED_BY="TheSquid <email@address>" --with-boost-libdir=/usr/lib/arm-linux-gnueabihf
+16) make -j4
+17) sudo make install
+18) make check
+
