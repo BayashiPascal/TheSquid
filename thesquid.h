@@ -318,11 +318,15 @@ void SquidletProcessRequest(Squidlet* const that,
   
 // Process a dummy task request with the Squidlet 'that'
 void SquidletProcessRequest_Dummy(Squidlet* const that,
-  SquidletTaskRequest* const request);
+  const char* const buffer, char** bufferResult);
   
 // Process a benchmark task request with the Squidlet 'that'
 void SquidletProcessRequest_Benchmark(Squidlet* const that,
-  SquidletTaskRequest* const request);
+  const char* const buffer, char** bufferResult);
+  
+// Process a POV-Ray task request with the Squidlet 'that'
+void SquidletProcessRequest_POVRay(Squidlet* const that,
+  const char* const buffer, char** bufferResult);
   
 // Get the PID of the Squidlet 'that'
 #if BUILDMODE != 0 

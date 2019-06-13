@@ -383,15 +383,13 @@ void UnitTestAll() {
   UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
-  UnitTestBenchmark();
+  //UnitTestBenchmark();
   printf("UnitTestAll OK\n");
 }
 
 int main() {
-  //UnitTestSquadCheckSquidlets();
-  //UnitTestDummy();
-  //UnitTestAll();
-  UnitTestBenchmark();
+  UnitTestAll();
+  //UnitTestBenchmark();
   // Return success code
   return 0;
 }

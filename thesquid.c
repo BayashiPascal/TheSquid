@@ -30,7 +30,7 @@ SquidletInfo* SquidletInfoCreate(char* name, char* ip, int port) {
   that->_ip = strdup(ip);
   that->_port = port;
   that->_sock = -1;
-  
+
   // Return the new squidletInfo
   return that;
 }
@@ -1592,207 +1592,14 @@ void SquidletProcessRequest(Squidlet* const that,
     fprintf(SquidletStreamInfo(that), " : process task\n");
   }
 
-  // Switch according to the request type
-  switch (request->_type) {
-    case SquidletTaskType_Dummy:
-      SquidletProcessRequest_Dummy(that, request);
-      break;
-    case SquidletTaskType_Benchmark:
-      SquidletProcessRequest_Benchmark(that, request);
-      break;
-    default:
-      break;
-  }
-
-  // If there was a reply from the squidlet to the squad
-  //if (that->_sockReply >= 0) {
-
-    // Close the output socket for this task after receiving the 
-    // acknowledgement of reception of reply from the squad
-    // Give up after THESQUID_PROC_TIMEOUT seconds
-
-    if (SquidletStreamInfo(that)){
-      SquidletPrint(that, SquidletStreamInfo(that));
-      fprintf(SquidletStreamInfo(that), 
-        " : wait for acknowledgement from squad\n");
-    }
-
-    char ack = 0;
-    if (SocketRecv(&(that->_sockReply), 1, &ack, 
-      THESQUID_PROC_TIMEOUT)) {
-      if (request->_type != SquidletTaskType_Null) {
-        if (SquidletStreamInfo(that)){
-          SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : received acknowledgement from squad\n");
-        }
-      }
-    } else {
-      if (SquidletStreamInfo(that)){
-        SquidletPrint(that, SquidletStreamInfo(that));
-        fprintf(SquidletStreamInfo(that), 
-          " : couldn't receive acknowledgement from squad\n");
-      }
-    }
-
-    if (SquidletStreamInfo(that)){
-      SquidletPrint(that, SquidletStreamInfo(that));
-      fprintf(SquidletStreamInfo(that), 
-        " : ready for next task\n");
-    }
-  //}
-}
-
-// Process a dummy task request with the Squidlet 'that'
-void SquidletProcessRequest_Dummy(Squidlet* const that,
-  SquidletTaskRequest* const request) {
-#if BUILDMODE == 0
-  if (that == NULL) {
-    TheSquidErr->_type = PBErrTypeNullPointer;
-    sprintf(TheSquidErr->_msg, "'that' is null");
-    PBErrCatch(TheSquidErr);
-  }
-#endif
-  (void)request;
-  // Declare a variable to memorize if the process has been successful
-  bool success = false;
-
-  // Declare a variable to memorize the result of processing
-  int result = 0; 
-
-  // Declare a variable to memorize the size in byte of the input data
-  size_t sizeInputData = 0;
-
-  // Wait to receive the size of the input data with a time limit of 5s
-  if (SocketRecv(&(that->_sockReply), sizeof(size_t), 
-    (char*)&sizeInputData, 5)) {
-
-    if (SquidletStreamInfo(that)){
-      SquidletPrint(that, SquidletStreamInfo(that));
-      fprintf(SquidletStreamInfo(that), 
-        " : size input data %d\n", sizeInputData);
-    }
-
-    // Declare a buffer for the raw input data
-    char* buffer = NULL;
-
-    // If there are input data
-    if (sizeInputData > 0) {
-
-      // Allocate memory for the input data
-      buffer = PBErrMalloc(TheSquidErr, sizeInputData + 1);
-      memset(buffer, 0, sizeInputData + 1);
-      
-      // Wait to receive the input data with a time limit proportional
-      // to the size of input data
-      int timeLimit = 5 + (int)round((float)sizeInputData / 1000.0);
-      if (!SocketRecv(&(that->_sockReply), sizeInputData, buffer, 
-        timeLimit)) {
-        // If we coudln't received the input data
-        free(buffer);
-        buffer = NULL;
-      }
-    }
-
-    // If we could receive the expected data
-    if (sizeInputData > 0 && buffer != NULL) {
-      
-      // Process the data
-      if (SquidletStreamInfo(that)){
-        SquidletPrint(that, SquidletStreamInfo(that));
-        fprintf(SquidletStreamInfo(that), 
-          " : process dummy task %s\n", buffer);
-      }
-
-      // Decode the input from JSON
-      JSONNode* json = JSONCreate();
-      if (JSONLoadFromStr(json, buffer)) {
-        // Get the value to process
-        JSONNode* prop = JSONProperty(json, "v");
-        if (prop != NULL) {
-          int v = atoi(JSONLabel(JSONValue(prop, 0)));
-          // Process the value
-          result = v * -1;
-          // Sleep for v seconds
-          sleep(v);
-          // Set the flag for successfull process
-          success = true;
-        }
-      }
-      JSONFree(&json);
-      
-      // Free memory
-      free(buffer);
-    }
-  }
-
-  // Prepare the result data as JSON
-  char bufferResult[100];
-  memset(bufferResult, 0, 100);
-  if (success) {
-    char* temperature = SquidletGetTemperature(that);
-    sprintf(bufferResult, 
-      "{\"success\":\"1\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
-      result, temperature);
-    if (temperature != NULL)
-      free(temperature);
-  } else {
-    char* temperature = SquidletGetTemperature(that);
-    sprintf(bufferResult, "{\"success\":\"0\",\"temperature\":\"%s\"}",
-      temperature);
-    if (temperature != NULL)
-      free(temperature);
-  }
-
-  // Send the task data size
-  int flags = 0;
-  size_t len = strlen(bufferResult);
-  if (send(that->_sockReply, 
-    (char*)&len, sizeof(size_t), flags) != -1) {
-
-      if (SquidletStreamInfo(that)){
-        SquidletPrint(that, SquidletStreamInfo(that));
-        fprintf(SquidletStreamInfo(that), 
-          " : wait for acknowledgement from squad\n");
-      }
-
-    char ack = 0;
-    (void)SocketRecv(&(that->_sockReply), 1, &ack, 60);
-
-
-    if (send(that->_sockReply, bufferResult, len, flags) != -1) {
-      if (SquidletStreamInfo(that)){
-        SquidletPrint(that, SquidletStreamInfo(that));
-        fprintf(SquidletStreamInfo(that), 
-          " : sent result %s\n", bufferResult);
-      }
-    }
-  }
-
-}  
-
-// Process a benchmark task request with the Squidlet 'that'
-void SquidletProcessRequest_Benchmark(Squidlet* const that,
-  SquidletTaskRequest* const request) {
-#if BUILDMODE == 0
-  if (that == NULL) {
-    TheSquidErr->_type = PBErrTypeNullPointer;
-    sprintf(TheSquidErr->_msg, "'that' is null");
-    PBErrCatch(TheSquidErr);
-  }
-#endif
-  (void)request;
-  // Declare a variable to memorize if the process has been successful
-  bool success = false;
-  
   // Declare a variable to store the error message if any
   char errMsg[300] = {0};
 
   // Declare a variable to memorize the size in byte of the input data
   size_t sizeInputData = 0;
 
-  // Variable to memorize the result of the benchmark function
-  int result = 0;
+  // Declare a buffer for the result data
+  char* bufferResult = NULL;
 
   // Wait to receive the size of the input data with a time limit of 5s
   if (SocketRecv(&(that->_sockReply), sizeof(size_t), 
@@ -1803,7 +1610,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 
     // If there are input data
     if (sizeInputData > 0) {
-      if (SquidletStreamInfo(that)){
+      if (SquidletStreamInfo(that)) {
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
           " : received size task data %d\n", sizeInputData);
@@ -1857,67 +1664,19 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 
     // If we could receive the expected data
     if (sizeInputData > 0 && buffer != NULL) {
-      
-      // Decode the input from JSON
-      JSONNode* json = JSONCreate();
-      if (JSONLoadFromStr(json, buffer)) {
-        // Get the value to process
-        JSONNode* prop = JSONProperty(json, "nb");
-        if (prop != NULL) {
-          int nb = atoi(JSONLabel(JSONValue(prop, 0)));
-          prop = JSONProperty(json, "v");
-          if (prop != NULL) {
-            if (SquidletStreamInfo(that)){
-              SquidletPrint(that, SquidletStreamInfo(that));
-              fprintf(SquidletStreamInfo(that), 
-                " : run benchmark\n");
-            }
-            // Run the benchmark function
-            result = TheSquidBenchmark(nb, 
-              JSONLabel(JSONValue(prop, 0)));
-    
-            if (SquidletStreamInfo(that)){
-              SquidletPrint(that, SquidletStreamInfo(that));
-              fprintf(SquidletStreamInfo(that), 
-                " : benchmark complete\n");
-            }
 
-            // Set the flag for successfull process
-            success = true;
-
-          } else {
-    
-            if (SquidletStreamInfo(that)){
-              SquidletPrint(that, SquidletStreamInfo(that));
-              fprintf(SquidletStreamInfo(that), 
-                " : invalid data (v)\n");
-            }
-            sprintf(errMsg, "invalid data (v missing)");
-          }
-
-        } else {
-  
-          if (SquidletStreamInfo(that)){
-            SquidletPrint(that, SquidletStreamInfo(that));
-            fprintf(SquidletStreamInfo(that), 
-              " : invalid data (nb)\n");
-          }
-          sprintf(errMsg, "invalid data (nb missing)");
-
-        }
-
-      } else {
-  
-        if (SquidletStreamInfo(that)){
-          SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : couldn't load json %s\n", buffer);
-        }
-        sprintf(errMsg, "couldn't load json (%s)", JSONErr->_msg);
-
+      // Switch according to the request type
+      switch (request->_type) {
+        case SquidletTaskType_Dummy:
+          SquidletProcessRequest_Dummy(that, buffer, &bufferResult);
+          break;
+        case SquidletTaskType_Benchmark:
+          SquidletProcessRequest_Benchmark(that, buffer, &bufferResult);
+          break;
+        default:
+          break;
       }
-      JSONFree(&json);
-      
+
       // Free memory
       free(buffer);
     }
@@ -1932,22 +1691,8 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
       strerror(errno));
 
   }
-
-  // Prepare the result data as JSON
-  char bufferResult[350];
-  memset(bufferResult, 0, 350);
-  if (success) {
-    sprintf(bufferResult, "{\"success\":\"1\", \"v\":\"%d\"}", result);
-  } else {
-    char* temperature = SquidletGetTemperature(that);
-    sprintf(bufferResult, 
-      "{\"success\":\"0\",\"temp\":\"%s\",\"err\":\"%s\"}",
-      temperature, errMsg);
-    if (temperature != NULL)
-      free(temperature);
-  }
-
-  // Send the task data size
+  
+  // Send the result data size
   int flags = 0;
   size_t len = strlen(bufferResult);
   if (send(that->_sockReply, 
@@ -2001,7 +1746,269 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
         " : couldn't send data size\n");
     }
   }
+  
+  // Free memory 
+  if (bufferResult != NULL) {
+    free(bufferResult);
+  }
 
+  // Close the output socket for this task after receiving the 
+  // acknowledgement of reception of reply from the squad
+  // Give up after THESQUID_PROC_TIMEOUT seconds
+
+  if (SquidletStreamInfo(that)){
+    SquidletPrint(that, SquidletStreamInfo(that));
+    fprintf(SquidletStreamInfo(that), 
+      " : wait for acknowledgement from squad\n");
+  }
+
+  char ack = 0;
+  if (SocketRecv(&(that->_sockReply), 1, &ack, 
+    THESQUID_PROC_TIMEOUT)) {
+    if (request->_type != SquidletTaskType_Null) {
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : received acknowledgement from squad\n");
+      }
+    }
+  } else {
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : couldn't receive acknowledgement from squad\n");
+    }
+  }
+
+  if (SquidletStreamInfo(that)){
+    SquidletPrint(that, SquidletStreamInfo(that));
+    fprintf(SquidletStreamInfo(that), 
+      " : ready for next task\n");
+  }
+
+}
+
+// Process a dummy task request with the Squidlet 'that'
+void SquidletProcessRequest_Dummy(Squidlet* const that,
+  const char* const buffer, char** bufferResult) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Declare a variable to memorize if the process has been successful
+  bool success = false;
+
+  // Declare a variable to memorize the result of processing
+  int result = 0; 
+
+  // Process the data
+  if (SquidletStreamInfo(that)){
+    SquidletPrint(that, SquidletStreamInfo(that));
+    fprintf(SquidletStreamInfo(that), 
+      " : process dummy task %s\n", buffer);
+  }
+
+  // Decode the input from JSON
+  JSONNode* json = JSONCreate();
+  if (JSONLoadFromStr(json, buffer)) {
+    // Get the value to process
+    JSONNode* prop = JSONProperty(json, "v");
+    if (prop != NULL) {
+      int v = atoi(JSONLabel(JSONValue(prop, 0)));
+      // Process the value
+      result = v * -1;
+      // Sleep for v seconds
+      sleep(v);
+      // Set the flag for successfull process
+      success = true;
+    }
+  }
+  JSONFree(&json);
+
+  // Prepare the result data as JSON
+  *bufferResult = PBErrMalloc(TheSquidErr, 100);
+  memset(*bufferResult, 0, 100);
+  char* temperature = SquidletGetTemperature(that);
+  if (success) {
+    sprintf(*bufferResult, 
+      "{\"success\":\"1\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
+      result, temperature);
+  } else {
+    sprintf(*bufferResult, "{\"success\":\"0\",\"temperature\":\"%s\"}",
+      temperature);
+  }
+  if (temperature != NULL)
+    free(temperature);
+
+}  
+
+// Process a benchmark task request with the Squidlet 'that'
+void SquidletProcessRequest_Benchmark(Squidlet* const that,
+  const char* const buffer, char** bufferResult) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+
+  // Declare a variable to memorize if the process has been successful
+  bool success = false;
+
+  // Variable to memorize the result of the benchmark function
+  int result = 0;
+
+  // Declare a variable to store the error message if any
+  char errMsg[300] = {0};
+
+  // Decode the input from JSON
+  JSONNode* json = JSONCreate();
+  if (JSONLoadFromStr(json, buffer)) {
+    // Get the value to process
+    JSONNode* prop = JSONProperty(json, "nb");
+    if (prop != NULL) {
+      int nb = atoi(JSONLabel(JSONValue(prop, 0)));
+      prop = JSONProperty(json, "v");
+      if (prop != NULL) {
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : run benchmark\n");
+        }
+        // Run the benchmark function
+        result = TheSquidBenchmark(nb, 
+          JSONLabel(JSONValue(prop, 0)));
+
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : benchmark complete\n");
+        }
+
+        // Set the flag for successfull process
+        success = true;
+
+      } else {
+
+        if (SquidletStreamInfo(that)){
+          SquidletPrint(that, SquidletStreamInfo(that));
+          fprintf(SquidletStreamInfo(that), 
+            " : invalid data (v)\n");
+        }
+        sprintf(errMsg, "invalid data (v missing)");
+      }
+
+    } else {
+
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : invalid data (nb)\n");
+      }
+      sprintf(errMsg, "invalid data (nb missing)");
+
+    }
+
+  } else {
+
+    if (SquidletStreamInfo(that)){
+      SquidletPrint(that, SquidletStreamInfo(that));
+      fprintf(SquidletStreamInfo(that), 
+        " : couldn't load json %s\n", buffer);
+    }
+    sprintf(errMsg, "couldn't load json (%s)", JSONErr->_msg);
+
+  }
+  JSONFree(&json);
+
+  // Prepare the result data as JSON
+  *bufferResult = PBErrMalloc(TheSquidErr, 350);
+  memset(bufferResult, 0, 350);
+  char* temperature = SquidletGetTemperature(that);
+  if (success) {
+    sprintf(*bufferResult, "{\"success\":\"1\",\"temp\":\"%s\", \"v\":\"%d\"}", temperature, result);
+  } else {
+    sprintf(*bufferResult, 
+      "{\"success\":\"0\",\"temp\":\"%s\",\"err\":\"%s\"}",
+      temperature, errMsg);
+  }
+  if (temperature != NULL)
+    free(temperature);
+
+}  
+
+// Process a POV-Ray task request with the Squidlet 'that'
+void SquidletProcessRequest_POVRay(Squidlet* const that,
+  const char* const buffer, char** bufferResult) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Declare a variable to memorize if the process has been successful
+  bool success = false;
+
+  // Process the data
+  if (SquidletStreamInfo(that)){
+    SquidletPrint(that, SquidletStreamInfo(that));
+    fprintf(SquidletStreamInfo(that), 
+      " : process POV-Ray task %s\n", buffer);
+  }
+
+  // Decode the input from JSON
+  JSONNode* json = JSONCreate();
+  if (JSONLoadFromStr(json, buffer)) {
+    // Get the arguments
+    JSONNode* propIni = JSONProperty(json, "ini");
+    JSONNode* propTga = JSONProperty(json, "tga");
+    JSONNode* propTop = JSONProperty(json, "top");
+    JSONNode* propLeft = JSONProperty(json, "left");
+    JSONNode* propBottom = JSONProperty(json, "bottom");
+    JSONNode* propRight = JSONProperty(json, "right");
+    // If all the arguments are valids
+    if (propIni != NULL && propTga != NULL && propTop != NULL && 
+      propLeft != NULL && propBottom != NULL && propRight != NULL) {
+
+      // Create the POV-Ray command
+      // povray +SCleft +SRtop +ECright +ERbottom +Otga +FT ini
+      char cmd[500];
+      sprintf(cmd, "povray +SC%s +SR%s +EC%s +ER%s +O%s +FT %s",
+        JSONLabel(JSONValue(propLeft, 0)), 
+        JSONLabel(JSONValue(propTop, 0)), 
+        JSONLabel(JSONValue(propRight, 0)), 
+        JSONLabel(JSONValue(propBottom, 0)), 
+        JSONLabel(JSONValue(propTga, 0)), 
+        JSONLabel(JSONValue(propIni, 0)));
+      
+      // Execute the POV-Ray command
+      int ret = system(cmd);
+      
+      if (ret == 0) {
+        // Set the flag for successfull process
+        success = true;
+      }
+    }
+  }
+  JSONFree(&json);
+
+  // Prepare the result data as JSON
+  *bufferResult = PBErrMalloc(TheSquidErr, strlen(buffer) + 100);
+  memset(*bufferResult, 0, strlen(*bufferResult));
+  char successStr[10];
+  sprintf(successStr, "%d", success);
+  JSONAddProp(json, "success", successStr);
+  char* temperature = SquidletGetTemperature(that);
+  if (temperature != NULL)
+    JSONAddProp(json, "temperature", temperature);
+  if (temperature != NULL)
+    free(temperature);
+  JSONSaveToStr(json, *bufferResult, true);
 }  
 
 // Return the temperature of the squidlet 'that' as a string.
