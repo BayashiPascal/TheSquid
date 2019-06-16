@@ -15,9 +15,6 @@ camera {
   location    _posCamera
   look_at     _lookAt
   right x
-  focal_point _lookAt
-  aperture 0.1
-  blur_samples 50
 }
 
 light_source {
@@ -28,9 +25,9 @@ light_source {
   jitter
 }
 
-background { color rgb 1.0 }
+background { color rgb <0.9,0.9,1.0> }
 
-global_settings { ambient_light 0 radiosity {brightness 0.5}}
+global_settings { ambient_light 0 }
 
 #declare hotelIcon = union {
   #local groundSize = 0.75;

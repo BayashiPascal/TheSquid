@@ -257,6 +257,8 @@ void UnitTestDummy() {
 }
 
 void UnitTestPovRay() {
+  int ret = system("povray ./testPov.ini +OtestPovRef.tga +FT -D");
+  (void)ret;
   const int nbSquidlet = 2;
   int squidletId = -1;
   int port[2] = {9000, 9001};
@@ -280,7 +282,6 @@ void UnitTestPovRay() {
       printf("Failed to create the squidlet #%d\n", squidletId);
       printf("errno: %s\n", strerror(errno));
     }
-    SquidletSetStreamInfo(squidlet, stdout);
     printf("Squidlet #%d : ", squidletId);
     SquidletPrint(squidlet, stdout);
     printf("\n");
@@ -302,8 +303,6 @@ void UnitTestPovRay() {
       printf("Failed to create the squad\n");
       printf("errno: %s\n", strerror(errno));
     }
-    // Turn on the TextOMeter
-    SquadSetFlagTextOMeter(squad, true);
     // Automatically create the config file
     FILE* fp = fopen("unitTestPovRay.json", "w");
     char hostname[256];
@@ -360,11 +359,22 @@ void UnitTestPovRay() {
     }
     // Wait for the child to be killed
     sleep(2);
+    // Compare the result to the reference
+    GenBrush* result = GBCreateFromFile("./testPov.tga");
+    GenBrush* ref = GBCreateFromFile("./testPovRef.tga");
+    if (GBIsSameAs(result, ref) == false) {
+      TheSquidErr->_type = PBErrTypeUnitTestFailed;
+      sprintf(TheSquidErr->_msg, "UnitTestPovRay failed");
+      TheSquidErr->_fatal = false;
+      PBErrCatch(TheSquidErr);
+      TheSquidErr->_fatal = true;
+    } else {
+      printf("UnitTestPovRay OK\n");
+    }
     // Free memory
     SquadFree(&squad);
-    printf("Squad ended\n");
-    printf("UnitTestPovRay OK\n");
-    fflush(stdout);
+    GBFree(&result);
+    GBFree(&ref);
   }
 }
 
@@ -373,10 +383,9 @@ void UnitTestBenchmark() {
   printf("Execution on local device:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
   int lengthTest = 30;
-  //size_t maxSizePayload = 100000000;
   size_t maxSizePayload = 1024;
   int nbMaxLoop = 1024;
-  /*char* buffer = PBErrMalloc(TheSquidErr, 27);
+  char* buffer = PBErrMalloc(TheSquidErr, 27);
   for (size_t i = 0; i < 26; ++i)
     buffer[i] = 'a' + i;
   buffer[26] = 0;
@@ -397,7 +406,7 @@ void UnitTestBenchmark() {
       nbLoop, 1, nbComplete, timePerTaskMs);
     fflush(stdout);
   }
-  free(buffer);*/
+  free(buffer);
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -412,9 +421,7 @@ void UnitTestBenchmark() {
   //SquadSetFlagTextOMeter(squad, true);
 
   // Load the info about the squidlet from the config file
-  //FILE* fp = fopen("unitTestBenchmark.json", "r");
-  FILE* fp = fopen("/home/bayashi/Desktop/squad2.json", "r");
-  //FILE* fp = fopen("/home/bayashi/Desktop/squadeee.json", "r");
+  FILE* fp = fopen("unitTestBenchmark.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
@@ -495,13 +502,12 @@ void UnitTestAll() {
   UnitTestSquidlet();
   UnitTestDummy();
   UnitTestPovRay();
-  //UnitTestBenchmark();
   printf("UnitTestAll OK\n");
 }
 
 int main() {
-  //UnitTestAll();
-  UnitTestPovRay();
+  UnitTestAll();
+  //UnitTestBenchmark();
   // Return success code
   return 0;
 }

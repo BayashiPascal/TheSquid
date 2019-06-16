@@ -34,6 +34,7 @@
 #define THESQUID_TASKACCEPTED 1
 #define THESQUID_ACCEPT_TIMEOUT 1 // in seconds
 #define THESQUID_PROC_TIMEOUT 60 // in seconds
+#define THESQUID_MAXSIZEPOVRAYFRAGMENT 100
 
 // -------------- SquidletInfo
 

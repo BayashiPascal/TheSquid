@@ -675,6 +675,13 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
         sscanf(oneLine + 7, "%lu", &height);
       } else if (strstr(oneLine, "Output_File_Name=")) {
         outImgPath = strdup(oneLine + 17);
+        // Remove the return line
+        outImgPath[strlen(outImgPath) - 1] = '\0';
+        // Make sure the output file doesn't exists
+        char cmd[500];
+        sprintf(cmd, "rm %s", outImgPath);
+        int ret = system(cmd);
+        (void)ret;
       }
     }
     fclose(fp);
@@ -690,8 +697,10 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   // Get the size of one fragment
   unsigned long nbSquidlets = SquadGetNbSquidlets(that);
   unsigned long sizeFrag[2];
-  sizeFrag[0] = width / nbSquidlets;
-  sizeFrag[1] = width / nbSquidlets;
+  sizeFrag[0] = MIN(THESQUID_MAXSIZEPOVRAYFRAGMENT, 
+    width / nbSquidlets);
+  sizeFrag[1] = MIN(THESQUID_MAXSIZEPOVRAYFRAGMENT,
+    width / nbSquidlets);
   
   // Get the nb of fragments
   unsigned long nbFrag[2];
@@ -709,19 +718,20 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
       // Get the id of the task
       unsigned long taskId = i * nbFrag[1] + j;
       // Get the coordinates of the fragment
-      unsigned long top = j * sizeFrag[1];
-      unsigned long left = i * sizeFrag[0];
-      unsigned long bottom = (j + 1) * sizeFrag[1] - 1;
-      if (bottom >= height)
-        bottom = height - 1;
-      unsigned long right = (i + 1) * sizeFrag[0] - 1;
-      if (right >= width)
-        right = width - 1;
+      // Pov-Ray starts counting at 1, so the top left is (1,1)
+      unsigned long top = j * sizeFrag[1] + 1;
+      unsigned long left = i * sizeFrag[0] + 1;
+      unsigned long bottom = (j + 1) * sizeFrag[1] + 1;
+      if (bottom > height)
+        bottom = height;
+      unsigned long right = (i + 1) * sizeFrag[0] + 1;
+      if (right > width)
+        right = width;
       // Get the name of the output file for this fragment
       int len = strlen(outImgPath);
       char* tga = PBErrMalloc(TheSquidErr, len + 6);
       strcpy(tga, outImgPath);
-      sprintf(tga + len - 5, "-%05lu.tga", taskId);
+      sprintf(tga + len - 4, "-%05lu.tga", taskId);
       // Prepare the data as JSON
       char buffer[1024];
       memset(buffer, 0, 1024);
@@ -1072,10 +1082,8 @@ GSet SquadStep(Squad* const that) {
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
         // Add the task to the set of completed tasks
         GSetAppend(&completedTasks, runningTask->_request);
-
         // Post process the completed task
-        
-
+        SquadProcessCompletedTask(that, runningTask->_request);
         // Free memory
         runningTask->_request = NULL;
         runningTask->_squidlet = NULL;
@@ -1223,7 +1231,6 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
     // If the necessary properties were present
     if (propTga != NULL && propTop != NULL && propLeft != NULL &&
       propRight != NULL && propBottom != NULL && propResultImg != NULL) {
-
       // Load the result image
       GenBrush* resultImg = 
         GBCreateFromFile(JSONLabel(JSONValue(propResultImg, 0)));
@@ -1244,36 +1251,65 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
 
       // If we could load the fragment
       if (fragment != NULL) {
-
         // Crop the relevant portion of the image
         // Pov-Ray output the fragment from the first line whatever
         // its Y position
-        // Pov-Ray has its cooridnate system origin at the top left of 
-        // the image
-        VecShort2D posLR = VecShortCreateStatic2D();
-        VecSet(&posLR, 0, atoi(JSONLabel(JSONValue(propLeft, 0))));
-        VecSet(&posLR, 1, 
-          atoi(JSONLabel(JSONValue(propBottom, 0))) -
-          atoi(JSONLabel(JSONValue(propTop, 0))));
+        // Pov-Ray has its coordinate system origin at the top left of 
+        // the image, while GenBrush has its own at the bottom left
+        // Pov-Ray starts counting at 1, so the top left is (1,1)
         VecShort2D dim = VecShortCreateStatic2D();
         VecSet(&dim, 0,
           atoi(JSONLabel(JSONValue(propRight, 0))) -
-          atoi(JSONLabel(JSONValue(propLeft, 0))));
-        VecSet(&dim, 1, VecGet(&posLR, 1));
+          atoi(JSONLabel(JSONValue(propLeft, 0))) + 1);
+        VecSet(&dim, 1, 
+          atoi(JSONLabel(JSONValue(propBottom, 0))) -
+          atoi(JSONLabel(JSONValue(propTop, 0))) + 1);
+        VecShort2D posLR = VecShortCreateStatic2D();
+        VecSet(&posLR, 0, atoi(JSONLabel(JSONValue(propLeft, 0))) - 1);
+        VecSet(&posLR, 1, 
+          atoi(JSONLabel(JSONValue(propHeight, 0))) -
+          (atoi(JSONLabel(JSONValue(propBottom, 0))) -
+          atoi(JSONLabel(JSONValue(propTop, 0)))) - 1);
         GBPixel fillPix = GBColorTransparent;
         GenBrush* crop = GBCrop(fragment, &posLR, &dim, &fillPix);
-
         // Add the fragment to the result image
-
+        VecSet(&posLR, 1, 
+          atoi(JSONLabel(JSONValue(propHeight, 0))) -
+          atoi(JSONLabel(JSONValue(propBottom, 0))));
+        VecShort2D pos = VecShortCreateStatic2D();
+        do {
+          GBPixel pix = GBGetFinalPixel(crop, &pos);
+          VecShort2D posFinal = VecGetOp(&pos, 1, &posLR, 1);
+          GBSetFinalPixel(resultImg, &posFinal, &pix);
+        } while (VecStep(&pos, &dim));
+        
         // Save the result image
         GBRender(resultImg);
 
         // Free memory
         GBFree(&fragment);
         GBFree(&crop);
+      } else {
+        if (SquadGetFlagTextOMeter(that) == true) {
+          char lineHistory[200];
+          sprintf(lineHistory, "Couldn't read the fragment (%s)\n", 
+            GenBrushErr->_msg);
+          SquadPushHistory(that, lineHistory);
+        }
       }
       // Free memory
       GBFree(&resultImg);
+      // Delete the fragment
+      char cmd[500];
+      sprintf(cmd, "rm %s", JSONLabel(JSONValue(propTga, 0)));
+      int ret = system(cmd);
+      (void)ret;
+
+    } else {
+      char lineHistory[200];
+      sprintf(lineHistory, 
+        "Can't preprocess the Pov-Ray task (invalid data)\n");
+      SquadPushHistory(that, lineHistory);
     }
 
     // Free memory
@@ -2231,7 +2267,7 @@ void SquidletProcessRequest_PovRay(Squidlet* const that,
       //   +FT -D <ini>
       char cmd[500];
       sprintf(cmd, 
-        "povray %s +SC%s +SR%s +EC%s +ER%s +O%s +FC -D", 
+        "povray %s +SC%s +SR%s +EC%s +ER%s +O%s +FT -D", 
         JSONLabel(JSONValue(propIni, 0)),
         JSONLabel(JSONValue(propLeft, 0)), 
         JSONLabel(JSONValue(propTop, 0)), 
@@ -2239,10 +2275,6 @@ void SquidletProcessRequest_PovRay(Squidlet* const that,
         JSONLabel(JSONValue(propBottom, 0)), 
         JSONLabel(JSONValue(propTga, 0)));
 
-fprintf(SquidletStreamInfo(that), 
-  "%s\n", cmd);
-fflush(SquidletStreamInfo(that));
-      
       // Execute the Pov-Ray command
       int ret = system(cmd);
       
