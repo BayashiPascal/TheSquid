@@ -23,6 +23,7 @@
 #include "pbjson.h"
 #include "pbcextension.h"
 #include "pbfilesys.h"
+#include "genbrush.h"
 
 // ================= Define ===================
 
@@ -65,7 +66,7 @@ void SquidletInfoPrint(const SquidletInfo* const that,
 
 typedef enum SquidletTaskType {
   SquidletTaskType_Null, SquidletTaskType_Dummy, 
-  SquidletTaskType_Benchmark} SquidletTaskType;
+  SquidletTaskType_Benchmark, SquidletTaskType_PovRay} SquidletTaskType;
 
 typedef struct SquidletTaskRequest {
   // Task type
@@ -74,7 +75,8 @@ typedef struct SquidletTaskRequest {
   unsigned long _id;
   // Data associated to the request, as a string in JSON format
   char* _data;
-  // Buffer to receive the result from the squidlet
+  // Buffer to receive the result from the squidlet, as a string in 
+  // JSON format
   char* _buffer;
   // Time in second after which we give up waiting for this task
   time_t _maxWaitTime;
@@ -211,6 +213,14 @@ void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
 void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   const time_t maxWait, const int nb, const size_t payloadSize);
   
+// Add a new Pov-Ray task with 'id' to execute to the squad 'that'
+// Render the scene described in the Pov-Ray ini file 'ini'
+// The output format of the image must be TGA
+// Wait for a maximum of 'maxWait' seconds for the task to complete
+// The total size of the data must be less than 1024 bytes
+void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
+  const time_t maxWait, const char* const ini);
+  
 // Return the number of task not yet completed
 #if BUILDMODE != 0 
 inline 
@@ -240,6 +250,14 @@ unsigned long SquadGetNbSquidlets(const Squad* const that);
 // Return a GSet of completed SquidletTaskRequest at this step
 GSet SquadStep(Squad* const squad);
 
+// Process the completed 'task' with the Squad 'that'
+void SquadProcessCompletedTask(Squad* const that, 
+  SquidletTaskRequest* const task);
+
+// Process the completed Pov-Ray 'task' with the Squad 'that'
+void SquadProcessCompletedTask_PovRay(Squad* const that, 
+  SquidletTaskRequest* const task);
+  
 // Set the flag memorizing if the TextOMeter is displayed for
 // the Squad 'that' to 'flag'
 void SquadSetFlagTextOMeter(Squad* const that, const bool flag);
@@ -324,8 +342,8 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
 void SquidletProcessRequest_Benchmark(Squidlet* const that,
   const char* const buffer, char** bufferResult);
   
-// Process a POV-Ray task request with the Squidlet 'that'
-void SquidletProcessRequest_POVRay(Squidlet* const that,
+// Process a Pov-Ray task request with the Squidlet 'that'
+void SquidletProcessRequest_PovRay(Squidlet* const that,
   const char* const buffer, char** bufferResult);
   
 // Get the PID of the Squidlet 'that'

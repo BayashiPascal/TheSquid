@@ -239,8 +239,7 @@ void UnitTestDummy() {
       }
       
     } while (SquadGetNbTaskToComplete(squad) > 0L && 
-      time(NULL) - startTime <= 60 &&
-      !flagStop);
+      time(NULL) - startTime <= 60 && !flagStop);
     // Kill the child process
     for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
       if (kill(pidSquidlet[iSquidlet], SIGINT) < 0) {
@@ -253,6 +252,118 @@ void UnitTestDummy() {
     SquadFree(&squad);
     printf("Squad ended\n");
     printf("UnitTestDummy OK\n");
+    fflush(stdout);
+  }
+}
+
+void UnitTestPovRay() {
+  const int nbSquidlet = 2;
+  int squidletId = -1;
+  int port[2] = {9000, 9001};
+  pid_t pidSquidlet[2];
+  // Create the squidlet processes
+  for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+    int pid = fork();
+    if (pid == 0) {
+      squidletId = iSquidlet;
+      break;
+    } else {
+      pidSquidlet[iSquidlet] = pid;
+    }
+  }
+  if (squidletId != -1) {
+    
+    // In a squidlet process
+    
+    Squidlet* squidlet = SquidletCreateOnPort(0, port[squidletId]);
+    if (squidlet == NULL) {
+      printf("Failed to create the squidlet #%d\n", squidletId);
+      printf("errno: %s\n", strerror(errno));
+    }
+    SquidletSetStreamInfo(squidlet, stdout);
+    printf("Squidlet #%d : ", squidletId);
+    SquidletPrint(squidlet, stdout);
+    printf("\n");
+    do {
+      SquidletTaskRequest request = SquidletWaitRequest(squidlet);
+      SquidletProcessRequest(squidlet, &request);
+    } while (!Squidlet_CtrlC);
+    SquidletFree(&squidlet);
+    printf("Squidlet #%d ended\n", squidletId);
+    fflush(stdout);
+    exit(0);
+  } else {
+    
+    // In the squad process
+    
+    // Create the Squad
+    Squad* squad = SquadCreate();
+    if (squad == NULL) {
+      printf("Failed to create the squad\n");
+      printf("errno: %s\n", strerror(errno));
+    }
+    // Turn on the TextOMeter
+    SquadSetFlagTextOMeter(squad, true);
+    // Automatically create the config file
+    FILE* fp = fopen("unitTestPovRay.json", "w");
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    struct hostent* host = gethostbyname(hostname); 
+    char* ip = inet_ntoa(*((struct in_addr*)host->h_addr_list[0]));
+    fprintf(fp, "{\"_squidlets\":[");
+    for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+      fprintf(fp, 
+        "{\"_name\":\"UnitTestPovRay\"\"_ip\":\"%s\",\"_port\":\"%d\"}", 
+        ip, port[iSquidlet]);
+      if (iSquidlet < nbSquidlet - 1)
+        fprintf(fp, ",");
+    }
+    fprintf(fp, "]}");
+    fclose(fp);
+    // Load the info about the squidlet from the config file
+    fp = fopen("unitTestPovRay.json", "r");
+    SquadLoad(squad, fp);
+    fclose(fp);
+    // Wait to be sure the squidlets are up and running
+    sleep(2);
+    // Create the task
+    time_t maxWait = 600;
+    int id = 1;
+    SquadAddTask_PovRay(squad, id, maxWait, "./testPov.ini");
+    // Loop until all the tasks are completed or giveup after 60s
+    time_t startTime = time(NULL);
+    bool flagStop = false;
+    do {
+      sleep(1);
+      // Step the Squad
+      GSet completedTasks = SquadStep(squad);
+      while (GSetNbElem(&completedTasks) > 0L) {
+        SquidletTaskRequest* task = GSetPop(&completedTasks);
+        printf("squad : ");
+        SquidletTaskRequestPrint(task, stdout);
+        if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
+          printf(" failed !!\n");
+          flagStop = true;
+        } else {
+          printf(" succeeded\n");
+        }
+        SquidletTaskRequestFree(&task);
+      }
+      
+    } while (SquadGetNbTaskToComplete(squad) > 0L && 
+      time(NULL) - startTime <= 60 && !flagStop);
+    // Kill the child process
+    for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+      if (kill(pidSquidlet[iSquidlet], SIGINT) < 0) {
+        printf("Couldn't kill squidlet %d\n", pidSquidlet[iSquidlet]);
+      }
+    }
+    // Wait for the child to be killed
+    sleep(2);
+    // Free memory
+    SquadFree(&squad);
+    printf("Squad ended\n");
+    printf("UnitTestPovRay OK\n");
     fflush(stdout);
   }
 }
@@ -383,13 +494,14 @@ void UnitTestAll() {
   UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
+  UnitTestPovRay();
   //UnitTestBenchmark();
   printf("UnitTestAll OK\n");
 }
 
 int main() {
-  UnitTestAll();
-  //UnitTestBenchmark();
+  //UnitTestAll();
+  UnitTestPovRay();
   // Return success code
   return 0;
 }

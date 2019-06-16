@@ -628,6 +628,125 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
+// Add a new Pov-Ray task with 'id' to execute to the squad 'that'
+// Render the scene described in the Pov-Ray ini file 'ini'
+// The ini file must at least contains the following lines (without 
+// inline comments
+//
+// Input_File_Name=<script.pov>
+// Width=<width> 
+// Height=<height>
+// Output_File_Name=<image.tga>
+//
+// The output format of the image must be TGA
+// Wait for a maximum of 'maxWait' seconds for the task to complete
+// The total size of the data must be less than 1024 bytes
+void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
+  const time_t maxWait, const char* const ini) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (ini == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'ini' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Initi variables for the creation of tasks
+  unsigned long width = 0;
+  unsigned long height = 0;
+  char* outImgPath = NULL;
+
+  // Decode the ini file
+  FILE* fp = fopen(ini, "r");
+  if (fp == NULL) {
+    TheSquidErr->_type = PBErrTypeInvalidArg;
+    sprintf(TheSquidErr->_msg, "Can't open %s", ini);
+    PBErrCatch(TheSquidErr);
+  } else {
+    char oneLine[1024];
+    while(fgets(oneLine, 1024, fp)) {
+      if (strstr(oneLine, "Width=")) {
+        sscanf(oneLine + 6, "%lu", &width);
+      } else if (strstr(oneLine, "Height=")) {
+        sscanf(oneLine + 7, "%lu", &height);
+      } else if (strstr(oneLine, "Output_File_Name=")) {
+        outImgPath = strdup(oneLine + 17);
+      }
+    }
+    fclose(fp);
+  }
+  
+  // Check arguments
+  if (width == 0 || height == 0 || outImgPath == NULL) {
+    TheSquidErr->_type = PBErrTypeInvalidArg;
+    sprintf(TheSquidErr->_msg, "Can't decode arguments from %s", ini);
+    PBErrCatch(TheSquidErr);
+  }
+
+  // Get the size of one fragment
+  unsigned long nbSquidlets = SquadGetNbSquidlets(that);
+  unsigned long sizeFrag[2];
+  sizeFrag[0] = width / nbSquidlets;
+  sizeFrag[1] = width / nbSquidlets;
+  
+  // Get the nb of fragments
+  unsigned long nbFrag[2];
+  nbFrag[0] = width / sizeFrag[0];
+  nbFrag[1] = height / sizeFrag[1];
+  if (sizeFrag[0] * nbFrag[0] < width)
+    ++(nbFrag[0]);
+  if (sizeFrag[1] * nbFrag[1] < height)
+    ++(nbFrag[1]);
+  
+  // Create the tasks for each fragment
+  unsigned int curId = (unsigned int)id;
+  for (unsigned long i = 0; i < nbFrag[0]; ++i) {
+    for (unsigned long j = 0; j < nbFrag[1]; ++j) {
+      // Get the id of the task
+      unsigned long taskId = i * nbFrag[1] + j;
+      // Get the coordinates of the fragment
+      unsigned long top = j * sizeFrag[1];
+      unsigned long left = i * sizeFrag[0];
+      unsigned long bottom = (j + 1) * sizeFrag[1] - 1;
+      if (bottom >= height)
+        bottom = height - 1;
+      unsigned long right = (i + 1) * sizeFrag[0] - 1;
+      if (right >= width)
+        right = width - 1;
+      // Get the name of the output file for this fragment
+      int len = strlen(outImgPath);
+      char* tga = PBErrMalloc(TheSquidErr, len + 6);
+      strcpy(tga, outImgPath);
+      sprintf(tga + len - 5, "-%05lu.tga", taskId);
+      // Prepare the data as JSON
+      char buffer[1024];
+      memset(buffer, 0, 1024);
+      sprintf(buffer, 
+        "{\"id\":\"%d\",\"ini\":\"%s\",\"tga\":\"%s\","
+        "\"top\":\"%lu\",\"left\":\"%lu\",\"bottom\":\"%lu\""
+        ",\"right\":\"%lu\",\"width\":\"%lu\",\"height\":\"%lu\""
+        ",\"outTga\":\"%s\"}", 
+        curId, ini, tga, top, left, bottom, right, width, height,
+        outImgPath);
+      ++curId;
+      // Add the new task to the set of task to execute
+      SquidletTaskRequest* task = SquidletTaskRequestCreate(
+        SquidletTaskType_PovRay, curId, buffer, maxWait);
+      GSetAppend((GSet*)SquadTasks(that), task);
+      // Free memory
+      free(tga);
+    }
+  }
+  
+  // Free memory
+  free(outImgPath);
+
+}
+
 // Send the data associated to 'task' from the Squad 'that' to 
 // the Squidlet 'squidlet'
 // Return true if the data could be sent, false else
@@ -953,6 +1072,10 @@ GSet SquadStep(Squad* const that) {
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
         // Add the task to the set of completed tasks
         GSetAppend(&completedTasks, runningTask->_request);
+
+        // Post process the completed task
+        
+
         // Free memory
         runningTask->_request = NULL;
         runningTask->_squidlet = NULL;
@@ -1032,6 +1155,133 @@ GSet SquadStep(Squad* const that) {
    
   // Return the set of completed tasks
   return completedTasks;
+}
+
+// Process the completed 'task' with the Squad 'that'
+void SquadProcessCompletedTask(Squad* const that, 
+  SquidletTaskRequest* const task) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Call the appropriate function based on the type of the task
+  switch (task->_type) {
+    case SquidletTaskType_Dummy:
+      break;
+    case SquidletTaskType_Benchmark:
+      break;
+    case SquidletTaskType_PovRay:
+      SquadProcessCompletedTask_PovRay(that, task);
+      break;
+    default:
+      break;
+  }
+}
+
+// Process the completed Pov-Ray 'task' with the Squad 'that'
+void SquadProcessCompletedTask_PovRay(Squad* const that, 
+  SquidletTaskRequest* const task) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+
+  // Decode the JSON data from the request and the completed task
+  JSONNode* jsonRequest = JSONCreate();
+  JSONNode* jsonResult = JSONCreate();
+
+  // If we could decode the JSON
+  if (JSONLoadFromStr(jsonResult, task->_buffer) && 
+    JSONLoadFromStr(jsonRequest, task->_data)) {
+
+    // Get the necessary properties
+    JSONNode* propResultImg = JSONProperty(jsonRequest, "outTga");
+    JSONNode* propWidth = JSONProperty(jsonRequest, "width");
+    JSONNode* propHeight = JSONProperty(jsonRequest, "height");
+    JSONNode* propTga = JSONProperty(jsonResult, "tga");
+    JSONNode* propTop = JSONProperty(jsonResult, "top");
+    JSONNode* propLeft = JSONProperty(jsonResult, "left");
+    JSONNode* propRight = JSONProperty(jsonResult, "right");
+    JSONNode* propBottom = JSONProperty(jsonResult, "bottom");
+
+    // If the necessary properties were present
+    if (propTga != NULL && propTop != NULL && propLeft != NULL &&
+      propRight != NULL && propBottom != NULL && propResultImg != NULL) {
+
+      // Load the result image
+      GenBrush* resultImg = 
+        GBCreateFromFile(JSONLabel(JSONValue(propResultImg, 0)));
+
+      // If the result image doesn't exists
+      if (resultImg == NULL) {
+        // Create the result image
+        VecShort2D dim = VecShortCreateStatic2D();
+        VecSet(&dim, 0, atoi(JSONLabel(JSONValue(propWidth, 0))));
+        VecSet(&dim, 1, atoi(JSONLabel(JSONValue(propHeight, 0))));
+        resultImg = GBCreateImage(&dim);
+        GBSetFileName(resultImg, JSONLabel(JSONValue(propResultImg, 0)));
+      }
+
+      // Load the fragment
+      GenBrush* fragment = 
+        GBCreateFromFile(JSONLabel(JSONValue(propTga, 0)));
+
+      // If we could load the fragment
+      if (fragment != NULL) {
+
+        // Crop the relevant portion of the image
+        // Pov-Ray output the fragment from the first line whatever
+        // its Y position
+        // Pov-Ray has its cooridnate system origin at the top left of 
+        // the image
+        VecShort2D posLR = VecShortCreateStatic2D();
+        VecSet(&posLR, 0, atoi(JSONLabel(JSONValue(propLeft, 0))));
+        VecSet(&posLR, 1, 
+          atoi(JSONLabel(JSONValue(propBottom, 0))) -
+          atoi(JSONLabel(JSONValue(propTop, 0))));
+        VecShort2D dim = VecShortCreateStatic2D();
+        VecSet(&dim, 0,
+          atoi(JSONLabel(JSONValue(propRight, 0))) -
+          atoi(JSONLabel(JSONValue(propLeft, 0))));
+        VecSet(&dim, 1, VecGet(&posLR, 1));
+        GBPixel fillPix = GBColorTransparent;
+        GenBrush* crop = GBCrop(fragment, &posLR, &dim, &fillPix);
+
+        // Add the fragment to the result image
+
+        // Save the result image
+        GBRender(resultImg);
+
+        // Free memory
+        GBFree(&fragment);
+        GBFree(&crop);
+      }
+      // Free memory
+      GBFree(&resultImg);
+    }
+
+    // Free memory
+    if (jsonResult != NULL)
+      JSONFree(&jsonResult);
+    if (jsonRequest != NULL)
+      JSONFree(&jsonRequest);
+  }
 }
 
 // Set the flag memorizing if the TextOMeter is displayed for
@@ -1673,6 +1923,9 @@ void SquidletProcessRequest(Squidlet* const that,
         case SquidletTaskType_Benchmark:
           SquidletProcessRequest_Benchmark(that, buffer, &bufferResult);
           break;
+        case SquidletTaskType_PovRay:
+          SquidletProcessRequest_PovRay(that, buffer, &bufferResult);
+          break;
         default:
           break;
       }
@@ -1832,16 +2085,16 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
   *bufferResult = PBErrMalloc(TheSquidErr, 100);
   memset(*bufferResult, 0, 100);
   char* temperature = SquidletGetTemperature(that);
-  if (success) {
+  if (temperature != NULL) {
     sprintf(*bufferResult, 
-      "{\"success\":\"1\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
-      result, temperature);
-  } else {
-    sprintf(*bufferResult, "{\"success\":\"0\",\"temperature\":\"%s\"}",
-      temperature);
-  }
-  if (temperature != NULL)
+      "{\"success\":\"%d\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
+      success, result, temperature);
     free(temperature);
+  } else {
+    sprintf(*bufferResult, 
+      "{\"success\":\"%d\",\"v\":\"%d\",\"temperature\":\"\"}", 
+      success, result);
+  }
 
 }  
 
@@ -1929,20 +2182,17 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   *bufferResult = PBErrMalloc(TheSquidErr, 350);
   memset(bufferResult, 0, 350);
   char* temperature = SquidletGetTemperature(that);
-  if (success) {
-    sprintf(*bufferResult, "{\"success\":\"1\",\"temp\":\"%s\", \"v\":\"%d\"}", temperature, result);
-  } else {
-    sprintf(*bufferResult, 
-      "{\"success\":\"0\",\"temp\":\"%s\",\"err\":\"%s\"}",
-      temperature, errMsg);
-  }
-  if (temperature != NULL)
+  if (temperature != NULL) {
+    sprintf(*bufferResult, "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\",\"err\":\"%s\"}", success, temperature, result, errMsg);
     free(temperature);
+  } else {
+    sprintf(*bufferResult, "{\"success\":\"%d\",\"temp\":\"\", \"v\":\"%d\",\"err\":\"%s\"}", success, result, errMsg);
+  }
 
 }  
 
-// Process a POV-Ray task request with the Squidlet 'that'
-void SquidletProcessRequest_POVRay(Squidlet* const that,
+// Process a Pov-Ray task request with the Squidlet 'that'
+void SquidletProcessRequest_PovRay(Squidlet* const that,
   const char* const buffer, char** bufferResult) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1958,7 +2208,8 @@ void SquidletProcessRequest_POVRay(Squidlet* const that,
   if (SquidletStreamInfo(that)){
     SquidletPrint(that, SquidletStreamInfo(that));
     fprintf(SquidletStreamInfo(that), 
-      " : process POV-Ray task %s\n", buffer);
+      " : process Pov-Ray task %s\n", buffer);
+    fflush(SquidletStreamInfo(that));
   }
 
   // Decode the input from JSON
@@ -1975,18 +2226,24 @@ void SquidletProcessRequest_POVRay(Squidlet* const that,
     if (propIni != NULL && propTga != NULL && propTop != NULL && 
       propLeft != NULL && propBottom != NULL && propRight != NULL) {
 
-      // Create the POV-Ray command
-      // povray +SCleft +SRtop +ECright +ERbottom +Otga +FT ini
+      // Create the Pov-Ray command
+      // povray +SC<left> +SR<top> +EC<right> +ER<bottom> +O<tga>
+      //   +FT -D <ini>
       char cmd[500];
-      sprintf(cmd, "povray +SC%s +SR%s +EC%s +ER%s +O%s +FT %s",
+      sprintf(cmd, 
+        "povray %s +SC%s +SR%s +EC%s +ER%s +O%s +FC -D", 
+        JSONLabel(JSONValue(propIni, 0)),
         JSONLabel(JSONValue(propLeft, 0)), 
         JSONLabel(JSONValue(propTop, 0)), 
         JSONLabel(JSONValue(propRight, 0)), 
         JSONLabel(JSONValue(propBottom, 0)), 
-        JSONLabel(JSONValue(propTga, 0)), 
-        JSONLabel(JSONValue(propIni, 0)));
+        JSONLabel(JSONValue(propTga, 0)));
+
+fprintf(SquidletStreamInfo(that), 
+  "%s\n", cmd);
+fflush(SquidletStreamInfo(that));
       
-      // Execute the POV-Ray command
+      // Execute the Pov-Ray command
       int ret = system(cmd);
       
       if (ret == 0) {
@@ -1995,11 +2252,11 @@ void SquidletProcessRequest_POVRay(Squidlet* const that,
       }
     }
   }
-  JSONFree(&json);
 
   // Prepare the result data as JSON
-  *bufferResult = PBErrMalloc(TheSquidErr, strlen(buffer) + 100);
-  memset(*bufferResult, 0, strlen(*bufferResult));
+  size_t bufferResultLen = strlen(buffer) + 100;
+  *bufferResult = PBErrMalloc(TheSquidErr, bufferResultLen);
+  memset(*bufferResult, 0, bufferResultLen);
   char successStr[10];
   sprintf(successStr, "%d", success);
   JSONAddProp(json, "success", successStr);
@@ -2008,7 +2265,15 @@ void SquidletProcessRequest_POVRay(Squidlet* const that,
     JSONAddProp(json, "temperature", temperature);
   if (temperature != NULL)
     free(temperature);
-  JSONSaveToStr(json, *bufferResult, true);
+  if (!JSONSaveToStr(json, *bufferResult, bufferResultLen, true)) {
+    sprintf(*bufferResult, 
+      "{\"success\":\"0\",\"temperature\":\"\","
+      "\"err\":\"JSONSaveToStr failed\"}");
+  }
+
+  // Free memory
+  JSONFree(&json);
+
 }  
 
 // Return the temperature of the squidlet 'that' as a string.

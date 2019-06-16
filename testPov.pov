@@ -28,7 +28,7 @@ light_source {
   jitter
 }
 
-background { color rgbft <1.0, 1.0, 1.0, 1.0, 1.0> }
+background { color rgb 1.0 }
 
 global_settings { ambient_light 0 radiosity {brightness 0.5}}
 
