@@ -711,6 +711,10 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   if (sizeFrag[1] * nbFrag[1] < height)
     ++(nbFrag[1]);
   
+  // Create a temporary GSet where to add the tasks to be able to 
+  // shuffle it independantly of the eventual other task in the Squad
+  GSet set = GSetCreateStatic();
+  
   // Create the tasks for each fragment
   unsigned int curId = (unsigned int)id;
   for (unsigned long i = 0; i < nbFrag[0]; ++i) {
@@ -746,11 +750,14 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
       // Add the new task to the set of task to execute
       SquidletTaskRequest* task = SquidletTaskRequestCreate(
         SquidletTaskType_PovRay, curId, buffer, maxWait);
-      GSetAppend((GSet*)SquadTasks(that), task);
+      GSetAppend(&set, task);
       // Free memory
       free(tga);
     }
   }
+  GSetShuffle(&set);
+  GSetAppendSet((GSet*)SquadTasks(that), &set);
+  GSetFlush(&set);
   
   // Free memory
   free(outImgPath);

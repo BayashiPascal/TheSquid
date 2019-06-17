@@ -32,10 +32,10 @@ sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
 24) Make a directory to clone the git repositories with the command `mkdir ~/GitHub`
 25) Move to the ~/GitHub directory
 26) Clone the repository PBMake with the command `git clone https://github.com/BayashiPascal/PBMake.git`
-27) Edit the root Makefile with the command `nano ~/GitHub/PBMake/Makefile.inc` and change the value of ROOT_DIR with /home/pi/GitHub/
+27) Edit the root Makefile with the command `nano ~/GitHub/PBMake/Makefile.inc` and change the value of ROOT_DIR with /home/pi/GitHub/ and the value of BUILD_ARCH with 2
 28) Clone the repository TheSquid with the command `git clone https://github.com/BayashiPascal/TheSquid.git`
 29) Move to the ~/GitHub/TheSquid directory
-30) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1', and the SQUIDLET_ARCH is set to '1'
+30) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1'
 31) Compile the repository with the command `make`, others repository are automatically installed
 32) Check everything works fine with `./main`.
 
@@ -46,25 +46,25 @@ Mount of NAS
 3) sudo nano /etc/credentials
 username=squidlet
 password=mypassword
-4) sudo apt-get install cifs-utils
+4) sudo apt-get -y install cifs-utils
 
 Installing POV-Ray
-1) sudo apt-get update
-2) sudo apt-get install libboost-all-dev
-3) sudo apt-get install zlib1g-dev
-4) sudo apt-get install libpng-dev
-5) sudo apt-get install libjpeg8-dev
-6) sudo apt-get install libopenexr-dev
-7) sudo apt-get install libtiff5-dev libtiff5 libjbig-dev
-8) sudo apt-get install autoconf
+1) sudo apt-get -y update
+2) sudo apt-get -y install libboost-all-dev
+3) sudo apt-get -y install zlib1g-dev
+4) sudo apt-get -y install libpng-dev
+5) sudo apt-get -y install libjpeg8-dev
+6) sudo apt-get -y install libopenexr-dev
+7) sudo apt-get -y install libtiff5-dev libtiff5 libjbig-dev
+8) sudo apt-get -y install autoconf
 9) cd ~/GitHub
 10) git clone https://github.com/POV-Ray/povray.git
-11) git checkout 3.7-stable
-12) cd ~/GitHub/povray/unix/
+11) cd ~/GitHub/povray/unix/
+12) git checkout 3.7-stable
 13) ./prebuild.sh
 14) cd ../
 15) ./configure COMPILED_BY="TheSquid <email@address>" --with-boost-libdir=/usr/lib/arm-linux-gnueabihf
-16) make -j4
+16) make
 17) sudo make install
 18) make check
 

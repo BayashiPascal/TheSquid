@@ -187,8 +187,10 @@ void UnitTestDummy() {
       printf("Failed to create the squad\n");
       printf("errno: %s\n", strerror(errno));
     }
+#if BUILDARCH == 0
     // Turn on the TextOMeter
     SquadSetFlagTextOMeter(squad, true);
+#endif
     // Automatically create the config file
     FILE* fp = fopen("unitTestDummy.json", "w");
     char hostname[256];
