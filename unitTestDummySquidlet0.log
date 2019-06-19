@@ -1,42 +1,42 @@
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"0"}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"0"}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"0","temperature":""}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"2"}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"2"}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-2","temperature":""}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"4"}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"4"}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-4","temperature":""}
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-11071 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"0"}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"0"}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"0","temperature":""}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"2"}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"2"}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-2","temperature":""}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"4"}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"4"}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-4","temperature":""}
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+6763 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
