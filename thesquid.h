@@ -163,6 +163,19 @@ Squad* SquadCreate(void);
 // Free the memory used by the Squad 'that'
 void SquadFree(Squad** that);
 
+// Load a list of tasks stored in json format from the 'stream'
+// and add them to the set of tasks of the Squad 'that'
+// Return true if the tasks could be loaded, else false
+// Example:
+// {"tasks":[
+//   {"SquidletTaskType":"1", "id":"1", "maxWait":"1"},  
+//   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", 
+//    "nb":"1", "payloadSize":"1"},
+//   {"SquidletTaskType":"3", "id":"1", "maxWait":"1", 
+//    "ini":"./testPov.ini"}
+// ]}
+bool SquadLoadTasks(Squad* const that, FILE* const stream);
+
 // Get the set of squidlets of the Squad 'that'
 #if BUILDMODE != 0 
 inline 

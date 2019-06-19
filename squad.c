@@ -66,7 +66,34 @@ int main(int argc, char** argv) {
   }
   if (tasksFilePath != NULL) {
     printf("Squad: Executing task file: %s\n", tasksFilePath);
-
+    FILE* stream = fopen(tasksFilePath, "r");
+    if (!SquadLoadTasks(squad, stream)) {
+      printf("Squad: Couldn't load the tasks file %s\n",
+        tasksFilePath);
+      printf("TheSquidErr: %s\n", TheSquidErr->_msg);
+      printf("errno: %s\n", strerror(errno));
+      SquadFree(&squad);
+      exit(1);
+    }
+    fclose(stream);
+    // Loop until all the tasks are completed
+    do {
+      // Wait 1s between each step of the Squad
+      sleep(1);
+      // Display completed tasks
+      GSet completedTasks = SquadStep(squad);
+      while (GSetNbElem(&completedTasks) > 0L) {
+        SquidletTaskRequest* task = GSetPop(&completedTasks);
+        printf("Squad : ");
+        SquidletTaskRequestPrint(task, stdout);
+        if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
+          printf(" failed !!\n");
+        } else {
+          printf(" succeeded\n");
+        }
+        SquidletTaskRequestFree(&task);
+      }
+    } while (SquadGetNbTaskToComplete(squad) > 0L);
   }
   
   // Free memory
