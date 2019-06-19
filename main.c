@@ -498,12 +498,26 @@ void UnitTestBenchmark() {
   printf("UnitTestBenchmark OK\n");
 }
 
+void UnitTestLoadTasks() {
+  Squad* squad = SquadCreate();
+  FILE* stream = fopen("./testLoadTasks.json","r");
+  if (!SquadLoadTasks(squad, stream)) {
+    TheSquidErr->_type = PBErrTypeUnitTestFailed;
+    sprintf(TheSquidErr->_msg, "SquadLoadTasks failed");
+    PBErrCatch(TheSquidErr);
+  }
+  fclose(stream);
+  SquadFree(&squad);
+  printf("UnitTestLoadTasks OK\n");
+}
+
 void UnitTestAll() {
   UnitTestSquad();
   UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
   UnitTestPovRay();
+  UnitTestLoadTasks();
   printf("UnitTestAll OK\n");
 }
 

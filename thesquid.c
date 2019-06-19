@@ -264,6 +264,136 @@ void SquadFree(Squad** that) {
   *that = NULL;
 }
 
+// Load a list of tasks stored in json format from the 'stream'
+// and add them to the set of tasks of the Squad 'that'
+// Return true if the tasks could be loaded, else false
+// Example:
+// {"tasks":[
+//   {"SquidletTaskType":"1", "id":"1", "maxWait":"1"},  
+//   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", 
+//    "nb":"1", "payloadSize":"1"},
+//   {"SquidletTaskType":"3", "id":"1", "maxWait":"1", 
+//    "ini":"./testPov.ini"}
+// ]}
+bool SquadLoadTasks(Squad* const that, FILE* const stream) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (stream == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'stream' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Declare a json to load the encoded data
+  JSONNode* json = JSONCreate();
+
+  // Load the whole encoded data
+  if (JSONLoad(json, stream) == false) {
+    TheSquidErr->_type = PBErrTypeIOError;
+    sprintf(TheSquidErr->_msg, "JSONLoad failed");
+    JSONFree(&json);
+    return false;
+  }
+  
+  // Get the list of tasks
+  JSONNode* propTasks = JSONProperty(json, "tasks");
+  if (propTasks == NULL) {
+    TheSquidErr->_type = PBErrTypeInvalidData;
+    sprintf(TheSquidErr->_msg, "tasks not found");
+    JSONFree(&json);
+    return false;
+  }
+  
+  // Get the number of tasks
+  unsigned long nbTasks = JSONGetNbValue(propTasks);
+  
+  // Loop on tasks
+  for (unsigned long iTask = 0; iTask < nbTasks; ++iTask) {
+    // Get the task
+    JSONNode* propTask = JSONValue(propTasks, iTask);
+    
+    // Get the type of task, id and time out
+    JSONNode* propType = JSONProperty(propTask, "SquidletTaskType");
+    if (propType == NULL) {
+      TheSquidErr->_type = PBErrTypeInvalidData;
+      sprintf(TheSquidErr->_msg, "SquidletTaskType not found");
+      JSONFree(&json);
+      return false;
+    }
+    JSONNode* propId = JSONProperty(propTask, "id");
+    if (propId == NULL) {
+      TheSquidErr->_type = PBErrTypeInvalidData;
+      sprintf(TheSquidErr->_msg, "id not found");
+      JSONFree(&json);
+      return false;
+    }
+    JSONNode* propMaxWait = JSONProperty(propTask, "maxWait");
+    if (propMaxWait == NULL) {
+      TheSquidErr->_type = PBErrTypeInvalidData;
+      sprintf(TheSquidErr->_msg, "maxWait not found");
+      JSONFree(&json);
+      return false;
+    }
+    
+    // Switch according to the type of task
+    int type = atoi(JSONLabel(JSONValue(propType, 0)));
+    unsigned long id = atol(JSONLabel(JSONValue(propType, 0)));
+    time_t maxWait = atoi(JSONLabel(JSONValue(propType, 0)));
+    JSONNode* prop = NULL;
+    switch(type) {
+      case SquidletTaskType_Dummy:
+        SquadAddTask_Dummy(that, id, maxWait);
+        break;
+      case SquidletTaskType_Benchmark:
+        prop = JSONProperty(propTask, "nb");
+        if (prop == NULL) {
+          TheSquidErr->_type = PBErrTypeInvalidData;
+          sprintf(TheSquidErr->_msg, "nb not found");
+          JSONFree(&json);
+          return false;
+        }
+        int nb = atoi(JSONLabel(JSONValue(prop, 0)));
+        prop = JSONProperty(propTask, "payloadSize");
+        if (prop == NULL) {
+          TheSquidErr->_type = PBErrTypeInvalidData;
+          sprintf(TheSquidErr->_msg, "payloadSize not found");
+          JSONFree(&json);
+          return false;
+        }
+        size_t payloadSize = atol(JSONLabel(JSONValue(prop, 0)));
+        SquadAddTask_Benchmark(that, id, maxWait, nb, payloadSize);
+        break;
+      case SquidletTaskType_PovRay:
+        prop = JSONProperty(propTask, "ini");
+        if (prop == NULL) {
+          TheSquidErr->_type = PBErrTypeInvalidData;
+          sprintf(TheSquidErr->_msg, "ini not found");
+          JSONFree(&json);
+          return false;
+        }
+        char* ini = JSONLabel(JSONValue(prop, 0));
+        SquadAddTask_PovRay(that, id, maxWait, ini);
+        break;
+      default:
+        TheSquidErr->_type = PBErrTypeInvalidData;
+        sprintf(TheSquidErr->_msg, "tasks not found");
+        JSONFree(&json);
+        return false;
+    }
+  }
+
+  // Free the memory used by the JSON
+  JSONFree(&json);
+  
+  // Return the succes code
+  return true;
+  
+}
+
 // Load the Squad info from the 'stream' into the 'that'
 // Return true if it could load the info, else false
 bool SquadLoad(Squad* const that, FILE* const stream) {
@@ -696,6 +826,8 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
 
   // Get the size of one fragment
   unsigned long nbSquidlets = SquadGetNbSquidlets(that);
+  if (nbSquidlets == 0)
+    nbSquidlets = 1;
   unsigned long sizeFrag[2];
   sizeFrag[0] = MIN(THESQUID_MAXSIZEPOVRAYFRAGMENT, 
     width / nbSquidlets);
