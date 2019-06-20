@@ -385,9 +385,9 @@ void UnitTestBenchmark() {
   printf("Execution on local device:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
   int lengthTest = 30;
-  size_t maxSizePayload = 1024;
+  size_t maxSizePayload = 9; //1024;
   int nbMaxLoop = 1024;
-  /*char* buffer = PBErrMalloc(TheSquidErr, 27);
+  char* buffer = PBErrMalloc(TheSquidErr, 27);
   for (size_t i = 0; i < 26; ++i)
     buffer[i] = 'a' + i;
   buffer[26] = 0;
@@ -408,7 +408,7 @@ void UnitTestBenchmark() {
       nbLoop, 1, nbComplete, timePerTaskMs);
     fflush(stdout);
   }
-  free(buffer);*/
+  free(buffer);
 
   printf("Execution on TheSquid:\n");
   printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
@@ -424,7 +424,6 @@ void UnitTestBenchmark() {
 
   // Load the info about the squidlet from the config file
   FILE* fp = fopen("unitTestBenchmark.json", "r");
-  //FILE* fp = fopen("/home/bayashi/Desktop/TheSquid.json", "r");
   SquadLoad(squad, fp);
   fclose(fp);
   // Loop on payload size
@@ -523,8 +522,8 @@ void UnitTestAll() {
 }
 
 int main() {
-  //UnitTestAll();
-  UnitTestBenchmark();
+  UnitTestAll();
+  //UnitTestBenchmark();
   // Return success code
   return 0;
 }
