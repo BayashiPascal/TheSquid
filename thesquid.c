@@ -2291,7 +2291,7 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   int result = 0;
 
   // Declare a variable to store the error message if any
-  char errMsg[300] = {0};
+  char errMsg[300] = {'\0'};
 
   // Decode the input from JSON
   JSONNode* json = JSONCreate();
@@ -2354,8 +2354,8 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
   JSONFree(&json);
 
   // Prepare the result data as JSON
-  *bufferResult = PBErrMalloc(TheSquidErr, 350);
-  memset(bufferResult, 0, 350);
+  *bufferResult = PBErrMalloc(TheSquidErr, 500);
+  memset(*bufferResult, 0, 500);
   char* temperature = SquidletGetTemperature(that);
   if (temperature != NULL) {
     sprintf(*bufferResult, "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\",\"err\":\"%s\"}", success, temperature, result, errMsg);
