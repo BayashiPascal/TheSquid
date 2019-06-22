@@ -27,7 +27,10 @@ light_source {
 
 background { color rgb <0.9,0.9,1.0> }
 
-global_settings { ambient_light 0 }
+global_settings { 
+  ambient_light 0 
+  assumed_gamma 1.0
+}
 
 #declare hotelIcon = union {
   #local groundSize = 0.75;

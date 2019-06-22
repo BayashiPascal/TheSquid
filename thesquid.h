@@ -194,9 +194,9 @@ inline
 #endif 
 const GSet* SquadRunningTasks(const Squad* const that);
 
-// Load the Squad info from the 'stream' into the 'that'
+// Load the Squidlet info from the 'stream' into the 'that'
 // Return true if it could load the info, else false
-bool SquadLoad(Squad* const that, FILE* const stream);
+bool SquadLoadSquidlets(Squad* const that, FILE* const stream);
 
 // Send the task request 'request' from the Squad 'that' to its
 // Squidlet 'squidlet'

@@ -6,27 +6,28 @@
 int main(int argc, char** argv) {
   // Process arguments
   char* tasksFilePath = NULL;
-  char* squadFilePath = NULL;
+  char* squidletsFilePath = NULL;
   bool flagTextOMeter = false;
   for (int iArg = 0; iArg < argc; ++iArg) {
     if (strcmp(argv[iArg], "-tasks") == 0) {
       ++iArg;
       tasksFilePath = argv[iArg];
     }
-    if (strcmp(argv[iArg], "-squad") == 0) {
+    if (strcmp(argv[iArg], "-squidlets") == 0) {
       ++iArg;
-      squadFilePath = argv[iArg];
+      squidletsFilePath = argv[iArg];
     }
     if (strcmp(argv[iArg], "-verbose") == 0) {
       flagTextOMeter = true;
     }
     if (strcmp(argv[iArg], "-help") == 0) {
       printf("squad [-verbose] [-tasks <path to tasks file>] ");
-      printf("[-squad <path to squad config file>] [-check] [-help]\n");
+      printf("[-squidlets <path to squidlets config file>] ");
+      printf("[-check] [-help]\n");
       exit(0);
     }
   }
-  if (squadFilePath == NULL) {
+  if (squidletsFilePath == NULL) {
     printf("Squad: No squad config file provided\n");
     exit(1);
   }
@@ -40,20 +41,21 @@ int main(int argc, char** argv) {
   printf("Squad : started\n");
   fflush(stdout);
 
-  // Load the squad config file
-  FILE* squadFile = fopen(squadFilePath, "r");
-  if (squadFile == NULL) {
-      printf("Squad: Couldn't open the squad file: %s\n", squadFilePath);
+  // Load the squidlets config file
+  FILE* squidletsFile = fopen(squidletsFilePath, "r");
+  if (squidletsFile == NULL) {
+      printf("Squad: Couldn't open the squidlets file: %s\n", 
+        squidletsFilePath);
   } else {
-    if (SquadLoad(squad, squadFile) == false) {
-      printf("Squad: Couldn't load the squad config file %s\n",
-        squadFilePath);
+    if (SquadLoadSquidlets(squad, squidletsFile) == false) {
+      printf("Squad: Couldn't load the squidlets config file %s\n",
+        squidletsFilePath);
       printf("TheSquidErr: %s\n", TheSquidErr->_msg);
       printf("errno: %s\n", strerror(errno));
       SquadFree(&squad);
       exit(1);
     }
-    fclose(squadFile);
+    fclose(squidletsFile);
   }
   // Set the TextOMeter
   SquadSetFlagTextOMeter(squad, flagTextOMeter);

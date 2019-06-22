@@ -341,8 +341,8 @@ bool SquadLoadTasks(Squad* const that, FILE* const stream) {
     
     // Switch according to the type of task
     int type = atoi(JSONLabel(JSONValue(propType, 0)));
-    unsigned long id = atol(JSONLabel(JSONValue(propType, 0)));
-    time_t maxWait = atoi(JSONLabel(JSONValue(propType, 0)));
+    unsigned long id = atol(JSONLabel(JSONValue(propId, 0)));
+    time_t maxWait = atoi(JSONLabel(JSONValue(propMaxWait, 0)));
     JSONNode* prop = NULL;
     switch(type) {
       case SquidletTaskType_Dummy:
@@ -394,9 +394,9 @@ bool SquadLoadTasks(Squad* const that, FILE* const stream) {
   
 }
 
-// Load the Squad info from the 'stream' into the 'that'
+// Load the Squidlet info from the 'stream' into the 'that'
 // Return true if it could load the info, else false
-bool SquadLoad(Squad* const that, FILE* const stream) {
+bool SquadLoadSquidlets(Squad* const that, FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -848,7 +848,6 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   GSet set = GSetCreateStatic();
   
   // Create the tasks for each fragment
-  unsigned int curId = (unsigned int)id;
   for (unsigned long i = 0; i < nbFrag[0]; ++i) {
     for (unsigned long j = 0; j < nbFrag[1]; ++j) {
       // Get the id of the task
@@ -871,6 +870,7 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
       // Prepare the data as JSON
       char buffer[1024];
       memset(buffer, 0, 1024);
+      unsigned int curId = taskId + id;
       sprintf(buffer, 
         "{\"id\":\"%d\",\"ini\":\"%s\",\"tga\":\"%s\","
         "\"top\":\"%lu\",\"left\":\"%lu\",\"bottom\":\"%lu\""
@@ -878,7 +878,6 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
         ",\"outTga\":\"%s\"}", 
         curId, ini, tga, top, left, bottom, right, width, height,
         outImgPath);
-      ++curId;
       // Add the new task to the set of task to execute
       SquidletTaskRequest* task = SquidletTaskRequestCreate(
         SquidletTaskType_PovRay, curId, buffer, maxWait);
@@ -1391,8 +1390,6 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
       // If we could load the fragment
       if (fragment != NULL) {
         // Crop the relevant portion of the image
-        // Pov-Ray output the fragment from the first line whatever
-        // its Y position
         // Pov-Ray has its coordinate system origin at the top left of 
         // the image, while GenBrush has its own at the bottom left
         // Pov-Ray starts counting at 1, so the top left is (1,1)
@@ -1407,18 +1404,12 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
         VecSet(&posLR, 0, atoi(JSONLabel(JSONValue(propLeft, 0))) - 1);
         VecSet(&posLR, 1, 
           atoi(JSONLabel(JSONValue(propHeight, 0))) -
-          (atoi(JSONLabel(JSONValue(propBottom, 0))) -
-          atoi(JSONLabel(JSONValue(propTop, 0)))) - 1);
-        GBPixel fillPix = GBColorTransparent;
-        GenBrush* crop = GBCrop(fragment, &posLR, &dim, &fillPix);
-        // Add the fragment to the result image
-        VecSet(&posLR, 1, 
-          atoi(JSONLabel(JSONValue(propHeight, 0))) -
           atoi(JSONLabel(JSONValue(propBottom, 0))));
+        // Add the fragment to the result image
         VecShort2D pos = VecShortCreateStatic2D();
         do {
-          GBPixel pix = GBGetFinalPixel(crop, &pos);
           VecShort2D posFinal = VecGetOp(&pos, 1, &posLR, 1);
+          GBPixel pix = GBGetFinalPixel(fragment, &posFinal);
           GBSetFinalPixel(resultImg, &posFinal, &pix);
         } while (VecStep(&pos, &dim));
         
@@ -1427,7 +1418,6 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
 
         // Free memory
         GBFree(&fragment);
-        GBFree(&crop);
       } else {
         if (SquadGetFlagTextOMeter(that) == true) {
           char lineHistory[200];
@@ -1436,8 +1426,10 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
           SquadPushHistory(that, lineHistory);
         }
       }
+
       // Free memory
       GBFree(&resultImg);
+
       // Delete the fragment
       char cmd[500];
       sprintf(cmd, "rm %s", JSONLabel(JSONValue(propTga, 0)));
@@ -1445,10 +1437,12 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
       (void)ret;
 
     } else {
-      char lineHistory[200];
-      sprintf(lineHistory, 
-        "Can't preprocess the Pov-Ray task (invalid data)\n");
-      SquadPushHistory(that, lineHistory);
+      if (SquadGetFlagTextOMeter(that) == true) {
+        char lineHistory[200];
+        sprintf(lineHistory, 
+          "Can't preprocess the Pov-Ray task (invalid data)\n");
+        SquadPushHistory(that, lineHistory);
+      }
     }
 
     // Free memory
@@ -2459,10 +2453,10 @@ char* SquidletGetTemperature(const Squidlet* const that) {
   }
 #endif
   (void)that;
-#if DBUILDARCH == 0
-  return NULL;
+#if BUILDARCH == 0
+  return strdup("(?)");
 #endif
-#if DBUILDARCH == 1
+#if BUILDARCH == 1
   // Declare a variable to pipe the shell command
   FILE* fp = NULL;
   // Run the command and pipe its output
@@ -2484,7 +2478,7 @@ char* SquidletGetTemperature(const Squidlet* const that) {
     return strdup("popen() failed");
   }
 #endif
-#if DBUILDARCH == 2
+#if BUILDARCH == 2
   // Declare a variable to pipe the shell command
   FILE* fp = NULL;
   // Run the command and pipe its output

@@ -10,7 +10,7 @@ void UnitTestSquad() {
     PBErrCatch(TheSquidErr);
   }
   FILE* fp = fopen("unitTestSquad.json", "r");
-  if (fp == NULL || SquadLoad(squad, fp) == false) {
+  if (fp == NULL || SquadLoadSquidlets(squad, fp) == false) {
     TheSquidErr->_type = PBErrTypeUnitTestFailed;
     sprintf(TheSquidErr->_msg, "SquadLoad failed");
     PBErrCatch(TheSquidErr);
@@ -88,7 +88,7 @@ void UnitTestSquadCheckSquidlets() {
     fclose(fp);
     // Load the info about the squidlet from the config file
     fp = fopen("unitTestDummy.json", "r");
-    SquadLoad(squad, fp);
+    SquadLoadSquidlets(squad, fp);
     fclose(fp);
     // Wait to be sure the squidlets are up and running
     sleep(2);
@@ -209,7 +209,7 @@ void UnitTestDummy() {
     fclose(fp);
     // Load the info about the squidlet from the config file
     fp = fopen("unitTestDummy.json", "r");
-    SquadLoad(squad, fp);
+    SquadLoadSquidlets(squad, fp);
     fclose(fp);
     // Wait to be sure the squidlets are up and running
     sleep(2);
@@ -323,7 +323,7 @@ void UnitTestPovRay() {
     fclose(fp);
     // Load the info about the squidlet from the config file
     fp = fopen("unitTestPovRay.json", "r");
-    SquadLoad(squad, fp);
+    SquadLoadSquidlets(squad, fp);
     fclose(fp);
     // Wait to be sure the squidlets are up and running
     sleep(2);
@@ -424,7 +424,7 @@ void UnitTestBenchmark() {
 
   // Load the info about the squidlet from the config file
   FILE* fp = fopen("unitTestBenchmark.json", "r");
-  SquadLoad(squad, fp);
+  SquadLoadSquidlets(squad, fp);
   fclose(fp);
   // Loop on payload size
   time_t maxWait = 200;
