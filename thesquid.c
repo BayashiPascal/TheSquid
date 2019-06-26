@@ -803,13 +803,14 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
         sscanf(oneLine + 6, "%lu", &width);
       } else if (strstr(oneLine, "Height=")) {
         sscanf(oneLine + 7, "%lu", &height);
-      } else if (strstr(oneLine, "Output_File_Name=")) {
+      } else if (strstr(oneLine, "Output_File_Name=") &&
+        strlen(oneLine) > 17) {
         outImgPath = strdup(oneLine + 17);
         // Remove the return line
         outImgPath[strlen(outImgPath) - 1] = '\0';
         // Make sure the output file doesn't exists
         char cmd[500];
-        sprintf(cmd, "rm %s", outImgPath);
+        sprintf(cmd, "rm -f %s", outImgPath);
         int ret = system(cmd);
         (void)ret;
       }
@@ -865,6 +866,7 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
       // Get the name of the output file for this fragment
       int len = strlen(outImgPath);
       char* tga = PBErrMalloc(TheSquidErr, len + 6);
+      memset(tga, 0, len + 6);
       strcpy(tga, outImgPath);
       sprintf(tga + len - 4, "-%05lu.tga", taskId);
       // Prepare the data as JSON
