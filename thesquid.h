@@ -234,7 +234,8 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
 // The total size of the data must be less than 1024 bytes
 void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   const time_t maxWait, const char* const ini, 
-  const unsigned int sizeFragment);
+  const unsigned int sizeMinFragment,
+  const unsigned int sizeMaxFragment);
   
 // Return the number of task not yet completed
 #if BUILDMODE != 0 

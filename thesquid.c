@@ -376,15 +376,24 @@ bool SquadLoadTasks(Squad* const that, FILE* const stream) {
           return false;
         }
         char* ini = strdup(JSONLabel(JSONValue(prop, 0)));
-        prop = JSONProperty(propTask, "sizeFragment");
+        prop = JSONProperty(propTask, "sizeMinFragment");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
-          sprintf(TheSquidErr->_msg, "sizeFragment not found");
+          sprintf(TheSquidErr->_msg, "sizeMinFragment not found");
           JSONFree(&json);
           return false;
         }
-        unsigned int sizeFragment = atoi(JSONLabel(JSONValue(prop, 0)));
-        SquadAddTask_PovRay(that, id, maxWait, ini, sizeFragment);
+        int sizeMinFragment = atoi(JSONLabel(JSONValue(prop, 0)));
+        prop = JSONProperty(propTask, "sizeMaxFragment");
+        if (prop == NULL) {
+          TheSquidErr->_type = PBErrTypeInvalidData;
+          sprintf(TheSquidErr->_msg, "sizeMaxFragment not found");
+          JSONFree(&json);
+          return false;
+        }
+        int sizeMaxFragment = atoi(JSONLabel(JSONValue(prop, 0)));
+        SquadAddTask_PovRay(that, id, maxWait, ini, 
+          sizeMinFragment, sizeMaxFragment);
         free(ini);
         break;
       default:
@@ -782,7 +791,8 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
 // The total size of the data must be less than 1024 bytes
 void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   const time_t maxWait, const char* const ini, 
-  const unsigned int sizeFragment) {
+  const unsigned int sizeMinFragment,
+  const unsigned int sizeMaxFragment) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -840,8 +850,10 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   if (nbSquidlets == 0)
     nbSquidlets = 1;
   unsigned long sizeFrag[2];
-  sizeFrag[0] = MIN(sizeFragment, width / nbSquidlets);
-  sizeFrag[1] = MIN(sizeFragment, width / nbSquidlets);
+  sizeFrag[0] = 
+    MAX(sizeMinFragment, MIN(sizeMaxFragment, width / nbSquidlets));
+  sizeFrag[1] = 
+    MAX(sizeMinFragment, MIN(sizeMaxFragment, width / nbSquidlets));
   
   // Get the nb of fragments
   unsigned long nbFrag[2];
