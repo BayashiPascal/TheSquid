@@ -330,7 +330,9 @@ void UnitTestPovRay() {
     // Create the task
     time_t maxWait = 600;
     int id = 1;
-    SquadAddTask_PovRay(squad, id, maxWait, "./testPov.ini");
+    unsigned int sizeMaxFragment = 100;
+    SquadAddTask_PovRay(squad, id, maxWait, "./testPov.ini", 
+      sizeMaxFragment);
     // Loop until all the tasks are completed or giveup after 60s
     time_t startTime = time(NULL);
     bool flagStop = false;

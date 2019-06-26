@@ -1,5 +1,5 @@
 {"tasks":[
   {"SquidletTaskType":"1", "id":"1", "maxWait":"1"},  
   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", "nb":"1", "payloadSize":"1"},
-  {"SquidletTaskType":"3", "id":"1", "maxWait":"1", "ini":"./testPov.ini"}
+  {"SquidletTaskType":"3", "id":"1", "maxWait":"1", "ini":"./testPov.ini", "sizeFragment":"100"}
 ]}

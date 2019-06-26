@@ -172,7 +172,7 @@ void SquadFree(Squad** that);
 //   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", 
 //    "nb":"1", "payloadSize":"1"},
 //   {"SquidletTaskType":"3", "id":"1", "maxWait":"1", 
-//    "ini":"./testPov.ini"}
+//    "ini":"./testPov.ini", "sizeFragment":"100"}
 // ]}
 bool SquadLoadTasks(Squad* const that, FILE* const stream);
 
@@ -233,7 +233,8 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
 // Wait for a maximum of 'maxWait' seconds for the task to complete
 // The total size of the data must be less than 1024 bytes
 void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
-  const time_t maxWait, const char* const ini);
+  const time_t maxWait, const char* const ini, 
+  const unsigned int sizeFragment);
   
 // Return the number of task not yet completed
 #if BUILDMODE != 0 
