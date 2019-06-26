@@ -273,7 +273,7 @@ void SquadFree(Squad** that) {
 //   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", 
 //    "nb":"1", "payloadSize":"1"},
 //   {"SquidletTaskType":"3", "id":"1", "maxWait":"1", 
-//    "ini":"./testPov.ini"}
+//    "ini":"./testPov.ini", "sizeFragment":"100"}
 // ]}
 bool SquadLoadTasks(Squad* const that, FILE* const stream) {
 #if BUILDMODE == 0
@@ -375,8 +375,17 @@ bool SquadLoadTasks(Squad* const that, FILE* const stream) {
           JSONFree(&json);
           return false;
         }
-        char* ini = JSONLabel(JSONValue(prop, 0));
-        SquadAddTask_PovRay(that, id, maxWait, ini);
+        char* ini = strdup(JSONLabel(JSONValue(prop, 0)));
+        prop = JSONProperty(propTask, "sizeFragment");
+        if (prop == NULL) {
+          TheSquidErr->_type = PBErrTypeInvalidData;
+          sprintf(TheSquidErr->_msg, "sizeFragment not found");
+          JSONFree(&json);
+          return false;
+        }
+        unsigned int sizeFragment = atoi(JSONLabel(JSONValue(prop, 0)));
+        SquadAddTask_PovRay(that, id, maxWait, ini, sizeFragment);
+        free(ini);
         break;
       default:
         TheSquidErr->_type = PBErrTypeInvalidData;
@@ -772,7 +781,8 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
 // Wait for a maximum of 'maxWait' seconds for the task to complete
 // The total size of the data must be less than 1024 bytes
 void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
-  const time_t maxWait, const char* const ini) {
+  const time_t maxWait, const char* const ini, 
+  const unsigned int sizeFragment) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -830,10 +840,8 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   if (nbSquidlets == 0)
     nbSquidlets = 1;
   unsigned long sizeFrag[2];
-  sizeFrag[0] = MIN(THESQUID_MAXSIZEPOVRAYFRAGMENT, 
-    width / nbSquidlets);
-  sizeFrag[1] = MIN(THESQUID_MAXSIZEPOVRAYFRAGMENT,
-    width / nbSquidlets);
+  sizeFrag[0] = MIN(sizeFragment, width / nbSquidlets);
+  sizeFrag[1] = MIN(sizeFragment, width / nbSquidlets);
   
   // Get the nb of fragments
   unsigned long nbFrag[2];
