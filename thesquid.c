@@ -1743,7 +1743,7 @@ void SquadBenchmark(Squad* const that, FILE* const stream) {
     unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
       (stop.tv_usec - start.tv_usec) / 1000;
     float timePerTaskMs = (float) deltams / (float)nbComplete;
-    fprintf(stream, "%03d\t%08u\t%07lu\t%011.2f\n", 
+    fprintf(stream, "%04d\t%08u\t%07lu\t%011.2f\n", 
       nbLoop, 1, nbComplete, timePerTaskMs);
     fflush(stdout);
   }
@@ -1812,7 +1812,7 @@ void SquadBenchmark(Squad* const that, FILE* const stream) {
       unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
         (stop.tv_usec - start.tv_usec) / 1000;
       float timePerTaskMs = (float) deltams / (float)nbComplete;
-      fprintf(stream, "%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, 
+      fprintf(stream, "%04d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, 
         nbComplete, timePerTaskMs);
       fflush(stdout);
     }
@@ -1837,7 +1837,7 @@ void SquidletHandlerCtrlC(const int sig) {
   Squidlet_CtrlC = true;
   time_t intTime = time(NULL);
   char* strIntTime = ctime(&intTime);
-  printf(" !!! Interrupted by Ctrl-C !!! %s", strIntTime);
+  printf("Squidlet :  !!! Interrupted by Ctrl-C !!! %s", strIntTime);
   fflush(stdout);
 }
 
@@ -1846,7 +1846,7 @@ void SquidletHandlerSigPipe(const int sig) {
   (void)sig;
   time_t intTime = time(NULL);
   char* strIntTime = ctime(&intTime);
-  printf(" !!! Received SIGPIPE !!! %s", strIntTime);
+  printf("Squidlet :  !!! Received SIGPIPE !!! %s", strIntTime);
   fflush(stdout);
 }
 
