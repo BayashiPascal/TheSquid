@@ -383,124 +383,6 @@ void UnitTestPovRay() {
   }
 }
 
-void UnitTestBenchmark() {
-  printf("-- Benchmark --\n");
-  printf("Execution on local device:\n");
-  printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
-  int lengthTest = 30;
-  size_t maxSizePayload = 9; //1024;
-  int nbMaxLoop = 1024;
-  char* buffer = PBErrMalloc(TheSquidErr, 27);
-  for (size_t i = 0; i < 26; ++i)
-    buffer[i] = 'a' + i;
-  buffer[26] = 0;
-  // Loop on nbLoop
-  for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
-    unsigned long nbComplete = 0;
-    do {
-      TheSquidBenchmark(nbLoop, buffer);
-      ++nbComplete;
-      gettimeofday(&stop, NULL);
-    } while (stop.tv_sec - start.tv_sec < lengthTest);
-    unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-      (stop.tv_usec - start.tv_usec) / 1000;
-    float timePerTaskMs = (float) deltams / (float)nbComplete;
-    printf("%03d\t%08u\t%07lu\t%011.2f\n", 
-      nbLoop, 1, nbComplete, timePerTaskMs);
-    fflush(stdout);
-  }
-  free(buffer);
-
-  printf("Execution on TheSquid:\n");
-  printf("nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
-
-  // Create the Squad
-  Squad* squad = SquadCreate();
-  if (squad == NULL) {
-    printf("Failed to create the squad\n");
-    printf("errno: %s\n", strerror(errno));
-  }
-
-  //SquadSetFlagTextOMeter(squad, true);
-
-  // Load the info about the squidlet from the config file
-  FILE* fp = fopen("unitTestBenchmark.json", "r");
-  SquadLoadSquidlets(squad, fp);
-  fclose(fp);
-  // Loop on payload size
-  time_t maxWait = 200;
-  unsigned int id = 0;
-  bool flagStop = false;
-  for (size_t sizePayload = 1; !flagStop && 
-    sizePayload <= maxSizePayload; sizePayload *= 10) {
-    // Loop on nbLoop
-    for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; nbLoop *= 2) {
-
-      // Loop during lengthTest seconds
-      struct timeval stop, start;
-      gettimeofday(&start, NULL);
-      unsigned long nbComplete = 0;
-      do {
-        
-        // Create benchmark tasks if there are no more
-        while (SquadGetNbRunningTasks(squad) + 
-          SquadGetNbTasks(squad) < SquadGetNbSquidlets(squad)) {
-          SquadAddTask_Benchmark(squad, id++, maxWait, nbLoop, 
-            sizePayload);
-        }
-
-        // Step the Squad
-        GSet completedTasks = SquadStep(squad);
-        nbComplete += GSetNbElem(&completedTasks);
-        while (GSetNbElem(&completedTasks) > 0L) {
-          SquidletTaskRequest* task = GSetPop(&completedTasks);
-          // If the task failed
-          if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
-            SquidletTaskRequestPrint(task, stdout);
-            printf(" failed !!\n");
-            printf("%s\n", task->_buffer);
-            //flagStop = true;
-          }
-          SquidletTaskRequestFree(&task);
-        }
-        
-        gettimeofday(&stop, NULL);
-      } while (!flagStop && (stop.tv_sec - start.tv_sec) < lengthTest);
-      // Wait for the running tasks to finish
-      while (SquadGetNbRunningTasks(squad) > 0) {
-        GSet completedTasks = SquadStep(squad);
-        nbComplete += GSetNbElem(&completedTasks);
-        while (GSetNbElem(&completedTasks) > 0L) {
-          SquidletTaskRequest* task = GSetPop(&completedTasks);
-          // If the task failed
-          if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
-            SquidletTaskRequestPrint(task, stdout);
-            printf(" failed !!\n");
-            printf("%s\n", task->_buffer);
-            //flagStop = true;
-          }
-          SquidletTaskRequestFree(&task);
-        }
-      } 
-      gettimeofday(&stop, NULL);
-      
-      unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-        (stop.tv_usec - start.tv_usec) / 1000;
-      float timePerTaskMs = (float) deltams / (float)nbComplete;
-      printf("%03d\t%08u\t%07lu\t%011.2f\n", nbLoop, sizePayload, 
-        nbComplete, timePerTaskMs);
-      fflush(stdout);
-    }
-  }
-  // Free memory
-  SquadFree(&squad);
-  printf("Squad ended\n");
-
-  printf("UnitTestBenchmark OK\n");
-}
-
 void UnitTestLoadTasks() {
   Squad* squad = SquadCreate();
   FILE* stream = fopen("./testLoadTasks.json","r");
@@ -526,7 +408,6 @@ void UnitTestAll() {
 
 int main() {
   UnitTestAll();
-  //UnitTestBenchmark();
   // Return success code
   return 0;
 }

@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     if (strcmp(argv[iArg], "-help") == 0) {
       printf("squad [-verbose] [-tasks <path to tasks file>] ");
       printf("[-squidlets <path to squidlets config file>] ");
-      printf("[-check] [-help]\n");
+      printf("[-check] [-benchmark] [-help]\n");
       exit(0);
     }
   }
@@ -64,6 +64,9 @@ int main(int argc, char** argv) {
     if (strcmp(argv[iArg], "-check") == 0) {
       bool res = SquadCheckSquidlets(squad, stdout);
       (void)res;
+    }
+    if (strcmp(argv[iArg], "-benchmark") == 0) {
+      SquadBenchmark(squad, stdout);
     }
   }
   if (tasksFilePath != NULL) {

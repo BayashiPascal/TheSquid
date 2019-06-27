@@ -232,6 +232,8 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
 // The output format of the image must be TGA
 // Wait for a maximum of 'maxWait' seconds for the task to complete
 // The total size of the data must be less than 1024 bytes
+// The random generator must have been initialised before calling this 
+// function
 void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
   const time_t maxWait, const char* const ini, 
   const unsigned int sizeMinFragment,
@@ -289,6 +291,10 @@ bool SquadGetFlagTextOMeter(const Squad* const that);
 // about each on the 'stream'
 // Return true if all the tasks could be performed, false else
 bool SquadCheckSquidlets(Squad* const that, FILE* const stream);
+
+// Run the benchmark with the squad 'that' and output the result on 
+// the stream 'stream'
+void SquadBenchmark(Squad* const that, FILE* const stream);
 
 // -------------- Squidlet
 
