@@ -77,13 +77,15 @@ void SquidletInfoPrint(const SquidletInfo* const that,
 
 // Return a new SquidletTaskRequest with 'id' and 'type' and 'data'
 SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type, 
-  unsigned long id, const char* const data, const time_t maxWait) {
+  unsigned long id, unsigned long subid, const char* const data, 
+  const time_t maxWait) {
   // Allocate memory for the new SquidletTaskRequest
   SquidletTaskRequest* that = PBErrMalloc(TheSquidErr, 
     sizeof(SquidletTaskRequest));
   
   // Init properties
   that->_id = id;
+  that->_subid = subid;
   that->_type = type;
   that->_data = strdup(data);
   that->_buffer = NULL;
@@ -123,7 +125,7 @@ void SquidletTaskRequestPrint(const SquidletTaskRequest* const that,
   }
 #endif
   // Print the info on the stream 
-  fprintf(stream, "t%d #%lu", that->_type, that->_id);
+  fprintf(stream, "t%d #%lu/%lu", that->_type, that->_id, that->_subid);
 }
 
 // -------------- SquadRunningTask
@@ -726,8 +728,9 @@ void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
   char buffer[100];
   memset(buffer, 0, 100);
   sprintf(buffer, "{\"v\":\"%d\"}", (int)id);
+  unsigned long subid = 0;
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
-    SquidletTaskType_Dummy, id, buffer, maxWait);
+    SquidletTaskType_Dummy, id, subid, buffer, maxWait);
   
   // Add the new task to the set of task to execute
   GSetAppend((GSet*)SquadTasks(that), task);
@@ -768,8 +771,9 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   memset(buffer + bufferLen, ' ', payloadSize);
   buffer[bufferLen + payloadSize] = '\0';
   free(payload);
+  unsigned long subid = 0;
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
-    SquidletTaskType_Benchmark, id, buffer, maxWait);
+    SquidletTaskType_Benchmark, id, subid, buffer, maxWait);
   free(buffer);
   
   // Add the new task to the set of task to execute
@@ -894,17 +898,16 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
       // Prepare the data as JSON
       char buffer[1024];
       memset(buffer, 0, 1024);
-      unsigned int curId = taskId + id;
       sprintf(buffer, 
-        "{\"id\":\"%d\",\"ini\":\"%s\",\"tga\":\"%s\","
-        "\"top\":\"%lu\",\"left\":\"%lu\",\"bottom\":\"%lu\""
-        ",\"right\":\"%lu\",\"width\":\"%lu\",\"height\":\"%lu\""
-        ",\"outTga\":\"%s\"}", 
-        curId, ini, tga, top, left, bottom, right, width, height,
+        "{\"id\":\"%lu\",\"subid\":\"%lu\",\"ini\":\"%s\","
+        "\"tga\":\"%s\",\"top\":\"%lu\",\"left\":\"%lu\","
+        "\"bottom\":\"%lu\",\"right\":\"%lu\",\"width\":\"%lu\","
+        "\"height\":\"%lu\",\"outTga\":\"%s\"}", 
+        id, taskId, ini, tga, top, left, bottom, right, width, height,
         outImgPath);
       // Add the new task to the set of task to execute
       SquidletTaskRequest* task = SquidletTaskRequestCreate(
-        SquidletTaskType_PovRay, curId, buffer, maxWait);
+        SquidletTaskType_PovRay, id, taskId, buffer, maxWait);
       GSetAppend(&set, task);
       // Free memory
       free(tga);
@@ -1600,9 +1603,9 @@ void SquadUpdateTextOMeter(const Squad* const that) {
       TextOMeterPrint(that->_textOMeter, buffer);
       ++iLine;
     } while (GSetIterStep(&iter) && 
-      iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED);
+      iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED - 1);
   }
-  if (iLine == SQUAD_TXTOMETER_NBTASKDISPLAYED) {
+  if (iLine == SQUAD_TXTOMETER_NBTASKDISPLAYED - 1) {
     sprintf(buffer, "...\n");
     TextOMeterPrint(that->_textOMeter, buffer);
   } else {
@@ -1651,7 +1654,7 @@ bool SquadCheckSquidlets(Squad* const that, FILE* const stream) {
       fprintf(stream, "\n");
       // Request a dummy task from the squidlet
       SquidletTaskRequest* task = SquidletTaskRequestCreate(
-        SquidletTaskType_Dummy, 0, buffer, maxWait);
+        SquidletTaskType_Dummy, 0, 0, buffer, maxWait);
       GSetAppend((GSet*)SquadTasks(that), task);
       struct timeval start;
       gettimeofday(&start, NULL);

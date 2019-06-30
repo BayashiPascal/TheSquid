@@ -1,5 +1,27 @@
 // ============ THESQUID-INLINE.C ================
 
+// -------------- SquidletTask
+
+// ================ Functions implementation ====================
+
+// Return true if the SquidletTask 'that' has succeeded, else false
+// The task is considered to have succeeded if its result buffer 
+// contains "success":"1"
+#if BUILDMODE != 0 
+inline 
+#endif 
+bool SquidletTaskHasSucceeded(const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return (that->_buffer != NULL && 
+    strstr(that->_buffer, "\"success\":\"1\"") != NULL);
+}
+
 // -------------- Squad
 
 // ================ Functions implementation ====================
@@ -220,6 +242,34 @@ void SquidletSetStreamInfo(Squidlet* const that, FILE* const stream) {
   }
 #endif
   that->_streamInfo = stream;  
+}
+
+// Put back the 'task' into the set of task to complete of the Squad 
+// 'that'
+#if BUILDMODE != 0
+inline
+#endif
+void SquadTryAgainTask(Squad* const that, 
+  SquidletTaskRequest* const task) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Ensure the result buffer is empty
+  if (task->_buffer != NULL) {
+    free(task->_buffer);
+    task->_buffer = NULL;
+  }
+  // Put back the task in the set of task to complete
+  GSetAppend((GSet*)SquadTasks(that), task);
 }
 
 

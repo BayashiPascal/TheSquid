@@ -74,6 +74,8 @@ typedef struct SquidletTaskRequest {
   SquidletTaskType _type;
   // Task ID
   unsigned long _id;
+  // Task sub ID
+  unsigned long _subid;
   // Data associated to the request, as a string in JSON format
   char* _data;
   // Buffer to receive the result from the squidlet, as a string in 
@@ -85,7 +87,8 @@ typedef struct SquidletTaskRequest {
 
 // Return a new SquidletTaskRequest with 'id' and 'type' and 'data'
 SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type, 
-  unsigned long id, const char* const data, const time_t maxWait);
+  unsigned long id, unsigned long subid, const char* const data, 
+  const time_t maxWait);
 
 // Free the memory used by the SquidletTaskRequest 'that'
 void SquidletTaskRequestFree(SquidletTaskRequest** that);
@@ -93,6 +96,14 @@ void SquidletTaskRequestFree(SquidletTaskRequest** that);
 // Print the SquidletTaskRequest 'that' on the 'stream'
 void SquidletTaskRequestPrint(const SquidletTaskRequest* const that, 
   FILE* const stream);
+
+// Return true if the SquidletTask 'that' has succeeded, else false
+// The task is considered to have succeeded if its result buffer 
+// contains "success":"1"
+#if BUILDMODE != 0 
+inline 
+#endif 
+bool SquidletTaskHasSucceeded(const SquidletTaskRequest* const that);
 
 // -------------- SquadRunningTask
 
@@ -285,6 +296,14 @@ void SquadSetFlagTextOMeter(Squad* const that, const bool flag);
 inline
 #endif
 bool SquadGetFlagTextOMeter(const Squad* const that);
+
+// Put back the 'task' into the set of task to complete of the Squad 
+// 'that'
+#if BUILDMODE != 0
+inline
+#endif
+void SquadTryAgainTask(Squad* const that, 
+  SquidletTaskRequest* const task);
 
 // Check all the squidlets of the Squad 'that' by processing a dummy 
 // task and display information

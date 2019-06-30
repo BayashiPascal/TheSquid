@@ -61,9 +61,12 @@ int main(int argc, char** argv) {
     
     // -help
     if (strcmp(argv[iArg], "-help") == 0) {
+
+      // Display the help message and quit
       printf("squidlet [-ip <a.b.c.d>] [-port <port>] ");
       printf("[-stream <stdout | file path>] [-temp] [-help]\n");
       return 0;
+
     }
   }
   
