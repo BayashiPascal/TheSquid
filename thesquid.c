@@ -7,6 +7,12 @@
   #include "thesquid-inline.c"
 #endif
 
+// ================ global variables ====================
+
+char* squidletTaskTypeStr[] = {
+  "Null", "Dummy", "Benchmark", "PovRay"  
+};
+
 // ================ Functions declaration ====================
 
 // Function to receive in blocking mode 'nb' bytes of data from
@@ -20,8 +26,10 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer,
 
 // ================ Functions implementation ====================
 
-// Return a new SquidletInfo with 'name', 'ip' and 'port'
-SquidletInfo* SquidletInfoCreate(char* name, char* ip, int port) {
+// Return a new SquidletInfo describing a Squidlet whose name is 
+// 'name', and whose attached to the address 'ip':'port'
+SquidletInfo* SquidletInfoCreate(const char* const name, 
+  const char* const ip, const int const port) {
   // Allocate memory for the squidletInfo
   SquidletInfo* that = PBErrMalloc(TheSquidErr, sizeof(SquidletInfo));
   
@@ -52,7 +60,7 @@ void SquidletInfoFree(SquidletInfo** that) {
   *that = NULL;
 }
 
-// Print the SquidletInfo 'that' on the 'stream'
+// Print the SquidletInfo 'that' on the file 'stream'
 void SquidletInfoPrint(const SquidletInfo* const that, 
   FILE* const stream) {
 #if BUILDMODE == 0
@@ -75,9 +83,11 @@ void SquidletInfoPrint(const SquidletInfo* const that,
 
 // ================ Functions implementation ====================
 
-// Return a new SquidletTaskRequest with 'id' and 'type' and 'data'
+// Return a new SquidletTaskRequest for a task of type 'type'
+// The task is identified by its 'id'. It holds a copy of 'data', a 
+// string in JSON format
 SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type, 
-  unsigned long id, unsigned long subid, const char* const data, 
+  unsigned long id, unsigned long subId, const char* const data, 
   const time_t maxWait) {
   // Allocate memory for the new SquidletTaskRequest
   SquidletTaskRequest* that = PBErrMalloc(TheSquidErr, 
@@ -85,10 +95,10 @@ SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type,
   
   // Init properties
   that->_id = id;
-  that->_subid = subid;
+  that->_subId = subId;
   that->_type = type;
   that->_data = strdup(data);
-  that->_buffer = NULL;
+  that->_bufferResult = NULL;
   that->_maxWaitTime = maxWait;
   
   // Return the new SquidletTaskRequest
@@ -102,8 +112,8 @@ void SquidletTaskRequestFree(SquidletTaskRequest** that) {
     return;
   
   // Free memory
-  if ((*that)->_buffer != NULL)
-    free((*that)->_buffer);
+  if ((*that)->_bufferResult != NULL)
+    free((*that)->_bufferResult);
   free((*that)->_data);
   free(*that);
   *that = NULL;  
@@ -125,7 +135,7 @@ void SquidletTaskRequestPrint(const SquidletTaskRequest* const that,
   }
 #endif
   // Print the info on the stream 
-  fprintf(stream, "t%d #%lu/%lu", that->_type, that->_id, that->_subid);
+  fprintf(stream, "%s(#%lu-%lu) %s", squidletTaskTypeStr[that->_type], that->_id, that->_subId, that->_data);
 }
 
 // -------------- SquadRunningTask
@@ -1016,9 +1026,9 @@ bool SquadReceiveTaskResult(Squad* const that,
   FILE* streamBufferHistory = NULL;
   
   // Make sure the buffer to receive the task is empty
-  if (task->_buffer != NULL) {
-    free(task->_buffer);
-    task->_buffer = NULL;
+  if (task->_bufferResult != NULL) {
+    free(task->_bufferResult);
+    task->_bufferResult = NULL;
   }
   
   // Try to receive the size of the reply from the squidlet
@@ -1055,17 +1065,17 @@ bool SquadReceiveTaskResult(Squad* const that,
       }
 
       // Allocate memory for the result data
-      task->_buffer = PBErrMalloc(TheSquidErr, sizeResultData + 1);
-      memset(task->_buffer, 0, sizeResultData + 1);
+      task->_bufferResult = PBErrMalloc(TheSquidErr, sizeResultData + 1);
+      memset(task->_bufferResult, 0, sizeResultData + 1);
       
       // Wait to receive the result data with a time limit proportional
       // to the size of result data
       int timeOut = 5 + (int)round((float)sizeResultData / 100.0);
       if (!SocketRecv(&(squidlet->_sock), sizeResultData, 
-        task->_buffer, timeOut)) {
+        task->_bufferResult, timeOut)) {
         // If we coudln't received the result data
-        free(task->_buffer);
-        task->_buffer = NULL;
+        free(task->_bufferResult);
+        task->_bufferResult = NULL;
 
         if (SquadGetFlagTextOMeter(that) == true) {
           streamBufferHistory = fmemopen(bufferHistory, 100, "w");
@@ -1380,7 +1390,7 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
   JSONNode* jsonResult = JSONCreate();
 
   // If we could decode the JSON
-  if (JSONLoadFromStr(jsonResult, task->_buffer) && 
+  if (JSONLoadFromStr(jsonResult, task->_bufferResult) && 
     JSONLoadFromStr(jsonRequest, task->_data)) {
 
     // Get the necessary properties
@@ -1681,7 +1691,7 @@ bool SquadCheckSquidlets(Squad* const that, FILE* const stream) {
             // Process the result
             SquidletTaskRequest* request = runningTask->_request;
             fprintf(stream, "\tRequest for dummy task succeeded.\n");
-            fprintf(stream, "\t%s\n", request->_buffer);
+            fprintf(stream, "\t%s\n", request->_bufferResult);
             unsigned long delayToSendms = 
               (timeToSend.tv_sec - start.tv_sec) * 1000 + 
               (timeToSend.tv_usec - start.tv_usec) / 1000;
@@ -1783,10 +1793,10 @@ void SquadBenchmark(Squad* const that, FILE* const stream) {
         while (GSetNbElem(&completedTasks) > 0L) {
           SquidletTaskRequest* task = GSetPop(&completedTasks);
           // If the task failed
-          if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
+          if (strstr(task->_bufferResult, "\"success\":\"1\"") == NULL) {
             SquidletTaskRequestPrint(task, stdout);
             fprintf(stream, " failed !!\n");
-            fprintf(stream, "%s\n", task->_buffer);
+            fprintf(stream, "%s\n", task->_bufferResult);
             flagStop = true;
           }
           SquidletTaskRequestFree(&task);
@@ -1801,10 +1811,10 @@ void SquadBenchmark(Squad* const that, FILE* const stream) {
         while (GSetNbElem(&completedTasks) > 0L) {
           SquidletTaskRequest* task = GSetPop(&completedTasks);
           // If the task failed
-          if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
+          if (strstr(task->_bufferResult, "\"success\":\"1\"") == NULL) {
             SquidletTaskRequestPrint(task, stdout);
             fprintf(stream, " failed !!\n");
-            fprintf(stream, "%s\n", task->_buffer);
+            fprintf(stream, "%s\n", task->_bufferResult);
             flagStop = true;
           }
           SquidletTaskRequestFree(&task);

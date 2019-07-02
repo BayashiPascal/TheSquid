@@ -231,7 +231,7 @@ void UnitTestDummy() {
         SquidletTaskRequest* task = GSetPop(&completedTasks);
         printf("squad : ");
         SquidletTaskRequestPrint(task, stdout);
-        if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
+        if (strstr(task->_bufferResult, "\"success\":\"1\"") == NULL) {
           printf(" failed !!\n");
           flagStop = true;
         } else {
@@ -345,7 +345,7 @@ void UnitTestPovRay() {
         SquidletTaskRequest* task = GSetPop(&completedTasks);
         printf("squad : ");
         SquidletTaskRequestPrint(task, stdout);
-        if (strstr(task->_buffer, "\"success\":\"1\"") == NULL) {
+        if (strstr(task->_bufferResult, "\"success\":\"1\"") == NULL) {
           printf(" failed !!\n");
           flagStop = true;
         } else {

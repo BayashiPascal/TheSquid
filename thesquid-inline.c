@@ -18,8 +18,8 @@ bool SquidletTaskHasSucceeded(const SquidletTaskRequest* const that) {
     PBErrCatch(TheSquidErr);
   }
 #endif
-  return (that->_buffer != NULL && 
-    strstr(that->_buffer, "\"success\":\"1\"") != NULL);
+  return (that->_bufferResult != NULL && 
+    strstr(that->_bufferResult, "\"success\":\"1\"") != NULL);
 }
 
 // -------------- Squad
@@ -264,9 +264,9 @@ void SquadTryAgainTask(Squad* const that,
   }
 #endif
   // Ensure the result buffer is empty
-  if (task->_buffer != NULL) {
-    free(task->_buffer);
-    task->_buffer = NULL;
+  if (task->_bufferResult != NULL) {
+    free(task->_bufferResult);
+    task->_bufferResult = NULL;
   }
   // Put back the task in the set of task to complete
   GSetAppend((GSet*)SquadTasks(that), task);
