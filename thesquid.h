@@ -35,7 +35,7 @@
 #define THESQUID_ACCEPT_TIMEOUT   1 // in seconds
 #define THESQUID_PROC_TIMEOUT     60 // in seconds
 
-#define SQUAD_TXTOMETER_LINE1          \
+#define SQUAD_TXTOMETER_LINE1                       \
   "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail " \
   "xxxxx                          \n"
 #define SQUAD_TXTOMETER_FORMAT1         \
@@ -175,11 +175,11 @@ void SquadRunningTaskPrint(
 typedef struct Squad {
   // File descriptor of the socket
   short _fd;
-  // GSet of SquidletInfo, set of Squidlet used by the Squad
+  // GSet of SquidletInfo, set of squidlets used by the Squad
   GSet _squidlets;
   // GSet of SquidletTaskRequest, set of tasks to execute
   GSet _tasks;
-  // GSet of SquadRunningTask, set of tasks under execution
+  // GSet of SquadRunningTask, set of tasks currently under execution
   GSet _runningTasks;
   // Flag to memorize if info are displayed with a TextOMeter
   bool _flagTextOMeter;
@@ -209,7 +209,8 @@ void SquadFree(
 //   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", 
 //    "nb":"1", "payloadSize":"1"},
 //   {"SquidletTaskType":"3", "id":"1", "maxWait":"1", 
-//    "ini":"./testPov.ini", "sizeFragment":"100"}
+//    "ini":"./testPov.ini", "sizeMinFragment":"100", 
+//    "sizeMaxFragment":"1000"}
 // ]}
 bool SquadLoadTasks(
   Squad* const that, 
@@ -236,7 +237,7 @@ inline
 const GSet* SquadRunningTasks(
   const Squad* const that);
 
-// Load the Squidlet info from the file 'stream' into the 'that'
+// Load the Squidlet info from the file 'stream' into the Squad 'that'
 // Return true if it could load the info, else false
 bool SquadLoadSquidlets(
   Squad* const that, 
@@ -244,49 +245,88 @@ bool SquadLoadSquidlets(
 
 // Send the task request 'request' from the Squad 'that' to its
 // Squidlet 'squidlet'
-// Return true if the request could be sent, false else
+// Create a socket, open a connection, ask the squidlet if it can 
+// execute the task and wait for its reply
+// Return true if the request has been accepted by the squidlet, 
+// false else
 bool SquadSendTaskRequest(
                       Squad* const that, 
   const SquidletTaskRequest* const request, 
                SquidletInfo* const squidlet);
 
-// Send the data associated to 'task' from the Squad 'that' to 
-// the Squidlet 'squidlet'
+// Send the data associated to the task request 'task' from the Squad 
+// 'that' to the Squidlet 'squidlet'
+// First, send the size in byte of the data, then send the data
 // Return true if the data could be sent, false else
+// The size of the data must be less than 1024 bytes
 bool SquadSendTaskData(
                 Squad* const that, 
          SquidletInfo* const squidlet, 
   SquidletTaskRequest* const task);
 
-// Receive the result from the running task 'runningTask', non blocking
-// If the result is ready it is stored in the SquidletInfo
-// Return true if we received the result, false else
+// Try to receive the result from the running task 'runningTask'
+// If the result is ready it is stored in the _bufferResult of the 
+// SquidletTaskRequest of the 'runningTask'
+// If the size of the result data is not ready and couldn't be received 
+// give up immediately
+// If the size of the result data has been received, wait for 
+// (5 + sizeData / 100) seconds maximum to receive the data
+// First receive the size of the result data, then send an 
+// acknowledgement signal to the squidlet for the size of data,
+// then receive the data, and finally send an acknowledgement to the 
+// squidlet for the data
+// Return true if it could receive the result data, false else
 bool SquadReceiveTaskResult(
              Squad* const that, 
   SquadRunningTask* const runningTask);
 
-// Add a new dummy task with 'id' to execute to the squad 'that'
-// Wait for a maximum of 'maxWait' seconds for the task to complete
+// Add a dummy task with 'id' to the list of task to execute by the 
+// squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
 void SquadAddTask_Dummy(
          Squad* const that, 
   const unsigned long id,
          const time_t maxWait);
   
-// Add a new benchmark task with 'id' to execute to the squad 'that'
-// Wait for a maximum of 'maxWait' seconds for the task to complete
-// Uses a payload of 'payloadSize' bytes
+// Add a benchmark task with 'id' to the list of task to execute by the 
+// squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
+// Artificially set the size of the data for the task to 'payloadSize' 
+// bytes
+// The benchmark function used is sorting 'nb' times a set of numbers
+// cf TheSquidBenchmark()
 void SquadAddTask_Benchmark(
          Squad* const that, 
   const unsigned long id,
          const time_t maxWait, 
-            const int nb, 
-         const size_t payloadSize);
+   const unsigned int nb, 
+   const unsigned int payloadSize);
   
-// Add a new Pov-Ray task with 'id' to execute to the squad 'that'
-// Render the scene described in the Pov-Ray ini file 'ini'
+// Add a Pov-Ray task with 'id' to the list of task to execute by the 
+// squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
+// The POV-Ray task is described by the POV-Ray ini file 'ini' which 
+// must include at least the following options:
+// Input_File_Name=<script.pov>
+// Width=<width> 
+// Height=<height>
+// Output_File_Name=<image.tga>
 // The output format of the image must be TGA
-// Wait for a maximum of 'maxWait' seconds for the task to complete
-// The total size of the data must be less than 1024 bytes
+// Video are not supported
+// The image is splitted into as many squared fragments as 
+// SquadGetNbSquidlets(that)^2, but the size of the fragment is clipped
+// to [sizeMinFragment, sizeMaxFragment]
+// The size of the fragments are corrected to fit the size of the image
+// if it's not a squared image
+// Fragments are rendered on the squidlets in random order
+// The final image is updated each time a fragment has been
+// rendered
 // The random generator must have been initialised before calling this 
 // function
 void SquadAddTask_PovRay(
@@ -297,7 +337,7 @@ void SquadAddTask_PovRay(
    const unsigned int sizeMinFragment,
    const unsigned int sizeMaxFragment);
   
-// Return the number of task not yet completed
+// Return the number of tasks not yet completed
 #if BUILDMODE != 0 
 inline 
 #endif 
@@ -318,20 +358,24 @@ inline
 unsigned long SquadGetNbTasks(
   const Squad* const that);
 
-// Return the number of currently available squidlets
+// Return the number of currently available squidlets (squidlets not 
+// executing a task for 'that')
 #if BUILDMODE != 0 
 inline 
 #endif 
 unsigned long SquadGetNbSquidlets(
   const Squad* const that);
 
-// Step the Squad 'that', i.e. tries to affect remaining tasks to 
+// Step the Squad 'that', i.e. tries to affect the remaining tasks to 
 // available Squidlet and check for completion of running task.
 // Return a GSet of completed SquidletTaskRequest at this step
+// Non blocking, if there is no task to compute or no squidlet 
+// available, and no task completed, do nothing and return an empty set
 GSet SquadStep(
-  Squad* const squad);
+  Squad* const that);
 
-// Process the completed 'task' with the Squad 'that'
+// Process the completed 'task' with the Squad 'that' after its 
+// reception in SquadStep()
 void SquadProcessCompletedTask(
                 Squad* const that, 
   SquidletTaskRequest* const task);
@@ -356,6 +400,10 @@ bool SquadGetFlagTextOMeter(
 
 // Put back the 'task' into the set of task to complete of the Squad 
 // 'that'
+// Failed tasks (by timeout due to there 'maxWait' in 
+// SquadAddTask_xxx() or by failure code from the squidlet in the 
+// result data) are automatically put back into the set of task to 
+// complete
 #if BUILDMODE != 0
 inline
 #endif
@@ -372,6 +420,9 @@ bool SquadCheckSquidlets(
 
 // Run the benchmark with the squad 'that' and output the result on 
 // the file 'stream'
+// The benchmark consists of executing benchmark tasks with several
+// size and number of loop, first locally and then on the squidlet 
+// (which must have been loaded before calling this function)
 void SquadBenchmark(
   Squad* const that, 
    FILE* const stream);
@@ -380,25 +431,27 @@ void SquadBenchmark(
 
 // ================= Global variable ==================
 
-// Variable to handle the signal Ctrl-C
+// Variable to handle the signal Ctrl-C to kill the Squidlet running
+// in background
 extern bool Squidlet_CtrlC;
 
 // ================= Data structure ===================
 
 typedef struct Squidlet {
-  // File descriptor of the socket
+  // File descriptor of the socket used by the Squidlet ot listen for
+  // conneciton
   short _fd;
-  // Port the squidlet is listening to
+  // Port the Squidlet is listening to
   int _port;
-  // Info about the socket to receive task request
+  // Info about the socket '_fd'
   struct sockaddr_in _sock;
-  // PID of the process running the squidlet
+  // PID of the process of the squidlet
   pid_t _pid;
-  // Hostname
+  // Hostname of the device on which the Squidlet is running
   char _hostname[256];
   // Information about the host
   struct hostent* _host; 
-  // Socket to send the result of a task 
+  // File descriptor of the socket to send the result of a task 
   short _sockReply;
   // Stream to output infos, if null the squidlet is silent
   // By default it's null
@@ -418,10 +471,13 @@ void SquidletHandlerSigPipe(
 // Return a new Squidlet listening to the ip 'addr' and port 'port'
 // If 'addr' equals 0, select automatically the first network address 
 // of the host 
-// If 'port' equals -1, select automatically one available
+// If 'port' equals -1, select automatically one available between 
+// THESQUID_PORTMIN and THESQUID_PORTMAX
 Squidlet* SquidletCreateOnPort(
   const uint32_t addr, 
        const int port);
+
+// Helper to create a squidlet with default ip and port
 #define SquidletCreate() SquidletCreateOnPort(0, -1)
 
 // Free the memory used by the Squidlet 'that'
@@ -436,7 +492,9 @@ void SquidletPrint(
             FILE* const stream);
 
 // Wait for a task request to be received by the Squidlet 'that'
-// Return the received task request
+// Return the received task request, or give up after 
+// THESQUID_ACCEPT_TIMEOUT if there was no request and return a task 
+// request of type SquidletTaskType_Null
 SquidletTaskRequest SquidletWaitRequest(
   Squidlet* const that);
 
@@ -446,18 +504,30 @@ void SquidletProcessRequest(
   SquidletTaskRequest* const request);
   
 // Process a dummy task request with the Squidlet 'that'
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
 void SquidletProcessRequest_Dummy(
     Squidlet* const that,
   const char* const buffer, 
              char** bufferResult);
   
 // Process a benchmark task request with the Squidlet 'that'
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
 void SquidletProcessRequest_Benchmark(
     Squidlet* const that,
   const char* const buffer, 
              char** bufferResult);
   
 // Process a Pov-Ray task request with the Squidlet 'that'
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
 void SquidletProcessRequest_PovRay(
     Squidlet* const that,
   const char* const buffer, 
@@ -509,7 +579,7 @@ void SquidletSetStreamInfo(
 
 // Return the temperature of the squidlet 'that' as a string.
 // The result depends on the architecture on which the squidlet is 
-// running and maybe null if the temperature is not availalble
+// running. It is '(?)' if the temperature is not availalble
 char* SquidletGetTemperature(
   const Squidlet* const that);
 

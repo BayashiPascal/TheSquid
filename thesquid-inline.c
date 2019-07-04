@@ -10,7 +10,8 @@
 #if BUILDMODE != 0 
 inline 
 #endif 
-bool SquidletTaskHasSucceeded(const SquidletTaskRequest* const that) {
+bool SquidletTaskHasSucceeded(
+  const SquidletTaskRequest* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -30,7 +31,8 @@ bool SquidletTaskHasSucceeded(const SquidletTaskRequest* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadSquidlets(const Squad* const that) {
+const GSet* SquadSquidlets(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -45,7 +47,8 @@ const GSet* SquadSquidlets(const Squad* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadTasks(const Squad* const that) {
+const GSet* SquadTasks(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -60,7 +63,8 @@ const GSet* SquadTasks(const Squad* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadRunningTasks(const Squad* const that) {
+const GSet* SquadRunningTasks(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -71,11 +75,12 @@ const GSet* SquadRunningTasks(const Squad* const that) {
   return &(that->_runningTasks);  
 }
 
-// Return the number of task not yet completed
+// Return the number of tasks not yet completed
 #if BUILDMODE != 0 
 inline 
 #endif 
-unsigned long SquadGetNbTaskToComplete(const Squad* const that) {
+unsigned long SquadGetNbTaskToComplete(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -91,7 +96,8 @@ unsigned long SquadGetNbTaskToComplete(const Squad* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-unsigned long SquadGetNbRunningTasks(const Squad* const that) {
+unsigned long SquadGetNbRunningTasks(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -106,7 +112,8 @@ unsigned long SquadGetNbRunningTasks(const Squad* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-unsigned long SquadGetNbTasks(const Squad* const that) {
+unsigned long SquadGetNbTasks(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -117,11 +124,13 @@ unsigned long SquadGetNbTasks(const Squad* const that) {
   return GSetNbElem(SquadTasks(that));  
 }
 
-// Return the number of currently available squidlets
+// Return the number of currently available squidlets (squidlets not 
+// executing a task for 'that')
 #if BUILDMODE != 0 
 inline 
 #endif 
-unsigned long SquadGetNbSquidlets(const Squad* const that) {
+unsigned long SquadGetNbSquidlets(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -136,7 +145,8 @@ unsigned long SquadGetNbSquidlets(const Squad* const that) {
 #if BUILDMODE != 0
 inline
 #endif
-bool SquadGetFlagTextOMeter(const Squad* const that) {
+bool SquadGetFlagTextOMeter(
+  const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -156,7 +166,8 @@ bool SquadGetFlagTextOMeter(const Squad* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-pid_t SquidletGetPID(const Squidlet* const that) {
+pid_t SquidletGetPID(
+  const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -171,7 +182,8 @@ pid_t SquidletGetPID(const Squidlet* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-const char* SquidletHostname(const Squidlet* const that) {
+const char* SquidletHostname(
+  const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -186,7 +198,8 @@ const char* SquidletHostname(const Squidlet* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-const char* SquidletIP(const Squidlet* const that) {
+const char* SquidletIP(
+  const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -202,7 +215,8 @@ const char* SquidletIP(const Squidlet* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-int SquidletGetPort(const Squidlet* const that) {
+int SquidletGetPort(
+  const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -217,7 +231,8 @@ int SquidletGetPort(const Squidlet* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-FILE* SquidletStreamInfo(const Squidlet* const that) {
+FILE* SquidletStreamInfo(
+  const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -233,7 +248,9 @@ FILE* SquidletStreamInfo(const Squidlet* const that) {
 #if BUILDMODE != 0 
 inline 
 #endif 
-void SquidletSetStreamInfo(Squidlet* const that, FILE* const stream) {
+void SquidletSetStreamInfo(
+  Squidlet* const that, 
+      FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -246,10 +263,15 @@ void SquidletSetStreamInfo(Squidlet* const that, FILE* const stream) {
 
 // Put back the 'task' into the set of task to complete of the Squad 
 // 'that'
+// Failed tasks (by timeout due to there 'maxWait' in 
+// SquadAddTask_xxx() or by failure code from the squidlet in the 
+// result data) are automatically put back into the set of task to 
+// complete
 #if BUILDMODE != 0
 inline
 #endif
-void SquadTryAgainTask(Squad* const that, 
+void SquadTryAgainTask(
+                Squad* const that, 
   SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {

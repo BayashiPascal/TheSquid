@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
             printf(" failed !!\n");
 
             // Put the task back into the set of tasks to complete
-            //SquadTryAgainTask(squad, task);
+            SquadTryAgainTask(squad, task);
 
           }
 

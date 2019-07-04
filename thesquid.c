@@ -28,8 +28,10 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer,
 
 // Return a new SquidletInfo describing a Squidlet whose name is 
 // 'name', and whose attached to the address 'ip':'port'
-SquidletInfo* SquidletInfoCreate(const char* const name, 
-  const char* const ip, const int const port) {
+SquidletInfo* SquidletInfoCreate(
+  const char* const name, 
+  const char* const ip, 
+    const int const port) {
   // Allocate memory for the squidletInfo
   SquidletInfo* that = PBErrMalloc(TheSquidErr, sizeof(SquidletInfo));
   
@@ -44,7 +46,8 @@ SquidletInfo* SquidletInfoCreate(const char* const name,
 }
 
 // Free the memory used by the SquidletInfo 'that'
-void SquidletInfoFree(SquidletInfo** that) {
+void SquidletInfoFree(
+  SquidletInfo** that) {
   // If the pointer is null there is nothing to do
   if (that == NULL || *that == NULL)
     return;
@@ -61,8 +64,9 @@ void SquidletInfoFree(SquidletInfo** that) {
 }
 
 // Print the SquidletInfo 'that' on the file 'stream'
-void SquidletInfoPrint(const SquidletInfo* const that, 
-  FILE* const stream) {
+void SquidletInfoPrint(
+  const SquidletInfo* const that, 
+                FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -86,9 +90,12 @@ void SquidletInfoPrint(const SquidletInfo* const that,
 // Return a new SquidletTaskRequest for a task of type 'type'
 // The task is identified by its 'id'. It holds a copy of 'data', a 
 // string in JSON format
-SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type, 
-  unsigned long id, unsigned long subId, const char* const data, 
-  const time_t maxWait) {
+SquidletTaskRequest* SquidletTaskRequestCreate(
+   SquidletTaskType type, 
+      unsigned long id, 
+      unsigned long subId, 
+  const char* const data, 
+       const time_t maxWait) {
   // Allocate memory for the new SquidletTaskRequest
   SquidletTaskRequest* that = PBErrMalloc(TheSquidErr, 
     sizeof(SquidletTaskRequest));
@@ -106,7 +113,8 @@ SquidletTaskRequest* SquidletTaskRequestCreate(SquidletTaskType type,
 }
 
 // Free the memory used by the SquidletTaskRequest 'that'
-void SquidletTaskRequestFree(SquidletTaskRequest** that) {
+void SquidletTaskRequestFree(
+  SquidletTaskRequest** that) {
   // If the pointer is null there is nothing to do
   if (that == NULL || *that == NULL)
     return;
@@ -119,9 +127,10 @@ void SquidletTaskRequestFree(SquidletTaskRequest** that) {
   *that = NULL;  
 }
 
-// Print the SquidletTaskRequest 'that' on the 'stream'
-void SquidletTaskRequestPrint(const SquidletTaskRequest* const that, 
-  FILE* const stream) {
+// Print the SquidletTaskRequest 'that' on the file 'stream'
+void SquidletTaskRequestPrint(
+  const SquidletTaskRequest* const that, 
+                       FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -144,7 +153,8 @@ void SquidletTaskRequestPrint(const SquidletTaskRequest* const that,
 
 // Return a new SquadRunningTask with the 'request' and 'squidlet'
 SquadRunningTask* SquadRunningTaskCreate(
-  SquidletTaskRequest* const request, SquidletInfo* const squidlet) {
+  SquidletTaskRequest* const request, 
+         SquidletInfo* const squidlet) {
   // Allocate memory for the new SquadRunningTask
   SquadRunningTask* that = PBErrMalloc(TheSquidErr, 
     sizeof(SquadRunningTask));
@@ -159,7 +169,8 @@ SquadRunningTask* SquadRunningTaskCreate(
 }
 
 // Free the memory used by the SquadRunningTask 'that'
-void SquadRunningTaskFree(SquadRunningTask** that) {
+void SquadRunningTaskFree(
+  SquadRunningTask** that) {
   // If the pointer is null there is nothing to do
   if (that == NULL || *that == NULL)
     return;
@@ -171,9 +182,10 @@ void SquadRunningTaskFree(SquadRunningTask** that) {
   *that = NULL;
 }
 
-// Print the SquadRunningTask 'that' on the 'stream'
-void SquadRunningTaskPrint(const SquadRunningTask* const that, 
-  FILE* const stream) {
+// Print the SquadRunningTask 'that' on the file 'stream'
+void SquadRunningTaskPrint(
+  const SquadRunningTask* const that, 
+                    FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -248,7 +260,8 @@ Squad* SquadCreate(void) {
 }
 
 // Free the memory used by the Squad 'that'
-void SquadFree(Squad** that) {
+void SquadFree(
+  Squad** that) {
   // If the pointer is null there is nothing to do
   if (that == NULL || *that == NULL)
     return;
@@ -276,7 +289,7 @@ void SquadFree(Squad** that) {
   *that = NULL;
 }
 
-// Load a list of tasks stored in json format from the 'stream'
+// Load a list of tasks stored in json format from the file 'stream'
 // and add them to the set of tasks of the Squad 'that'
 // Return true if the tasks could be loaded, else false
 // Example:
@@ -285,9 +298,12 @@ void SquadFree(Squad** that) {
 //   {"SquidletTaskType":"2", "id":"1", "maxWait":"1", 
 //    "nb":"1", "payloadSize":"1"},
 //   {"SquidletTaskType":"3", "id":"1", "maxWait":"1", 
-//    "ini":"./testPov.ini", "sizeFragment":"100"}
+//    "ini":"./testPov.ini", "sizeMinFragment":"100", 
+//    "sizeMaxFragment":"1000"}
 // ]}
-bool SquadLoadTasks(Squad* const that, FILE* const stream) {
+bool SquadLoadTasks(
+  Squad* const that, 
+   FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -424,9 +440,11 @@ bool SquadLoadTasks(Squad* const that, FILE* const stream) {
   
 }
 
-// Load the Squidlet info from the 'stream' into the 'that'
+// Load the Squidlet info from the file 'stream' into the Squad 'that'
 // Return true if it could load the info, else false
-bool SquadLoadSquidlets(Squad* const that, FILE* const stream) {
+bool SquadLoadSquidlets(
+  Squad* const that, 
+   FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -531,11 +549,14 @@ bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
 
 // Send the task request 'request' from the Squad 'that' to its
 // Squidlet 'squidlet'
-// Return true if the request could be sent and the squidlet
-// accepted it, false else
-bool SquadSendTaskRequest(Squad* const that, 
+// Create a socket, open a connection, ask the squidlet if it can 
+// execute the task and wait for its reply
+// Return true if the request has been accepted by the squidlet, 
+// false else
+bool SquadSendTaskRequest(
+                      Squad* const that, 
   const SquidletTaskRequest* const request, 
-  SquidletInfo* const squidlet) {
+               SquidletInfo* const squidlet) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -721,11 +742,15 @@ bool SquadSendTaskRequest(Squad* const that,
   return true;
 }
 
-// Add a new dummy task with 'id' to execute to the squad 'that'
-// Wait for a maximum of 'maxWait' seconds for the task to complete
-// The total size of the data must be less than 1024 bytes
-void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
-  const time_t maxWait) {
+// Add a dummy task with 'id' to the list of task to execute by the 
+// squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
+void SquadAddTask_Dummy(
+         Squad* const that, 
+  const unsigned long id,
+         const time_t maxWait) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -746,12 +771,21 @@ void SquadAddTask_Dummy(Squad* const that, const unsigned long id,
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
-// Add a new benchmark task with 'id' to execute to the squad 'that'
-// Wait for a maximum of 'maxWait' seconds for the task to complete
-// Uses a payload of 'payloadSize' bytes
-// The total size of the data must be less than 1024 bytes
-void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
-  const time_t maxWait, const int nb, const size_t payloadSize) {
+// Add a benchmark task with 'id' to the list of task to execute by the 
+// squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
+// Artificially set the size of the data for the task to 'payloadSize' 
+// bytes
+// The benchmark function used is sorting 'nb' times a set of numbers
+// cf TheSquidBenchmark()
+void SquadAddTask_Benchmark(
+         Squad* const that, 
+  const unsigned long id,
+         const time_t maxWait, 
+   const unsigned int nb, 
+   const unsigned int payloadSize) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -790,25 +824,36 @@ void SquadAddTask_Benchmark(Squad* const that, const unsigned long id,
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
-// Add a new Pov-Ray task with 'id' to execute to the squad 'that'
-// Render the scene described in the Pov-Ray ini file 'ini'
-// The ini file must at least contains the following lines (without 
-// inline comments
-//
+// Add a Pov-Ray task with 'id' to the list of task to execute by the 
+// squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
+// The POV-Ray task is described by the POV-Ray ini file 'ini' which 
+// must include at least the following options:
 // Input_File_Name=<script.pov>
 // Width=<width> 
 // Height=<height>
 // Output_File_Name=<image.tga>
-//
 // The output format of the image must be TGA
-// Wait for a maximum of 'maxWait' seconds for the task to complete
-// The total size of the data must be less than 1024 bytes
+// Video are not supported
+// The image is splitted into as many squared fragments as 
+// SquadGetNbSquidlets(that)^2, but the size of the fragment is clipped
+// to [sizeMinFragment, sizeMaxFragment]
+// The size of the fragments are corrected to fit the size of the image
+// if it's not a squared image
+// Fragments are rendered on the squidlets in random order
+// The final image is updated each time a fragment has been
+// rendered
 // The random generator must have been initialised before calling this 
 // function
-void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
-  const time_t maxWait, const char* const ini, 
-  const unsigned int sizeMinFragment,
-  const unsigned int sizeMaxFragment) {
+void SquadAddTask_PovRay(
+         Squad* const that, 
+  const unsigned long id,
+         const time_t maxWait, 
+    const char* const ini, 
+   const unsigned int sizeMinFragment,
+   const unsigned int sizeMaxFragment) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -932,11 +977,15 @@ void SquadAddTask_PovRay(Squad* const that, const unsigned long id,
 
 }
 
-// Send the data associated to 'task' from the Squad 'that' to 
-// the Squidlet 'squidlet'
+// Send the data associated to the task request 'task' from the Squad 
+// 'that' to the Squidlet 'squidlet'
+// First, send the size in byte of the data, then send the data
 // Return true if the data could be sent, false else
-bool SquadSendTaskData(Squad* const that, 
-  SquidletInfo* const squidlet, SquidletTaskRequest* const task) {
+// The size of the data must be less than 1024 bytes
+bool SquadSendTaskData(
+                Squad* const that, 
+         SquidletInfo* const squidlet, 
+  SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -993,10 +1042,20 @@ bool SquadSendTaskData(Squad* const that,
   return true;
 }
 
-// Receive the result from the running task 'runningTask', non blocking
-// If the result is ready it is stored in the SquidletInfo
-// Return true if we received the result, false else
-bool SquadReceiveTaskResult(Squad* const that, 
+// Try to receive the result from the running task 'runningTask'
+// If the result is ready it is stored in the _bufferResult of the 
+// SquidletTaskRequest of the 'runningTask'
+// If the size of the result data is not ready and couldn't be received 
+// give up immediately
+// If the size of the result data has been received, wait for 
+// (5 + sizeData / 100) seconds maximum to receive the data
+// First receive the size of the result data, then send an 
+// acknowledgement signal to the squidlet for the size of data,
+// then receive the data, and finally send an acknowledgement to the 
+// squidlet for the data
+// Return true if it could receive the result data, false else
+bool SquadReceiveTaskResult(
+             Squad* const that, 
   SquadRunningTask* const runningTask) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1123,17 +1182,6 @@ bool SquadReceiveTaskResult(Squad* const that,
       }
 
     }
-  } else {
-
-    if (SquadGetFlagTextOMeter(that) == true) {
-      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      sprintf(lineHistory, 
-        "haven't received result from (%s)\n", 
-        bufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
   }
   
   // Return the result
@@ -1212,10 +1260,13 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
   return ret;
 }
 
-// Step the Squad 'that', i.e. tries to affect remaining tasks to 
+// Step the Squad 'that', i.e. tries to affect the remaining tasks to 
 // available Squidlet and check for completion of running task.
 // Return a GSet of completed SquidletTaskRequest at this step
-GSet SquadStep(Squad* const that) {
+// Non blocking, if there is no task to compute or no squidlet 
+// available, and no task completed, do nothing and return an empty set
+GSet SquadStep(
+  Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -1281,7 +1332,7 @@ GSet SquadStep(Squad* const that) {
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
         // Put back the task to the set of tasks
-        GSetAppend((GSet*)SquadTasks(that), runningTask->_request);
+        SquadTryAgainTask(that, runningTask->_request);
         // Free memory
         runningTask->_request = NULL;
         runningTask->_squidlet = NULL;
@@ -1340,8 +1391,10 @@ GSet SquadStep(Squad* const that) {
   return completedTasks;
 }
 
-// Process the completed 'task' with the Squad 'that'
-void SquadProcessCompletedTask(Squad* const that, 
+// Process the completed 'task' with the Squad 'that' after its 
+// reception in SquadStep()
+void SquadProcessCompletedTask(
+                Squad* const that, 
   SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1370,7 +1423,8 @@ void SquadProcessCompletedTask(Squad* const that,
 }
 
 // Process the completed Pov-Ray 'task' with the Squad 'that'
-void SquadProcessCompletedTask_PovRay(Squad* const that, 
+void SquadProcessCompletedTask_PovRay(
+                Squad* const that, 
   SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1492,7 +1546,9 @@ void SquadProcessCompletedTask_PovRay(Squad* const that,
 
 // Set the flag memorizing if the TextOMeter is displayed for
 // the Squad 'that' to 'flag'
-void SquadSetFlagTextOMeter(Squad* const that, const bool flag) {
+void SquadSetFlagTextOMeter(
+  Squad* const that, 
+  const bool flag) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -1631,10 +1687,11 @@ void SquadUpdateTextOMeter(const Squad* const that) {
 }
 
 // Check all the squidlets of the Squad 'that' by processing a dummy 
-// task and display information
-// about each on the 'stream'
+// task and display information about each one on the file 'stream'
 // Return true if all the tasks could be performed, false else
-bool SquadCheckSquidlets(Squad* const that, FILE* const stream) {
+bool SquadCheckSquidlets(
+  Squad* const that, 
+   FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -1717,10 +1774,14 @@ bool SquadCheckSquidlets(Squad* const that, FILE* const stream) {
   return res;
 }
 
-// Run a benchmark with the squad 'that' and output the result on 
-// the stream 'stream'. Squidlets definition must have been 
-// previously loaded
-void SquadBenchmark(Squad* const that, FILE* const stream) {
+// Run the benchmark with the squad 'that' and output the result on 
+// the file 'stream'
+// The benchmark consists of executing benchmark tasks with several
+// size and number of loop, first locally and then on the squidlet 
+// (which must have been loaded before calling this function)
+void SquadBenchmark(
+  Squad* const that, 
+   FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -1845,7 +1906,8 @@ bool Squidlet_CtrlC = false;
 // ================ Functions implementation ====================
 
 // Handler for the signal Ctrl-C
-void SquidletHandlerCtrlC(const int sig) {
+void SquidletHandlerCtrlC(
+  const int sig) {
   (void)sig;
   Squidlet_CtrlC = true;
   time_t intTime = time(NULL);
@@ -1855,7 +1917,8 @@ void SquidletHandlerCtrlC(const int sig) {
 }
 
 // Handler for the signal SIGPIPE
-void SquidletHandlerSigPipe(const int sig) {
+void SquidletHandlerSigPipe(
+  const int sig) {
   (void)sig;
   time_t intTime = time(NULL);
   char* strIntTime = ctime(&intTime);
@@ -1866,8 +1929,11 @@ void SquidletHandlerSigPipe(const int sig) {
 // Return a new Squidlet listening to the ip 'addr' and port 'port'
 // If 'addr' equals 0, select automatically the first network address 
 // of the host 
-// If 'port' equals -1, select automatically one available
-Squidlet* SquidletCreateOnPort(const uint32_t addr, const int port) {
+// If 'port' equals -1, select automatically one available between 
+// THESQUID_PORTMIN and THESQUID_PORTMAX
+Squidlet* SquidletCreateOnPort(
+  const uint32_t addr, 
+       const int port) {
   // Allocate memory for the squidlet
   Squidlet* that = PBErrMalloc(TheSquidErr, sizeof(Squidlet));
   
@@ -1993,7 +2059,8 @@ Squidlet* SquidletCreateOnPort(const uint32_t addr, const int port) {
 }
 
 // Free the memory used by the Squidlet 'that'
-void SquidletFree(Squidlet** that) {
+void SquidletFree(
+  Squidlet** that) {
   // If the pointer is null there is nothing to do
   if (that == NULL || *that == NULL)
     return;
@@ -2011,9 +2078,11 @@ void SquidletFree(Squidlet** that) {
 }
 
 // Print the PID, Hostname, IP and Port of the Squidlet 'that' on the 
-// 'stream'
+// file 'stream'
 // Example: 100 localhost 0.0.0.0:3000
-void SquidletPrint(const Squidlet* const that, FILE* const stream) {
+void SquidletPrint(
+  const Squidlet* const that, 
+            FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2032,8 +2101,11 @@ void SquidletPrint(const Squidlet* const that, FILE* const stream) {
 }
 
 // Wait for a task request to be received by the Squidlet 'that'
-// Return the received task request
-SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
+// Return the received task request, or give up after 
+// THESQUID_ACCEPT_TIMEOUT if there was no request and return a task 
+// request of type SquidletTaskType_Null
+SquidletTaskRequest SquidletWaitRequest(
+  Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2059,7 +2131,7 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
   }
   
   // Extract the first connection request on the queue of pending 
-  // connections if there was one. If there are not wait wait for
+  // connections if there was one. If there are not wait for
   // one during THESQUID_ACCEPT_TIMEOUT seconds and then give up
   that->_sockReply = accept(that->_fd, (struct sockaddr *)&incomingSock,
     &incomingSockSize);
@@ -2140,7 +2212,8 @@ SquidletTaskRequest SquidletWaitRequest(Squidlet* const that) {
 }
 
 // Process the task request 'request' with the Squidlet 'that'
-void SquidletProcessRequest(Squidlet* const that, 
+void SquidletProcessRequest(
+             Squidlet* const that, 
   SquidletTaskRequest* const request) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -2366,8 +2439,14 @@ void SquidletProcessRequest(Squidlet* const that,
 }
 
 // Process a dummy task request with the Squidlet 'that'
-void SquidletProcessRequest_Dummy(Squidlet* const that,
-  const char* const buffer, char** bufferResult) {
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
+void SquidletProcessRequest_Dummy(
+    Squidlet* const that,
+  const char* const buffer, 
+             char** bufferResult) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2423,8 +2502,14 @@ void SquidletProcessRequest_Dummy(Squidlet* const that,
 }  
 
 // Process a benchmark task request with the Squidlet 'that'
-void SquidletProcessRequest_Benchmark(Squidlet* const that,
-  const char* const buffer, char** bufferResult) {
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
+void SquidletProcessRequest_Benchmark(
+    Squidlet* const that,
+  const char* const buffer, 
+             char** bufferResult) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2516,8 +2601,14 @@ void SquidletProcessRequest_Benchmark(Squidlet* const that,
 }  
 
 // Process a Pov-Ray task request with the Squidlet 'that'
-void SquidletProcessRequest_PovRay(Squidlet* const that,
-  const char* const buffer, char** bufferResult) {
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
+void SquidletProcessRequest_PovRay(
+    Squidlet* const that,
+  const char* const buffer, 
+             char** bufferResult) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2598,8 +2689,9 @@ void SquidletProcessRequest_PovRay(Squidlet* const that,
 
 // Return the temperature of the squidlet 'that' as a string.
 // The result depends on the architecture on which the squidlet is 
-// running and maybe null if the temperature is not availalble
-char* SquidletGetTemperature(const Squidlet* const that) {
+// running. It is '(?)' if the temperature is not availalble
+char* SquidletGetTemperature(
+  const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2662,7 +2754,9 @@ char* SquidletGetTemperature(const Squidlet* const that) {
 // ================ Functions implementation ====================
 
 // Function for benchmark purpose
-int TheSquidBenchmark(int nbLoop, const char* const buffer) {
+int TheSquidBenchmark(
+                int nbLoop, 
+  const char* const buffer) {
   // Variable to memorize the dummy result
   int res = 0;
   // Loop on sample code
