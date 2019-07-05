@@ -1,42 +1,42 @@
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"0"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"0"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"0","temperature":"(?)"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"2"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"2"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-2","temperature":"(?)"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"4"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"4"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-4","temperature":"(?)"}
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5048 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"0"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"0"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"0","temperature":"(?)"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"2"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"2"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-2","temperature":"(?)"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 1
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 9
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"v":"4"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : process dummy task {"v":"4"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"1","v":"-4","temperature":"(?)"}
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+7536 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task

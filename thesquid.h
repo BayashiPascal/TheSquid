@@ -35,19 +35,18 @@
 #define THESQUID_ACCEPT_TIMEOUT   1 // in seconds
 #define THESQUID_PROC_TIMEOUT     60 // in seconds
 
-#define SQUAD_TXTOMETER_LINE1                       \
-  "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail " \
-  "xxxxx                          \n"
-#define SQUAD_TXTOMETER_FORMAT1         \
+#define SQUAD_TXTOMETER_LINE1             \
+  "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail xxxxx\n"
+#define SQUAD_TXTOMETER_FORMAT1           \
   "NbRunning %05ld NbQueued %05ld NbSquidletAvail %05ld\n"
-#define SQUAD_TXTOMETER_FORMATHISTORY   "%s\n"
-#define SQUAD_TXTOMETER_TASKHEADER      \
-  "------------------    Tasks    "     \
-  "---------------------                          \n"
-#define SQUAD_TXTOMETER_FORMATRUNNING   "Running: %s\n"
-#define SQUAD_TXTOMETER_FORMATQUEUED    " Queued: %s\n"
-#define SQUAD_TXTOMETER_NBLINEHISTORY   20
-#define SQUAD_TXTOMETER_NBTASKDISPLAYED 32
+#define SQUAD_TXTOMETER_FORMATHISTORY     "%s\n"
+#define SQUAD_TXTOMETER_TASKHEADER        \
+  "------------------    Tasks    ---------------------\n"
+#define SQUAD_TXTOMETER_FORMATRUNNING     "Running: %s\n"
+#define SQUAD_TXTOMETER_FORMATQUEUED      " Queued: %s\n"
+#define SQUAD_TXTOMETER_NBLINEHISTORY     20
+#define SQUAD_TXTOMETER_LENGTHLINEHISTORY 200
+#define SQUAD_TXTOMETER_NBTASKDISPLAYED   32
 
 // -------------- SquidletInfo
 
@@ -186,7 +185,8 @@ typedef struct Squad {
   // TextOMeter to display info 
   TextOMeter* _textOMeter;
   // Buffer used to display info in the TextOMeter
-  char _history[SQUAD_TXTOMETER_NBLINEHISTORY][200];
+  char _history[SQUAD_TXTOMETER_NBLINEHISTORY] \
+    [SQUAD_TXTOMETER_LENGTHLINEHISTORY];
   // Counter used to display info in the TextOMeter
   unsigned int _countLineHistory;
 } Squad;
@@ -355,7 +355,7 @@ unsigned long SquadGetNbRunningTasks(
 #if BUILDMODE != 0 
 inline 
 #endif 
-unsigned long SquadGetNbTasks(
+unsigned long SquadGetNbRemainingTasks(
   const Squad* const that);
 
 // Return the number of currently available squidlets (squidlets not 
@@ -404,9 +404,6 @@ bool SquadGetFlagTextOMeter(
 // SquadAddTask_xxx() or by failure code from the squidlet in the 
 // result data) are automatically put back into the set of task to 
 // complete
-#if BUILDMODE != 0
-inline
-#endif
 void SquadTryAgainTask(
                 Squad* const that, 
   SquidletTaskRequest* const task);

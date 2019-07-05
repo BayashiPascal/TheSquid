@@ -112,7 +112,7 @@ unsigned long SquadGetNbRunningTasks(
 #if BUILDMODE != 0 
 inline 
 #endif 
-unsigned long SquadGetNbTasks(
+unsigned long SquadGetNbRemainingTasks(
   const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -208,7 +208,6 @@ const char* SquidletIP(
   }
 #endif
   return inet_ntoa(that->_sock.sin_addr);
-  //return inet_ntoa(*((struct in_addr*)that->_host->h_addr_list[0]));
 }
 
 // Get the port of the Squidlet 'that'
@@ -261,37 +260,5 @@ void SquidletSetStreamInfo(
   that->_streamInfo = stream;  
 }
 
-// Put back the 'task' into the set of task to complete of the Squad 
-// 'that'
-// Failed tasks (by timeout due to there 'maxWait' in 
-// SquadAddTask_xxx() or by failure code from the squidlet in the 
-// result data) are automatically put back into the set of task to 
-// complete
-#if BUILDMODE != 0
-inline
-#endif
-void SquadTryAgainTask(
-                Squad* const that, 
-  SquidletTaskRequest* const task) {
-#if BUILDMODE == 0
-  if (that == NULL) {
-    TheSquidErr->_type = PBErrTypeNullPointer;
-    sprintf(TheSquidErr->_msg, "'that' is null");
-    PBErrCatch(TheSquidErr);
-  }
-  if (task == NULL) {
-    TheSquidErr->_type = PBErrTypeNullPointer;
-    sprintf(TheSquidErr->_msg, "'task' is null");
-    PBErrCatch(TheSquidErr);
-  }
-#endif
-  // Ensure the result buffer is empty
-  if (task->_bufferResult != NULL) {
-    free(task->_bufferResult);
-    task->_bufferResult = NULL;
-  }
-  // Put back the task in the set of task to complete
-  GSetAppend((GSet*)SquadTasks(that), task);
-}
 
 
