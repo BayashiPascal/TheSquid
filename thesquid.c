@@ -863,8 +863,8 @@ bool SquadSendTaskRequest(
   return true;
 }
 
-// Add a dummy task with 'id' to the list of task to execute by the 
-// squad 'that'
+// Add a dummy task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
 // as failed
@@ -879,12 +879,14 @@ void SquadAddTask_Dummy(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Create the new task
   // Prepare the data as JSON
+  // Hopefully the id will never have more than 90 digits
   char buffer[100];
   memset(buffer, 0, 100);
   sprintf(buffer, "{\"v\":\"%d\"}", (int)id);
   unsigned long subid = 0;
+
+  // Create the new task
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
     SquidletTaskType_Dummy, id, subid, buffer, maxWait);
   
@@ -892,8 +894,8 @@ void SquadAddTask_Dummy(
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
-// Add a benchmark task with 'id' to the list of task to execute by the 
-// squad 'that'
+// Add a benchamrk task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
 // as failed
@@ -914,28 +916,36 @@ void SquadAddTask_Benchmark(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Create the new task
-  // Prepare the data as JSON
+  // Create a dummy buffer made of the alphabet character
+  // The length is tricked by the requested payloadSize
+  char* data = PBErrMalloc(TheSquidErr, payloadSize + 1);
+  memset(data, ' ', payloadSize);
+  data[payloadSize] = '\0';
 
-  char* payload = PBErrMalloc(TheSquidErr, 27);
-  for (size_t i = 0; i < 26; ++i)
-    payload[i] = 'a' + i;
-  payload[26] = 0;
-
+  // Convert the arguments into strings to get their length
   char bufferNb[100];
   sprintf(bufferNb, "%d", nb);
-  int nbSize = strlen(bufferNb);
+  int bufferNbLen = strlen(bufferNb);
   char bufferId[100];
   sprintf(bufferId, "%ld", id);
-  int idSize = strlen(bufferId);
-  char* buffer = PBErrMalloc(TheSquidErr, 
-    payloadSize + idSize + nbSize + 25 + 26);
+  int bufferIdLen = strlen(bufferId);
+
+  // Get the length of the json data without values
+  int jsonFormatLen = strlen("{\"id\":\"\",\"nb\":\"\",\"v\":\"\"}");
+
+  // Get the length of the json data with values
+  int bufferLength = 
+    jsonFormatLen + bufferIdLen + bufferNbLen + strlen(data) + 1;
+
+  // Allocate memory
+  char* buffer = PBErrMalloc(TheSquidErr, bufferLength);
+
+  // Create the JSON data
   sprintf(buffer, "{\"id\":\"%s\",\"nb\":\"%s\",\"v\":\"%s\"}", 
-    bufferId, bufferNb, payload);
-  unsigned long bufferLen = strlen(buffer);
-  memset(buffer + bufferLen, ' ', payloadSize);
-  buffer[bufferLen + payloadSize] = '\0';
-  free(payload);
+    bufferId, bufferNb, data);
+  free(data);
+
+  // Create the new task
   unsigned long subid = 0;
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
     SquidletTaskType_Benchmark, id, subid, buffer, maxWait);
@@ -945,8 +955,8 @@ void SquadAddTask_Benchmark(
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
-// Add a Pov-Ray task with 'id' to the list of task to execute by the 
-// squad 'that'
+// Add a POV-Ray task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
 // as failed
@@ -987,33 +997,59 @@ void SquadAddTask_PovRay(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Initi variables for the creation of tasks
+  // Init variables to memorize the dimensions and path of the final 
+  // output image
   unsigned long width = 0;
   unsigned long height = 0;
   char* outImgPath = NULL;
 
-  // Decode the ini file
+  // Open the ini file
   FILE* fp = fopen(ini, "r");
+  
+  // If we couldn't open the ini file
   if (fp == NULL) {
+    
+    // Report the error
     TheSquidErr->_type = PBErrTypeInvalidArg;
     sprintf(TheSquidErr->_msg, "Can't open %s", ini);
     PBErrCatch(TheSquidErr);
+
+  // Else, we could open the ini file
   } else {
+
+    // Read the ini file line by line
     char oneLine[1024];
     while(fgets(oneLine, 1024, fp)) {
+      
+      // If we are on the line defining the width
       if (strstr(oneLine, "Width=")) {
+        
+        // Decode the width
         sscanf(oneLine + 6, "%lu", &width);
+
+      // If we are on the line defining the height
       } else if (strstr(oneLine, "Height=")) {
+        
+        // Decode the height
         sscanf(oneLine + 7, "%lu", &height);
+
+      // If we are on the line defining the path to the output file
+      // and there is actually a value for the path
       } else if (strstr(oneLine, "Output_File_Name=") &&
         strlen(oneLine) > 17) {
+        
+        // Copy the path
         outImgPath = strdup(oneLine + 17);
+
         // Remove the return line
         outImgPath[strlen(outImgPath) - 1] = '\0';
+
         // Make sure the output file doesn't exists
-        char cmd[500];
+        char* cmd = PBErrMalloc(TheSquidErr, sizeof(char) * 
+          (strlen("rm -f ") + strlen(outImgPath) + 1));
         sprintf(cmd, "rm -f %s", outImgPath);
         int ret = system(cmd);
+        free(cmd);
         (void)ret;
       }
     }
@@ -1920,39 +1956,42 @@ void SquadBenchmark(
   fprintf(stream, "Execution on local device:\n");
   fprintf(stream, "nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
   int lengthTest = 30;
-  size_t maxSizePayload = 1024;
+  size_t maxSizePayload = 1000;
   int nbMaxLoop = 1024;
-  char* buffer = PBErrMalloc(TheSquidErr, 27);
-  for (size_t i = 0; i < 26; ++i)
-    buffer[i] = 'a' + i;
-  buffer[26] = 0;
-  // Loop on nbLoop
-  for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
-    unsigned long nbComplete = 0;
-    do {
-      TheSquidBenchmark(nbLoop, buffer);
-      ++nbComplete;
-      gettimeofday(&stop, NULL);
-    } while (stop.tv_sec - start.tv_sec < lengthTest);
-    unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-      (stop.tv_usec - start.tv_usec) / 1000;
-    float timePerTaskMs = (float) deltams / (float)nbComplete;
-    fprintf(stream, "%04d\t%08u\t%07lu\t%011.2f\n", 
-      nbLoop, 1, nbComplete, timePerTaskMs);
-    fflush(stdout);
-  }
-  free(buffer);
 
+  for (size_t sizePayload = 10; 
+    sizePayload <= maxSizePayload; sizePayload *= 10) {
+    char* buffer = PBErrMalloc(TheSquidErr, sizePayload + 1);
+    memset(buffer, ' ', sizePayload);
+    buffer[sizePayload] = '\0';
+
+    // Loop on nbLoop
+    for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
+      struct timeval stop, start;
+      gettimeofday(&start, NULL);
+      unsigned long nbComplete = 0;
+      do {
+        TheSquidBenchmark(nbLoop, buffer);
+        ++nbComplete;
+        gettimeofday(&stop, NULL);
+      } while (stop.tv_sec - start.tv_sec < lengthTest);
+      unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
+        (stop.tv_usec - start.tv_usec) / 1000;
+      float timePerTaskMs = (float) deltams / (float)nbComplete;
+      fprintf(stream, "%04d\t%08u\t%07lu\t%011.2f\n", 
+        nbLoop, sizePayload, nbComplete, timePerTaskMs);
+      fflush(stdout);
+    }
+    free(buffer);
+  }
   fprintf(stream, "Execution on TheSquid:\n");
   fprintf(stream, "nbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
 
   // Loop on payload size
-  time_t maxWait = 200;
+  time_t maxWait = 1000;
   unsigned int id = 0;
   bool flagStop = false;
-  for (size_t sizePayload = 1; !flagStop && 
+  for (size_t sizePayload = 10; !flagStop && 
     sizePayload <= maxSizePayload; sizePayload *= 10) {
     // Loop on nbLoop
     for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; nbLoop *= 2) {
@@ -2912,17 +2951,16 @@ int TheSquidBenchmark(
   int res = 0;
   // Loop on sample code
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
-    GSet set = GSetCreateStatic();
-    for (unsigned int inflation = 0; inflation < 1024; ++inflation) {
+    for (int scaling = 200; scaling--;) {
+      GSet set = GSetCreateStatic();
       for(unsigned long i = strlen(buffer); i--;) {
         GSetPush(&set, NULL);
-        set._head->_sortVal = 
-          (float)(buffer[(i + iLoop) % strlen(buffer)]);
+        set._head->_sortVal = (float)((i + iLoop) % 10);
       }
+      GSetSort(&set);
+      res = (int)round(set._head->_sortVal);
+      GSetFlush(&set);
     }
-    GSetSort(&set);
-    res = (int)round(set._head->_sortVal);
-    GSetFlush(&set);
   }
   // Return the dummy result
   return res;

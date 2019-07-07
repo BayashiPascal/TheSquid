@@ -280,8 +280,8 @@ bool SquadReceiveTaskResult(
              Squad* const that, 
   SquadRunningTask* const runningTask);
 
-// Add a dummy task with 'id' to the list of task to execute by the 
-// squad 'that'
+// Add a dummy task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
 // as failed
@@ -290,8 +290,8 @@ void SquadAddTask_Dummy(
   const unsigned long id,
          const time_t maxWait);
   
-// Add a benchmark task with 'id' to the list of task to execute by the 
-// squad 'that'
+// Add a benchamrk task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
 // as failed
@@ -306,8 +306,8 @@ void SquadAddTask_Benchmark(
    const unsigned int nb, 
    const unsigned int payloadSize);
   
-// Add a Pov-Ray task with 'id' to the list of task to execute by the 
-// squad 'that'
+// Add a POV-Ray task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
 // as failed
