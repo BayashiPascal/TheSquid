@@ -453,6 +453,22 @@ typedef struct Squidlet {
   // Stream to output infos, if null the squidlet is silent
   // By default it's null
   FILE* _streamInfo; 
+  // Variables for statistics
+  unsigned long _nbAcceptedConnection;
+  unsigned long _nbAcceptedTask;
+  unsigned long _nbRefusedTask;
+  unsigned long _nbFailedReceptTaskData;
+  unsigned long _nbFailedReceptTaskSize;
+  unsigned long _nbSentResult;
+  unsigned long _nbFailedSendResult;
+  unsigned long _nbFailedSendResultSize;
+  unsigned long _nbFailedReceptAck;
+  unsigned long _nbTaskComplete;
+  unsigned long _timeToProcessMs;
+  unsigned long _timeWaitedTaskMs;
+  struct timeval _timeLastTaskComplete;
+  unsigned long _timeWaitedAckMs;
+  
 } Squidlet;
 
 // ================ Functions declaration ====================
@@ -487,6 +503,10 @@ void SquidletFree(
 void SquidletPrint(
   const Squidlet* const that, 
             FILE* const stream);
+
+// Reset the statistics of the Squidlet 'that'
+void SquidletResetStats(
+  Squidlet* const that);
 
 // Wait for a task request to be received by the Squidlet 'that'
 // Return the received task request, or give up after 

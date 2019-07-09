@@ -1512,7 +1512,8 @@ GSet SquadStep(
   }
   
   // If there are tasks to execute and available squidlet
-  if (SquadGetNbRemainingTasks(that) > 0L && SquadGetNbSquidlets(that) > 0L) {
+  if (SquadGetNbRemainingTasks(that) > 0L && 
+    SquadGetNbSquidlets(that) > 0L) {
     // Loop on squidlets
     GSetIterForward iter = 
       GSetIterForwardCreateStatic((GSet*)SquadSquidlets(that));
@@ -2029,6 +2030,9 @@ void SquadBenchmark(
               fprintf(stream, " failed !!\n");
               fprintf(stream, "%s\n", task->_bufferResult);
               flagStop = true;
+            } else {
+              // Process the statistics here
+              //printf("%s\n", task->_bufferResult);
             }
             SquidletTaskRequestFree(&task);
           }
@@ -2254,7 +2258,10 @@ Squidlet* SquidletCreateOnPort(
 
   // Init the stream for output
   that->_streamInfo = NULL;
-  
+
+  // Init the variables for statistics
+  SquidletResetStats(that);
+
   // Return the new squidlet
   return that;
 }
@@ -2301,6 +2308,33 @@ void SquidletPrint(
     SquidletHostname(that), SquidletIP(that), SquidletGetPort(that));
 }
 
+// Reset the statistics of the Squidlet 'that'
+void SquidletResetStats(
+  Squidlet* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+
+  that->_nbAcceptedConnection = 0;
+  that->_nbAcceptedTask = 0;
+  that->_nbRefusedTask = 0;
+  that->_nbFailedReceptTaskData = 0;
+  that->_nbFailedReceptTaskSize = 0;
+  that->_nbSentResult = 0;
+  that->_nbFailedSendResult = 0;
+  that->_nbFailedSendResultSize = 0;
+  that->_nbFailedReceptAck = 0;
+  that->_nbTaskComplete = 0;
+  that->_timeToProcessMs = 0;
+  that->_timeWaitedTaskMs = 0;
+  that->_timeWaitedAckMs = 0;
+
+}
+
 // Wait for a task request to be received by the Squidlet 'that'
 // Return the received task request, or give up after 
 // THESQUID_ACCEPT_TIMEOUT if there was no request and return a task 
@@ -2339,6 +2373,7 @@ SquidletTaskRequest SquidletWaitRequest(
 
   // If we would extract a pending connection
   if (that->_sockReply >= 0) {
+    ++(that->_nbAcceptedConnection);
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), " : accepted connection\n");
@@ -2372,6 +2407,14 @@ SquidletTaskRequest SquidletWaitRequest(
       if (SocketRecv(&(that->_sockReply), sizeof(SquidletTaskType), 
         (char*)&taskRequest, THESQUID_PROC_TIMEOUT)) {
         reply = THESQUID_TASKACCEPTED;
+        ++(that->_nbAcceptedTask);
+        if (that->_nbTaskComplete > 0) {
+          struct timeval now;
+          gettimeofday(&now, NULL);
+          that->_timeWaitedTaskMs = 
+            (now.tv_sec - that->_timeLastTaskComplete.tv_sec) * 1000 +
+            (now.tv_usec - that->_timeLastTaskComplete.tv_usec) / 1000;
+        }
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
           fprintf(SquidletStreamInfo(that), 
@@ -2381,6 +2424,7 @@ SquidletTaskRequest SquidletWaitRequest(
         // If we couldn't received the task type
         taskRequest._type = SquidletTaskType_Null;
         reply = THESQUID_TASKREFUSED;
+        ++(that->_nbRefusedTask);
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
           fprintf(SquidletStreamInfo(that),
@@ -2476,6 +2520,7 @@ void SquidletProcessRequest(
         // If we coudln't received the input data
         free(buffer);
         buffer = NULL;
+        ++(that->_nbFailedReceptTaskData);
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
           fprintf(SquidletStreamInfo(that), 
@@ -2533,6 +2578,7 @@ void SquidletProcessRequest(
     }
   } else {
 
+    ++(that->_nbFailedReceptTaskSize);
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), 
@@ -2561,9 +2607,16 @@ void SquidletProcessRequest(
     // Receive the acknowledgement
     char ack = 0;
     int waitDelayMaxSec = 60;
+    struct timeval start;
+    gettimeofday(&start, NULL);
     if (SocketRecv(&(that->_sockReply), sizeof(char), &ack, 
       waitDelayMaxSec)) {
 
+      struct timeval now;
+      gettimeofday(&now, NULL);
+      that->_timeWaitedAckMs = 
+        (now.tv_sec - start.tv_sec) * 1000 +
+        (now.tv_usec - start.tv_usec) / 1000;
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
@@ -2571,12 +2624,14 @@ void SquidletProcessRequest(
       }
 
       if (send(that->_sockReply, bufferResult, len, flags) != -1) {
+        ++(that->_nbSentResult);
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
           fprintf(SquidletStreamInfo(that), 
             " : sent result %s\n", bufferResult);
         }
       } else {
+        ++(that->_nbFailedSendResult);
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
           fprintf(SquidletStreamInfo(that), 
@@ -2584,6 +2639,7 @@ void SquidletProcessRequest(
         }
       }
     } else {
+      ++(that->_nbFailedReceptAck);
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
@@ -2591,6 +2647,7 @@ void SquidletProcessRequest(
       }
     }
   } else {
+    ++(that->_nbFailedSendResultSize);
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), 
@@ -2624,6 +2681,7 @@ void SquidletProcessRequest(
       }
     }
   } else {
+    ++(that->_nbFailedReceptAck);
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), 
@@ -2631,6 +2689,8 @@ void SquidletProcessRequest(
     }
   }
 
+  ++(that->_nbTaskComplete);
+  gettimeofday(&(that->_timeLastTaskComplete), NULL);
   if (SquidletStreamInfo(that)){
     SquidletPrint(that, SquidletStreamInfo(that));
     fprintf(SquidletStreamInfo(that), 
@@ -2661,6 +2721,11 @@ void SquidletProcessRequest_Dummy(
   // Declare a variable to memorize the result of processing
   int result = 0; 
 
+  // Start measuring the time used to process the task
+  that->_timeToProcessMs = 0;
+  struct timeval start;
+  gettimeofday(&start, NULL);
+
   // Process the data
   if (SquidletStreamInfo(that)){
     SquidletPrint(that, SquidletStreamInfo(that));
@@ -2685,21 +2750,40 @@ void SquidletProcessRequest_Dummy(
   }
   JSONFree(&json);
 
+  // Update the time used to process the task
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  that->_timeToProcessMs = 
+    (now.tv_sec - start.tv_sec) * 1000 +
+    (now.tv_usec - start.tv_usec) / 1000;
+
   // Prepare the result data as JSON
   *bufferResult = PBErrMalloc(TheSquidErr, 100);
   memset(*bufferResult, 0, 100);
   char* temperature = SquidletGetTemperature(that);
-  if (temperature != NULL) {
-    sprintf(*bufferResult, 
-      "{\"success\":\"%d\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
-      success, result, temperature);
-    free(temperature);
-  } else {
-    sprintf(*bufferResult, 
-      "{\"success\":\"%d\",\"v\":\"%d\",\"temperature\":\"\"}", 
-      success, result);
-  }
+  sprintf(*bufferResult, 
+    "{\"success\":\"%d\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
+    success, result, temperature);
 
+  sprintf(*bufferResult, 
+    "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\"," \
+    "\"nbAcceptedConnection\":\"%lu\",\"nbAcceptedTask\":\"%lu\"," \
+    "\"nbRefusedTask\":\"%lu\",\"nbFailedReceptTaskData\":\"%lu\"," \
+    "\"nbFailedReceptTaskSize\":\"%lu\",\"nbSentResult\":\"%lu\"," \
+    "\"nbFailedSendResult\":\"%lu\",\"nbFailedSendResultSize\":\"%lu\"," \
+    "nbFailedReceptAck\":\"%lu\",\"nbTaskComplete\":\"%lu\"," \
+    "\"timeToProcess\":\"%lu\",\"timeWaitedTask\":\"%lu\"," \
+    "\"timeWaitedAcknowledgement\":\"%lu\"}", 
+    success, temperature, result, 
+    that-> _nbAcceptedConnection, that-> _nbAcceptedTask, 
+    that-> _nbRefusedTask, that-> _nbFailedReceptTaskData, 
+    that-> _nbFailedReceptTaskSize, that-> _nbSentResult, 
+    that-> _nbFailedSendResult, that-> _nbFailedSendResultSize, 
+    that-> _nbFailedReceptAck, that-> _nbTaskComplete,
+    that->_timeToProcessMs, that->_timeWaitedTaskMs, 
+    that->_timeWaitedAckMs);
+
+  free(temperature);
 }  
 
 // Process a benchmark task request with the Squidlet 'that'
@@ -2718,6 +2802,11 @@ void SquidletProcessRequest_Benchmark(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
+  // Start measuring the time used to process the task
+  that->_timeToProcessMs = 0;
+  struct timeval start;
+  gettimeofday(&start, NULL);
 
   // Declare a variable to memorize if the process has been successful
   bool success = false;
@@ -2788,16 +2877,35 @@ void SquidletProcessRequest_Benchmark(
   }
   JSONFree(&json);
 
+  // Update the time used to process the task
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  that->_timeToProcessMs = 
+    (now.tv_sec - start.tv_sec) * 1000 +
+    (now.tv_usec - start.tv_usec) / 1000;
+
   // Prepare the result data as JSON
   *bufferResult = PBErrMalloc(TheSquidErr, 500);
   memset(*bufferResult, 0, 500);
   char* temperature = SquidletGetTemperature(that);
-  if (temperature != NULL) {
-    sprintf(*bufferResult, "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\",\"err\":\"%s\"}", success, temperature, result, errMsg);
-    free(temperature);
-  } else {
-    sprintf(*bufferResult, "{\"success\":\"%d\",\"temp\":\"\", \"v\":\"%d\",\"err\":\"%s\"}", success, result, errMsg);
-  }
+  sprintf(*bufferResult, 
+    "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\",\"err\":\"%s\"," \
+    "\"nbAcceptedConnection\":\"%lu\",\"nbAcceptedTask\":\"%lu\"," \
+    "\"nbRefusedTask\":\"%lu\",\"nbFailedReceptTaskData\":\"%lu\"," \
+    "\"nbFailedReceptTaskSize\":\"%lu\",\"nbSentResult\":\"%lu\"," \
+    "\"nbFailedSendResult\":\"%lu\",\"nbFailedSendResultSize\":\"%lu\"," \
+    "nbFailedReceptAck\":\"%lu\",\"nbTaskComplete\":\"%lu\"," \
+    "\"timeToProcess\":\"%lu\",\"timeWaitedTask\":\"%lu\"," \
+    "\"timeWaitedAcknowledgement\":\"%lu\"}", 
+    success, temperature, result, errMsg, 
+    that-> _nbAcceptedConnection, that-> _nbAcceptedTask, 
+    that-> _nbRefusedTask, that-> _nbFailedReceptTaskData, 
+    that-> _nbFailedReceptTaskSize, that-> _nbSentResult, 
+    that-> _nbFailedSendResult, that-> _nbFailedSendResultSize, 
+    that-> _nbFailedReceptAck, that-> _nbTaskComplete,
+    that->_timeToProcessMs, that->_timeWaitedTaskMs, 
+    that->_timeWaitedAckMs);
+  free(temperature);
 
 }  
 
@@ -2962,7 +3070,7 @@ int TheSquidBenchmark(
   int res = 0;
   // Loop on sample code
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
-    for (int scaling = 200; scaling--;) {
+    for (unsigned int scaling = 200; scaling--;) {
       GSet set = GSetCreateStatic();
       for(unsigned long i = strlen(buffer); i--;) {
         GSetPush(&set, NULL);
