@@ -34,6 +34,7 @@
 #define THESQUID_TASKACCEPTED     1
 #define THESQUID_ACCEPT_TIMEOUT   1 // in seconds
 #define THESQUID_PROC_TIMEOUT     60 // in seconds
+#define THESQUID_MAXPAYLOADSIZE   1024 // bytes
 
 #define SQUAD_TXTOMETER_LINE1             \
   "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail xxxxx\n"
@@ -48,6 +49,8 @@
 #define SQUAD_TXTOMETER_LENGTHLINEHISTORY 200
 #define SQUAD_TXTOMETER_NBTASKDISPLAYED   32
 
+#define SQUID_RANGEAVGSTAT 10
+
 // -------------- SquidletInfo
 
 // ================= Data structure ===================
@@ -61,6 +64,20 @@ typedef struct SquidletInfo {
   int _port;
   // Socket to communicate with this squidlet
   short _sock;
+  // Variables for statistics
+  unsigned long _nbAcceptedConnection;
+  unsigned long _nbAcceptedTask;
+  unsigned long _nbRefusedTask;
+  unsigned long _nbFailedReceptTaskData;
+  unsigned long _nbFailedReceptTaskSize;
+  unsigned long _nbSentResult;
+  unsigned long _nbFailedSendResult;
+  unsigned long _nbFailedSendResultSize;
+  unsigned long _nbFailedReceptAck;
+  unsigned long _nbTaskComplete;
+  float _timeToProcessMs[3];
+  float _timeWaitedTaskMs[3];
+  float _timeWaitedAckMs[3];
 } SquidletInfo;
 
 // ================ Functions declaration ====================
@@ -258,7 +275,7 @@ bool SquadSendTaskRequest(
 // 'that' to the Squidlet 'squidlet'
 // First, send the size in byte of the data, then send the data
 // Return true if the data could be sent, false else
-// The size of the data must be less than 1024 bytes
+// The size of the data must be less than THESQUID_MAXPAYLOADSIZE bytes
 bool SquadSendTaskData(
                 Squad* const that, 
          SquidletInfo* const squidlet, 
@@ -377,8 +394,8 @@ GSet SquadStep(
 // Process the completed 'task' with the Squad 'that' after its 
 // reception in SquadStep()
 void SquadProcessCompletedTask(
-                Squad* const that, 
-  SquidletTaskRequest* const task);
+             Squad* const that, 
+  SquadRunningTask* const task);
 
 // Process the completed Pov-Ray 'task' with the Squad 'that'
 void SquadProcessCompletedTask_PovRay(
@@ -596,7 +613,7 @@ void SquidletSetStreamInfo(
 
 // Return the temperature of the squidlet 'that' as a float.
 // The result depends on the architecture on which the squidlet is 
-// running. It is '0.0' if the temperature is not availalble
+// running. It is '0.0' if the temperature is not available
 float SquidletGetTemperature(
   const Squidlet* const that);
 

@@ -25,6 +25,18 @@ bool SocketRecv(
   char* buffer, 
   const time_t timeout);
 
+// Append the statistical data about the squidlet 'that' to the JSON 
+// node 'json'
+void SquidletAddStatsToJSON(
+  const Squidlet* const that, 
+        JSONNode* const json);
+
+// Update the statitics of the Squidlet 'that' with the result of the 
+// 'task'
+void SquidletUpdateStats(
+         SquidletInfo* const that, 
+  SquidletTaskRequest* const task);
+  
 // -------------- SquidletInfo
 
 // ================ Functions implementation ====================
@@ -55,6 +67,21 @@ SquidletInfo* SquidletInfoCreate(
   that->_ip = strdup(ip);
   that->_port = port;
   that->_sock = -1;
+  that->_nbAcceptedConnection = 0;
+  that->_nbAcceptedTask = 0;
+  that->_nbRefusedTask = 0;
+  that->_nbFailedReceptTaskData = 0;
+  that->_nbFailedReceptTaskSize = 0;
+  that->_nbSentResult = 0;
+  that->_nbFailedSendResult = 0;
+  that->_nbFailedSendResultSize = 0;
+  that->_nbFailedReceptAck = 0;
+  that->_nbTaskComplete = 0;
+  for (int i = 3; i--;) {
+    that->_timeToProcessMs[i] = 0.0;
+    that->_timeWaitedTaskMs[i] = 0.0;
+    that->_timeWaitedAckMs[i] = 0.0;
+  }
 
   // Return the new squidletInfo
   return that;
@@ -1018,8 +1045,8 @@ void SquadAddTask_PovRay(
   } else {
 
     // Read the ini file line by line
-    char oneLine[1024];
-    while(fgets(oneLine, 1024, fp)) {
+    char oneLine[THESQUID_MAXPAYLOADSIZE];
+    while(fgets(oneLine, THESQUID_MAXPAYLOADSIZE, fp)) {
       
       // If we are on the line defining the width
       if (strstr(oneLine, "Width=")) {
@@ -1108,8 +1135,8 @@ void SquadAddTask_PovRay(
       strcpy(tga, outImgPath);
       sprintf(tga + len - 4, "-%05lu.tga", taskId);
       // Prepare the data as JSON
-      char buffer[1024];
-      memset(buffer, 0, 1024);
+      char buffer[THESQUID_MAXPAYLOADSIZE];
+      memset(buffer, 0, THESQUID_MAXPAYLOADSIZE);
       sprintf(buffer, 
         "{\"id\":\"%lu\",\"subid\":\"%lu\",\"ini\":\"%s\","
         "\"tga\":\"%s\",\"top\":\"%lu\",\"left\":\"%lu\","
@@ -1138,7 +1165,7 @@ void SquadAddTask_PovRay(
 // 'that' to the Squidlet 'squidlet'
 // First, send the size in byte of the data, then send the data
 // Return true if the data could be sent, false else
-// The size of the data must be less than 1024 bytes
+// The size of the data must be less than THESQUID_MAXPAYLOADSIZE bytes
 bool SquadSendTaskData(
                 Squad* const that, 
          SquidletInfo* const squidlet, 
@@ -1458,15 +1485,15 @@ GSet SquadStep(
           fclose(streamBufferHistory);
           sprintf(lineHistory, "task %s complete", 
             bufferHistory);
-          SquadPushHistory(that, lineHistory);
+          SquadPushHistory(that, lineHistory); 
         }
 
+        // Post process the completed task
+        SquadProcessCompletedTask(that, runningTask);
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
         // Add the task to the set of completed tasks
         GSetAppend(&completedTasks, runningTask->_request);
-        // Post process the completed task
-        SquadProcessCompletedTask(that, runningTask->_request);
         // Free memory
         runningTask->_request = NULL;
         runningTask->_squidlet = NULL;
@@ -1552,7 +1579,42 @@ GSet SquadStep(
 // Process the completed 'task' with the Squad 'that' after its 
 // reception in SquadStep()
 void SquadProcessCompletedTask(
-                Squad* const that, 
+             Squad* const that, 
+  SquadRunningTask* const task) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+
+  // Call the appropriate function based on the type of the task
+  switch (task->_request->_type) {
+    case SquidletTaskType_Dummy:
+      break;
+    case SquidletTaskType_Benchmark:
+      break;
+    case SquidletTaskType_PovRay:
+      SquadProcessCompletedTask_PovRay(that, task->_request);
+      break;
+    default:
+      break;
+  }
+  
+  // Update the stats about the squidlets
+  SquidletUpdateStats(task->_squidlet, task->_request);
+}
+
+// Update the statitics of the Squidlet 'that' with the result of the 
+// 'task'
+void SquidletUpdateStats(
+      SquidletInfo* const that, 
   SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1566,18 +1628,77 @@ void SquadProcessCompletedTask(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Call the appropriate function based on the type of the task
-  switch (task->_type) {
-    case SquidletTaskType_Dummy:
-      break;
-    case SquidletTaskType_Benchmark:
-      break;
-    case SquidletTaskType_PovRay:
-      SquadProcessCompletedTask_PovRay(that, task);
-      break;
-    default:
-      break;
+  // Decode the JSON data from the completed task
+  JSONNode* jsonResult = JSONCreate();
+
+  // If we could decode the JSON
+  if (JSONLoadFromStr(jsonResult, task->_bufferResult)) {
+
+    // Get the properties
+    JSONNode* propNbAcceptedConnection = \
+      JSONProperty(jsonResult, "nbAcceptedConnection");
+    JSONNode* propNbAcceptedTask = \
+      JSONProperty(jsonResult, "nbAcceptedTask");
+    JSONNode* propNbRefusedTask = \
+      JSONProperty(jsonResult, "nbRefusedTask");
+    JSONNode* propNbFailedReceptTaskData = \
+      JSONProperty(jsonResult, "nbFailedReceptTaskData");
+    JSONNode* propNbFailedReceptTaskSize = \
+      JSONProperty(jsonResult, "nbFailedReceptTaskSize");
+    JSONNode* propNbSentResult = \
+      JSONProperty(jsonResult, "nbSentResult");
+    JSONNode* propNbFailedSendResult = \
+      JSONProperty(jsonResult, "nbFailedSendResult");
+    JSONNode* propNbFailedSendResultSize = \
+      JSONProperty(jsonResult, "nbFailedSendResultSize");
+    JSONNode* propNbFailedReceptAck = \
+      JSONProperty(jsonResult, "nbFailedReceptAck");
+    JSONNode* propNbTaskComplete = \
+      JSONProperty(jsonResult, "nbTaskComplete");
+  
+    // If all the properties are present
+    if (propNbAcceptedConnection != NULL &&
+      propNbAcceptedTask != NULL &&
+      propNbRefusedTask != NULL &&
+      propNbFailedReceptTaskData != NULL &&
+      propNbFailedReceptTaskSize != NULL &&
+      propNbSentResult != NULL &&
+      propNbFailedSendResult != NULL &&
+      propNbFailedSendResultSize != NULL &&
+      propNbFailedReceptAck != NULL &&
+      propNbTaskComplete != NULL) {
+
+      // Update the stats with the received info from the Squidlet 
+      that->_nbAcceptedConnection = 
+        atol(JSONLabel(JSONValue(propNbAcceptedConnection, 0)));
+      that->_nbAcceptedTask = 
+        atol(JSONLabel(JSONValue(propNbAcceptedTask, 0)));
+      that->_nbRefusedTask = 
+        atol(JSONLabel(JSONValue(propNbRefusedTask, 0)));
+      that->_nbFailedReceptTaskData = 
+        atol(JSONLabel(JSONValue(propNbFailedReceptTaskData, 0)));
+      that->_nbFailedReceptTaskSize = 
+        atol(JSONLabel(JSONValue(propNbFailedReceptTaskSize, 0)));
+      that->_nbSentResult = 
+        atol(JSONLabel(JSONValue(propNbSentResult, 0)));
+      that->_nbFailedSendResult = 
+        atol(JSONLabel(JSONValue(propNbFailedSendResult, 0)));
+      that->_nbFailedSendResultSize = 
+        atol(JSONLabel(JSONValue(propNbFailedSendResultSize, 0)));
+      that->_nbFailedReceptAck = 
+        atol(JSONLabel(JSONValue(propNbFailedReceptAck, 0)));
+      that->_nbTaskComplete = 
+        atol(JSONLabel(JSONValue(propNbTaskComplete, 0)));
+    }
+
+    /*for (int i = 3; i--;) {
+      that->_timeToProcessMs = 0.0;
+      that->_timeWaitedTaskMs = 0.0;
+      that->_timeWaitedAckMs = 0.0;
+    }*/
+
   }
+
 }
 
 // Process the completed Pov-Ray 'task' with the Squad 'that'
@@ -2765,28 +2886,103 @@ void SquidletProcessRequest_Dummy(
     (now.tv_usec - start.tv_usec) / 1000;
 
   // Prepare the result data as JSON
-  *bufferResult = PBErrMalloc(TheSquidErr, 100);
-  memset(*bufferResult, 0, 100);
+  JSONNode* jsonResult = JSONCreate();
   float temperature = SquidletGetTemperature(that);
+  char temperatureStr[10] = {'\0'};
+  sprintf(temperatureStr, "%.2f", temperature);
+  JSONAddProp(jsonResult, "temp", temperatureStr);
+  char successStr[2] = {'\0'};
+  sprintf(successStr, "%d", success);
+  JSONAddProp(jsonResult, "success", successStr);
+  char resultStr[10] = {'\0'};
+  sprintf(resultStr, "%d", result);
+  JSONAddProp(jsonResult, "v", resultStr);
 
-  sprintf(*bufferResult, 
-    "{\"success\":\"%d\",\"temp\":\"%f\", \"v\":\"%d\"," \
-    "\"nbAcceptedConnection\":\"%lu\",\"nbAcceptedTask\":\"%lu\"," \
-    "\"nbRefusedTask\":\"%lu\",\"nbFailedReceptTaskData\":\"%lu\"," \
-    "\"nbFailedReceptTaskSize\":\"%lu\",\"nbSentResult\":\"%lu\"," \
-    "\"nbFailedSendResult\":\"%lu\",\"nbFailedSendResultSize\":\"%lu\"," \
-    "nbFailedReceptAck\":\"%lu\",\"nbTaskComplete\":\"%lu\"," \
-    "\"timeToProcess\":\"%lu\",\"timeWaitedTask\":\"%lu\"," \
-    "\"timeWaitedAcknowledgement\":\"%lu\"}", 
-    success, temperature, result, 
-    that-> _nbAcceptedConnection, that-> _nbAcceptedTask, 
-    that-> _nbRefusedTask, that-> _nbFailedReceptTaskData, 
-    that-> _nbFailedReceptTaskSize, that-> _nbSentResult, 
-    that-> _nbFailedSendResult, that-> _nbFailedSendResultSize, 
-    that-> _nbFailedReceptAck, that-> _nbTaskComplete,
-    that->_timeToProcessMs, that->_timeWaitedTaskMs, 
-    that->_timeWaitedAckMs);
+  // Append the statistics data
+  SquidletAddStatsToJSON(that, jsonResult);
+
+  // Convert the JSON to a string
+  *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
+  memset(*bufferResult, 0, THESQUID_MAXPAYLOADSIZE);
+  bool compact = true;
+  if (!JSONSaveToStr(jsonResult, *bufferResult, THESQUID_MAXPAYLOADSIZE, compact)) {
+    sprintf(*bufferResult, 
+      "{\"success\":\"0\",\"temp\":\"0.0\","
+      "\"err\":\"JSONSaveToStr failed\"}");
+  }
 }  
+
+// Append the statistical data about the squidlet 'that' to the JSON 
+// node 'json'
+void SquidletAddStatsToJSON(
+  const Squidlet* const that, 
+        JSONNode* const json) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (json == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'json' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  char buffer[20] = {'\0'};
+
+  sprintf(buffer, "%lu", that->_nbAcceptedConnection);
+  JSONAddProp(json, "nbAcceptedConnection", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbAcceptedTask);
+  JSONAddProp(json, "nbAcceptedTask", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbRefusedTask);
+  JSONAddProp(json, "nbRefusedTask", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbFailedReceptTaskSize);
+  JSONAddProp(json, "nbFailedReceptTaskSize", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbFailedReceptTaskData);
+  JSONAddProp(json, "nbFailedReceptTaskData", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbSentResult);
+  JSONAddProp(json, "nbSentResult", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbFailedSendResult);
+  JSONAddProp(json, "nbFailedSendResult", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbFailedSendResultSize);
+  JSONAddProp(json, "nbFailedSendResultSize", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbFailedReceptAck);
+  JSONAddProp(json, "nbFailedReceptAck", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_nbTaskComplete);
+  JSONAddProp(json, "nbTaskComplete", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_timeToProcessMs);
+  JSONAddProp(json, "timeToProcessMs", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_timeWaitedTaskMs);
+  JSONAddProp(json, "timeWaitedTaskMs", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_timeWaitedAckMs);
+  JSONAddProp(json, "timeWaitedAckMs", buffer);
+  memset(buffer, 0, 20);
+}
 
 // Process a benchmark task request with the Squidlet 'that'
 // The task request parameters are encoded in JSON and stored in the 
@@ -2887,26 +3083,31 @@ void SquidletProcessRequest_Benchmark(
     (now.tv_usec - start.tv_usec) / 1000;
 
   // Prepare the result data as JSON
-  *bufferResult = PBErrMalloc(TheSquidErr, 500);
-  memset(*bufferResult, 0, 500);
+  JSONNode* jsonResult = JSONCreate();
   float temperature = SquidletGetTemperature(that);
-  sprintf(*bufferResult, 
-    "{\"success\":\"%d\",\"temp\":\"%f\", \"v\":\"%d\",\"err\":\"%s\"," \
-    "\"nbAcceptedConnection\":\"%lu\",\"nbAcceptedTask\":\"%lu\"," \
-    "\"nbRefusedTask\":\"%lu\",\"nbFailedReceptTaskData\":\"%lu\"," \
-    "\"nbFailedReceptTaskSize\":\"%lu\",\"nbSentResult\":\"%lu\"," \
-    "\"nbFailedSendResult\":\"%lu\",\"nbFailedSendResultSize\":\"%lu\"," \
-    "nbFailedReceptAck\":\"%lu\",\"nbTaskComplete\":\"%lu\"," \
-    "\"timeToProcess\":\"%lu\",\"timeWaitedTask\":\"%lu\"," \
-    "\"timeWaitedAcknowledgement\":\"%lu\"}", 
-    success, temperature, result, errMsg, 
-    that-> _nbAcceptedConnection, that-> _nbAcceptedTask, 
-    that-> _nbRefusedTask, that-> _nbFailedReceptTaskData, 
-    that-> _nbFailedReceptTaskSize, that-> _nbSentResult, 
-    that-> _nbFailedSendResult, that-> _nbFailedSendResultSize, 
-    that-> _nbFailedReceptAck, that-> _nbTaskComplete,
-    that->_timeToProcessMs, that->_timeWaitedTaskMs, 
-    that->_timeWaitedAckMs);
+  char temperatureStr[10] = {'\0'};
+  sprintf(temperatureStr, "%.2f", temperature);
+  JSONAddProp(jsonResult, "temp", temperatureStr);
+  char successStr[2] = {'\0'};
+  sprintf(successStr, "%d", success);
+  JSONAddProp(jsonResult, "success", successStr);
+  char resultStr[10] = {'\0'};
+  sprintf(resultStr, "%d", result);
+  JSONAddProp(jsonResult, "v", resultStr);
+  JSONAddProp(jsonResult, "err", errMsg);
+
+  // Append the statistics data
+  SquidletAddStatsToJSON(that, jsonResult);
+
+  // Convert the JSON to a string
+  *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
+  memset(*bufferResult, 0, THESQUID_MAXPAYLOADSIZE);
+  bool compact = true;
+  if (!JSONSaveToStr(jsonResult, *bufferResult, THESQUID_MAXPAYLOADSIZE, compact)) {
+    sprintf(*bufferResult, 
+      "{\"success\":\"0\",\"temp\":\"0.0\","
+      "\"err\":\"JSONSaveToStr failed\"}");
+  }
 
 }  
 
@@ -2978,13 +3179,15 @@ void SquidletProcessRequest_PovRay(
   size_t bufferResultLen = strlen(buffer) + 100;
   *bufferResult = PBErrMalloc(TheSquidErr, bufferResultLen);
   memset(*bufferResult, 0, bufferResultLen);
-  char successStr[10];
+  char successStr[10] = {'\0'};
   sprintf(successStr, "%d", success);
   JSONAddProp(json, "success", successStr);
   float temperature = SquidletGetTemperature(that);
-  char temperatureStr[10];
+  char temperatureStr[10] = {'\0'};
   sprintf(temperatureStr, "%.2f", temperature);
   JSONAddProp(json, "temperature", temperatureStr);
+  // Append the statistics data
+  SquidletAddStatsToJSON(that, json);
   if (!JSONSaveToStr(json, *bufferResult, bufferResultLen, true)) {
     sprintf(*bufferResult, 
       "{\"success\":\"0\",\"temperature\":\"0\","
@@ -2998,7 +3201,7 @@ void SquidletProcessRequest_PovRay(
 
 // Return the temperature of the squidlet 'that' as a float.
 // The result depends on the architecture on which the squidlet is 
-// running. It is '0.0' if the temperature is not availalble
+// running. It is '0.0' if the temperature is not available
 float SquidletGetTemperature(
   const Squidlet* const that) {
 #if BUILDMODE == 0
