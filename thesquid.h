@@ -594,10 +594,10 @@ void SquidletSetStreamInfo(
   Squidlet* const that, 
       FILE* const stream);
 
-// Return the temperature of the squidlet 'that' as a string.
+// Return the temperature of the squidlet 'that' as a float.
 // The result depends on the architecture on which the squidlet is 
-// running. It is '(?)' if the temperature is not availalble
-char* SquidletGetTemperature(
+// running. It is '0.0' if the temperature is not availalble
+float SquidletGetTemperature(
   const Squidlet* const that);
 
 // -------------- TheSquid 

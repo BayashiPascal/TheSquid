@@ -122,11 +122,8 @@ void UnitTestSquidlet() {
   }
   SquidletPrint(squidlet, stdout);
   printf("\n");
-  char* temperature = SquidletGetTemperature(squidlet);
-  printf("squidlet temperature: %s\n", temperature);
-  if (temperature != NULL) {
-    free(temperature);
-  }
+  float temperature = SquidletGetTemperature(squidlet);
+  printf("squidlet temperature: %f\n", temperature);
   SquidletFree(&squidlet);
   if (squidlet != NULL) {
     TheSquidErr->_type = PBErrTypeUnitTestFailed;

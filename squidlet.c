@@ -131,14 +131,11 @@ int main(int argc, char** argv) {
     if (strcmp(argv[iArg], "-temp") == 0) {
 
       // Get the temperature of the Squidlet
-      char* temperature = SquidletGetTemperature(squidlet);
+      float temperature = SquidletGetTemperature(squidlet);
 
       // Display the temperature
-      fprintf(stream, "Squidlet : temperature: %s\n", temperature);
+      fprintf(stream, "Squidlet : temperature: %f\n", temperature);
 
-      // Free memory
-      if (temperature != NULL)
-        free(temperature);
     }
   }
   

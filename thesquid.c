@@ -2767,13 +2767,10 @@ void SquidletProcessRequest_Dummy(
   // Prepare the result data as JSON
   *bufferResult = PBErrMalloc(TheSquidErr, 100);
   memset(*bufferResult, 0, 100);
-  char* temperature = SquidletGetTemperature(that);
-  sprintf(*bufferResult, 
-    "{\"success\":\"%d\",\"v\":\"%d\",\"temperature\":\"%s\"}", 
-    success, result, temperature);
+  float temperature = SquidletGetTemperature(that);
 
   sprintf(*bufferResult, 
-    "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\"," \
+    "{\"success\":\"%d\",\"temp\":\"%f\", \"v\":\"%d\"," \
     "\"nbAcceptedConnection\":\"%lu\",\"nbAcceptedTask\":\"%lu\"," \
     "\"nbRefusedTask\":\"%lu\",\"nbFailedReceptTaskData\":\"%lu\"," \
     "\"nbFailedReceptTaskSize\":\"%lu\",\"nbSentResult\":\"%lu\"," \
@@ -2789,8 +2786,6 @@ void SquidletProcessRequest_Dummy(
     that-> _nbFailedReceptAck, that-> _nbTaskComplete,
     that->_timeToProcessMs, that->_timeWaitedTaskMs, 
     that->_timeWaitedAckMs);
-
-  free(temperature);
 }  
 
 // Process a benchmark task request with the Squidlet 'that'
@@ -2894,9 +2889,9 @@ void SquidletProcessRequest_Benchmark(
   // Prepare the result data as JSON
   *bufferResult = PBErrMalloc(TheSquidErr, 500);
   memset(*bufferResult, 0, 500);
-  char* temperature = SquidletGetTemperature(that);
+  float temperature = SquidletGetTemperature(that);
   sprintf(*bufferResult, 
-    "{\"success\":\"%d\",\"temp\":\"%s\", \"v\":\"%d\",\"err\":\"%s\"," \
+    "{\"success\":\"%d\",\"temp\":\"%f\", \"v\":\"%d\",\"err\":\"%s\"," \
     "\"nbAcceptedConnection\":\"%lu\",\"nbAcceptedTask\":\"%lu\"," \
     "\"nbRefusedTask\":\"%lu\",\"nbFailedReceptTaskData\":\"%lu\"," \
     "\"nbFailedReceptTaskSize\":\"%lu\",\"nbSentResult\":\"%lu\"," \
@@ -2912,7 +2907,6 @@ void SquidletProcessRequest_Benchmark(
     that-> _nbFailedReceptAck, that-> _nbTaskComplete,
     that->_timeToProcessMs, that->_timeWaitedTaskMs, 
     that->_timeWaitedAckMs);
-  free(temperature);
 
 }  
 
@@ -2987,14 +2981,13 @@ void SquidletProcessRequest_PovRay(
   char successStr[10];
   sprintf(successStr, "%d", success);
   JSONAddProp(json, "success", successStr);
-  char* temperature = SquidletGetTemperature(that);
-  if (temperature != NULL)
-    JSONAddProp(json, "temperature", temperature);
-  if (temperature != NULL)
-    free(temperature);
+  float temperature = SquidletGetTemperature(that);
+  char temperatureStr[10];
+  sprintf(temperatureStr, "%.2f", temperature);
+  JSONAddProp(json, "temperature", temperatureStr);
   if (!JSONSaveToStr(json, *bufferResult, bufferResultLen, true)) {
     sprintf(*bufferResult, 
-      "{\"success\":\"0\",\"temperature\":\"\","
+      "{\"success\":\"0\",\"temperature\":\"0\","
       "\"err\":\"JSONSaveToStr failed\"}");
   }
 
@@ -3003,10 +2996,10 @@ void SquidletProcessRequest_PovRay(
 
 }  
 
-// Return the temperature of the squidlet 'that' as a string.
+// Return the temperature of the squidlet 'that' as a float.
 // The result depends on the architecture on which the squidlet is 
-// running. It is '(?)' if the temperature is not availalble
-char* SquidletGetTemperature(
+// running. It is '0.0' if the temperature is not availalble
+float SquidletGetTemperature(
   const Squidlet* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -3017,7 +3010,7 @@ char* SquidletGetTemperature(
 #endif
   (void)that;
 #if BUILDARCH == 0
-  return strdup("(?)");
+  return 0.0;
 #endif
 #if BUILDARCH == 1
   // Declare a variable to pipe the shell command
@@ -3027,15 +3020,19 @@ char* SquidletGetTemperature(
   if (fp != NULL) {
     // Declare a variable to store the output
     char output[100] = {0};
-    // Read the output
+    // Read the output, expected to be as:
+    // temp=42.8'C
     while (fgets(output, sizeof(output), fp) != NULL);
     // Close the pipe
     pclose(fp);
-    // Remove the line return
+    // Remove the line return and two last characters
     if (strlen(output) > 0)
-      output[strlen(output) - 1] = '\0';
+      output[strlen(output) - 3] = '\0';
+    // Convert the output to a float
+    float t = 0.0;
+    sscanf(output + 5, "%f", &t);
     // Return the result
-    return strdup(output);
+    return t;
   } else {
     // Return the result
     return strdup("popen() failed");
@@ -3049,15 +3046,19 @@ char* SquidletGetTemperature(
   if (fp != NULL) {
     // Declare a variable to store the output
     char output[100] = {0};
-    // Read the output
+    // Read the output, expected to be as:
+    // temp=42.8'C
     while (fgets(output, sizeof(output), fp) != NULL);
     // Close the pipe
     pclose(fp);
-    // Remove the line return
+    // Remove the line return and two last characters
     if (strlen(output) > 0)
-      output[strlen(output) - 1] = '\0';
+      output[strlen(output) - 3] = '\0';
+    // Convert the output to a float
+    float t = 0.0;
+    sscanf(output + 5, "%f", &t);
     // Return the result
-    return strdup(output);
+    return t;
   } else {
     // Return the result
     return strdup("popen() failed");
