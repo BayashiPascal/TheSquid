@@ -1714,19 +1714,26 @@ void SquadSetFlagTextOMeter(
     PBErrCatch(TheSquidErr);
   }
 #endif
+  // Create a copy of the flag
+  bool effectiveFlag = flag;
   // If the requested flag is different from the current flag;
-  if (that->_flagTextOMeter != flag) {
-    if (flag && that->_textOMeter == NULL) {
+  if (that->_flagTextOMeter != effectiveFlag) {
+    if (effectiveFlag && that->_textOMeter == NULL) {
       char title[] = "Squad";
       int width = SQUAD_TXTOMETER_LENGTHLINEHISTORY + 1;
       int height = SQUAD_TXTOMETER_NBLINEHISTORY + 
         SQUAD_TXTOMETER_NBTASKDISPLAYED + 4;
       that->_textOMeter = TextOMeterCreate(title, width, height);
+      // If we couldn't create the TextOMeter
+      if (that->_textOMeter == NULL) {
+        // Force the flag to false
+        effectiveFlag = false;
+      }
     }
-    if (!flag && that->_textOMeter != NULL) {
+    if (!effectiveFlag && that->_textOMeter != NULL) {
       TextOMeterFree(&(that->_textOMeter));
     }
-    that->_flagTextOMeter = flag;
+    that->_flagTextOMeter = effectiveFlag;
   }
 }
 

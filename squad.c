@@ -18,9 +18,19 @@ int main(int argc, char** argv) {
   char* tasksFilePath = NULL;
   char* squidletsFilePath = NULL;
   bool flagTextOMeter = false;
+  unsigned int freq = 1;
 
   // Loop on the arguments to process the prior arguments
   for (int iArg = 0; iArg < argc; ++iArg) {
+
+    // -freq <delay in second between step>
+    if (strcmp(argv[iArg], "-freq") == 0 && iArg < argc - 1) {
+
+      // Memorize a pointer to the path to the task file
+      ++iArg;
+      freq = atoi(argv[iArg]);
+
+    }
 
     // -tasks <path to tasks file>
     if (strcmp(argv[iArg], "-tasks") == 0 && iArg < argc - 1) {
@@ -52,8 +62,9 @@ int main(int argc, char** argv) {
     if (strcmp(argv[iArg], "-help") == 0) {
 
       // Display the help message and quit
-      printf("squad -squidlets <path to squidlets config file> ");
+      printf("squad [-squidlets <path to squidlets config file>] ");
       printf("[-verbose] [-tasks <path to tasks file>] ");
+      printf("[-freq <delay in second between step, default: 1>] ");
       printf("[-check] [-benchmark] [-help]\n");
       return 0;
 
@@ -211,8 +222,8 @@ int main(int argc, char** argv) {
       // Loop as long as there are task to complete
       while (SquadGetNbTaskToComplete(squad) > 0) {
 
-        // Sleep 1s between each step of the Squad
-        sleep(1);
+        // Sleep between each step of the Squad
+        sleep(freq);
 
         // Step the squad and get the completed tasks at this step
         GSet completedTasks = SquadStep(squad);
