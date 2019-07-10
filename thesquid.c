@@ -125,6 +125,54 @@ void SquidletInfoPrint(
   fprintf(stream, "%s(%s:%d)", that->_name, that->_ip, that->_port);
 }
 
+// Print the statistics of the SquidletInfo 'that' on the file 'stream'
+void SquidletInfoStatsPrintln(
+  const SquidletInfo* const that, 
+                FILE* const stream) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (stream == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'stream' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Print the stats on the stream 
+  fprintf(stream, "  nbAcceptedConnection: %lu\n", 
+    that->_nbAcceptedConnection);
+  fprintf(stream, "        nbAcceptedTask: %lu\n", 
+    that->_nbAcceptedTask);
+  fprintf(stream, "         nbRefusedTask: %lu\n", 
+    that->_nbRefusedTask);
+  fprintf(stream, "nbFailedReceptTaskData: %lu\n", 
+    that->_nbFailedReceptTaskData);
+  fprintf(stream, "nbFailedReceptTaskSize: %lu\n", 
+    that->_nbFailedReceptTaskSize);
+  fprintf(stream, "          nbSentResult: %lu\n", 
+    that->_nbSentResult);
+  fprintf(stream, "    nbFailedSendResult: %lu\n", 
+    that->_nbFailedSendResult);
+  fprintf(stream, "nbFailedSendResultSize: %lu\n", 
+    that->_nbFailedSendResultSize);
+  fprintf(stream, "     nbFailedReceptAck: %lu\n", 
+    that->_nbFailedReceptAck);
+  fprintf(stream, "        nbTaskComplete: %lu\n", 
+    that->_nbTaskComplete);
+  fprintf(stream, "       timeToProcessMs: %07.0f/%07.0f/%07.0f\n", 
+    that->_timeToProcessMs[0], that->_timeToProcessMs[1],
+    that->_timeToProcessMs[2]);
+  fprintf(stream, "      timeWaitedTaskMs: %07.0f/%07.0f/%07.0f\n", 
+    that->_timeWaitedTaskMs[0], that->_timeWaitedTaskMs[1],
+    that->_timeWaitedTaskMs[2]);
+  fprintf(stream, "      timeWaitedAckMs: %07.0f/%07.0f/%07.0f\n", 
+    that->_timeWaitedAckMs[0], that->_timeWaitedAckMs[1],
+    that->_timeWaitedAckMs[2]);
+}
+
 // -------------- SquidletTaskRequest
 
 // ================ Functions implementation ====================
@@ -1655,6 +1703,12 @@ void SquidletUpdateStats(
       JSONProperty(jsonResult, "nbFailedReceptAck");
     JSONNode* propNbTaskComplete = \
       JSONProperty(jsonResult, "nbTaskComplete");
+    JSONNode* propTimeToProcessMs = \
+      JSONProperty(jsonResult, "timeToProcessMs");
+    JSONNode* propTimeWaitedTaskMs = \
+      JSONProperty(jsonResult, "timeWaitedTaskMs");
+    JSONNode* propTimeWaitedAckMs = \
+      JSONProperty(jsonResult, "timeWaitedAckMs");
   
     // If all the properties are present
     if (propNbAcceptedConnection != NULL &&
@@ -1666,7 +1720,10 @@ void SquidletUpdateStats(
       propNbFailedSendResult != NULL &&
       propNbFailedSendResultSize != NULL &&
       propNbFailedReceptAck != NULL &&
-      propNbTaskComplete != NULL) {
+      propNbTaskComplete != NULL &&
+      propTimeToProcessMs != NULL &&
+      propTimeWaitedTaskMs != NULL &&
+      propTimeWaitedAckMs != NULL) {
 
       // Update the stats with the received info from the Squidlet 
       that->_nbAcceptedConnection = 
@@ -1689,13 +1746,100 @@ void SquidletUpdateStats(
         atol(JSONLabel(JSONValue(propNbFailedReceptAck, 0)));
       that->_nbTaskComplete = 
         atol(JSONLabel(JSONValue(propNbTaskComplete, 0)));
-    }
+      
+      // If its not the first completed task
+      if (that->_nbTaskComplete > 1) {
+        
+        // Update the statistics about time
+        float timeToProcessMs = 
+          atof(JSONLabel(JSONValue(propTimeToProcessMs, 0)));
+        if (that->_timeToProcessMs[0] > timeToProcessMs) {
+          that->_timeToProcessMs[0] = timeToProcessMs;
+        }
+        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          that->_timeToProcessMs[1] = 
+            (that->_timeToProcessMs[1] * 
+            (float)(that->_nbTaskComplete - 1) +
+            timeToProcessMs) / 
+            (float)(that->_nbTaskComplete);
+        } else {
+          that->_timeToProcessMs[1] = 
+            (that->_timeToProcessMs[1] * 
+            (float)(SQUID_RANGEAVGSTAT - 1) +
+            timeToProcessMs) / 
+            (float)SQUID_RANGEAVGSTAT;
+        }
+        if (that->_timeToProcessMs[2] < timeToProcessMs) {
+          that->_timeToProcessMs[2] = timeToProcessMs;
+        }
+        
+        float timeWaitedTaskMs = 
+          atof(JSONLabel(JSONValue(propTimeWaitedTaskMs, 0)));
+        if (that->_timeWaitedTaskMs[0] > timeWaitedTaskMs) {
+          that->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
+        }
+        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          that->_timeWaitedTaskMs[1] = 
+            (that->_timeWaitedTaskMs[1] * 
+            (float)(that->_nbTaskComplete - 1) +
+            timeWaitedTaskMs) / 
+            (float)(that->_nbTaskComplete);
+        } else {
+          that->_timeWaitedTaskMs[1] = 
+            (that->_timeWaitedTaskMs[1] * 
+            (float)(SQUID_RANGEAVGSTAT - 1) +
+            timeWaitedTaskMs) / 
+            (float)SQUID_RANGEAVGSTAT;
+        }
+        if (that->_timeWaitedTaskMs[2] < timeWaitedTaskMs) {
+          that->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
+        }
+        
+        float timeWaitedAckMs = 
+          atof(JSONLabel(JSONValue(propTimeWaitedAckMs, 0)));
+        if (that->_timeWaitedAckMs[0] > timeWaitedAckMs) {
+          that->_timeWaitedAckMs[0] = timeWaitedAckMs;
+        }
+        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          that->_timeWaitedAckMs[1] = 
+            (that->_timeWaitedAckMs[1] * 
+            (float)(that->_nbTaskComplete - 1) +
+            timeWaitedAckMs) / 
+            (float)(that->_nbTaskComplete);
+        } else {
+          that->_timeWaitedAckMs[1] = 
+            (that->_timeWaitedAckMs[1] * 
+            (float)(SQUID_RANGEAVGSTAT - 1) +
+            timeWaitedAckMs) / 
+            (float)SQUID_RANGEAVGSTAT;
+        }
+        if (that->_timeWaitedAckMs[2] < timeWaitedAckMs) {
+          that->_timeWaitedAckMs[2] = timeWaitedAckMs;
+        }
+        
+      // Else, this is the first completed task
+      } else {
+        float timeToProcessMs = 
+          atof(JSONLabel(JSONValue(propTimeToProcessMs, 0)));
+        that->_timeToProcessMs[0] = timeToProcessMs;
+        that->_timeToProcessMs[1] = timeToProcessMs;
+        that->_timeToProcessMs[2] = timeToProcessMs;
 
-    /*for (int i = 3; i--;) {
-      that->_timeToProcessMs = 0.0;
-      that->_timeWaitedTaskMs = 0.0;
-      that->_timeWaitedAckMs = 0.0;
-    }*/
+        float timeWaitedTaskMs = 
+          atof(JSONLabel(JSONValue(propTimeWaitedTaskMs, 0)));
+        that->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
+        that->_timeWaitedTaskMs[1] = timeWaitedTaskMs;
+        that->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
+        
+        float timeWaitedAckMs = 
+          atof(JSONLabel(JSONValue(propTimeWaitedAckMs, 0)));
+        that->_timeWaitedAckMs[0] = timeWaitedAckMs;
+        that->_timeWaitedAckMs[1] = timeWaitedAckMs;
+        that->_timeWaitedAckMs[2] = timeWaitedAckMs;
+        
+      }
+
+    }
 
   }
 

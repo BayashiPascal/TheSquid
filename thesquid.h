@@ -98,6 +98,11 @@ void SquidletInfoPrint(
   const SquidletInfo* const that, 
                 FILE* const stream);
 
+// Print the statistics of the SquidletInfo 'that' on the file 'stream'
+void SquidletInfoStatsPrintln(
+  const SquidletInfo* const that, 
+                FILE* const stream);
+                
 // -------------- SquidletTaskRequest
 
 // ================= Data structure ===================
