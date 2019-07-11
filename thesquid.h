@@ -49,7 +49,7 @@
 #define SQUAD_TXTOMETER_LENGTHLINEHISTORY 200
 #define SQUAD_TXTOMETER_NBTASKDISPLAYED   32
 
-#define SQUID_RANGEAVGSTAT 10
+#define SQUID_RANGEAVGSTAT 100
 
 // -------------- SquidletInfo
 
@@ -111,7 +111,8 @@ typedef enum SquidletTaskType {
   SquidletTaskType_Null, 
   SquidletTaskType_Dummy, 
   SquidletTaskType_Benchmark, 
-  SquidletTaskType_PovRay} SquidletTaskType;
+  SquidletTaskType_PovRay,
+  SquidletTaskType_ResetStats} SquidletTaskType;
 
 typedef struct SquidletTaskRequest {
   // Task type
@@ -359,6 +360,19 @@ void SquadAddTask_PovRay(
    const unsigned int sizeMinFragment,
    const unsigned int sizeMaxFragment);
   
+// Send a request from the Squad 'that' to reset the stats of the
+// Squidlet 'squid'
+// Return true if the request was successfull, else false
+bool SquadRequestSquidletToResetStats(
+         Squad* const that, 
+  SquidletInfo* const squid);
+  
+// Send a request from the Squad 'that' to reset the stats of all its
+// currently available Squidlets
+// Return true if all the request were successfull, else false
+bool SquadRequestAllSquidletToResetStats(
+  Squad* const that);
+  
 // Return the number of tasks not yet completed
 #if BUILDMODE != 0 
 inline 
@@ -445,6 +459,12 @@ bool SquadCheckSquidlets(
 void SquadBenchmark(
   Squad* const that, 
    FILE* const stream);
+
+// Print the statistics about the currently available Squidlets of 
+// the Squad 'that' on the 'stream'
+void SquadPrintStatsSquidlets(
+  const Squad* const that, 
+         FILE* const stream);
 
 // -------------- Squidlet
 
@@ -571,6 +591,10 @@ void SquidletProcessRequest_PovRay(
     Squidlet* const that,
   const char* const buffer, 
              char** bufferResult);
+
+// Process a stats reset task request with the Squidlet 'that'
+void SquidletProcessRequest_StatsReset(
+    Squidlet* const that);
   
 // Get the PID of the Squidlet 'that'
 #if BUILDMODE != 0 
