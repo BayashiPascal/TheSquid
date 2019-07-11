@@ -3531,7 +3531,7 @@ float SquidletGetTemperature(
     return t;
   } else {
     // Return the result
-    return strdup("popen() failed");
+    return 0.0;
   }
 #endif
 #if BUILDARCH == 2
@@ -3557,7 +3557,7 @@ float SquidletGetTemperature(
     return t;
   } else {
     // Return the result
-    return strdup("popen() failed");
+    return 0.0;
   }
 #endif
 }
