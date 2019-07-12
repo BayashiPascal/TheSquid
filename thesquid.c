@@ -171,6 +171,9 @@ void SquidletInfoStatsPrintln(
   fprintf(stream, "       timeWaitedAckMs: %07.0f/%07.0f/%07.0f\n", 
     that->_timeWaitedAckMs[0], that->_timeWaitedAckMs[1],
     that->_timeWaitedAckMs[2]);
+  fprintf(stream, "           temperature: %03.0f/%03.0f/%03.0f\n", 
+    that->_temperature[0], that->_temperature[1],
+    that->_temperature[2]);
 }
 
 // -------------- SquidletTaskRequest
@@ -2346,7 +2349,7 @@ void SquadBenchmark(
   }
 #endif
   fprintf(stream, "-- Benchmark started --\n");
-  int lengthTest = 300;
+  int lengthTest = 30;
   size_t maxSizePayload = 1000;
   int nbMaxLoop = 1024;
   // If the squad has no squidlet
@@ -3605,7 +3608,7 @@ int TheSquidBenchmark(
   int res = 0;
   // Loop on sample code
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
-    for (unsigned int scaling = 1000; scaling--;) {
+    for (unsigned int scaling = 200; scaling--;) {
       GSet set = GSetCreateStatic();
       for(unsigned long i = strlen(buffer); i--;) {
         GSetPush(&set, NULL);
