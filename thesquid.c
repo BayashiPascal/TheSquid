@@ -2461,10 +2461,10 @@ void SquadBenchmark(
         float timePerTaskMs = (float) deltams / (float)nbComplete;
         fprintf(stream, "%04d\t%08u\t%07lu\t%011.2f\n", 
           nbLoop, sizePayload, nbComplete, timePerTaskMs);
-        fflush(stdout);
         
         // Display the stats of all the squidlets
-        //SquadPrintStatsSquidlets(that, stream);
+        SquadPrintStatsSquidlets(that, stream);
+        fflush(stream);
       }
     }
   }
