@@ -31,7 +31,7 @@ void SquidletAddStatsToJSON(
   const Squidlet* const that, 
         JSONNode* const json);
 
-// Update the statitics of the Squidlet 'that' with the result of the 
+// Update the statitics of the SquidletInfo 'that' with the result of the 
 // 'task'
 void SquidletUpdateStats(
          SquidletInfo* const that, 
@@ -1748,7 +1748,7 @@ void SquadProcessCompletedTask(
   SquidletUpdateStats(task->_squidlet, task->_request);
 }
 
-// Update the statitics of the Squidlet 'that' with the result of the 
+// Update the statitics of the SquidletInfo 'that' with the result of the 
 // 'task'
 void SquidletUpdateStats(
       SquidletInfo* const that, 
@@ -1798,6 +1798,8 @@ void SquidletUpdateStats(
       JSONProperty(jsonResult, "timeWaitedTaskMs");
     JSONNode* propTimeWaitedAckMs = \
       JSONProperty(jsonResult, "timeWaitedAckMs");
+    JSONNode* propTemperature = \
+      JSONProperty(jsonResult, "temperature");
   
     // If all the properties are present
     if (propNbAcceptedConnection != NULL &&
@@ -1812,7 +1814,8 @@ void SquidletUpdateStats(
       propNbTaskComplete != NULL &&
       propTimeToProcessMs != NULL &&
       propTimeWaitedTaskMs != NULL &&
-      propTimeWaitedAckMs != NULL) {
+      propTimeWaitedAckMs != NULL &&
+      propTemperature != NULL) {
 
       // Update the stats with the received info from the Squidlet 
       that->_nbAcceptedConnection = 
@@ -1905,6 +1908,28 @@ void SquidletUpdateStats(
         if (that->_timeWaitedAckMs[2] < timeWaitedAckMs) {
           that->_timeWaitedAckMs[2] = timeWaitedAckMs;
         }
+
+        float temperature = 
+          atof(JSONLabel(JSONValue(propTemperature, 0)));
+        if (that->_temperature[0] > temperature) {
+          that->_temperature[0] = temperature;
+        }
+        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          that->_temperature[1] = 
+            (that->_temperature[1] * 
+            (float)(that->_nbTaskComplete - 1) +
+            temperature) / 
+            (float)(that->_nbTaskComplete);
+        } else {
+          that->_temperature[1] = 
+            (that->_temperature[1] * 
+            (float)(SQUID_RANGEAVGSTAT - 1) +
+            temperature) / 
+            (float)SQUID_RANGEAVGSTAT;
+        }
+        if (that->_temperature[2] < temperature) {
+          that->_temperature[2] = temperature;
+        }
         
       // Else, this is the first completed task
       } else {
@@ -1925,6 +1950,12 @@ void SquidletUpdateStats(
         that->_timeWaitedAckMs[0] = timeWaitedAckMs;
         that->_timeWaitedAckMs[1] = timeWaitedAckMs;
         that->_timeWaitedAckMs[2] = timeWaitedAckMs;
+        
+        float temperature = 
+          atof(JSONLabel(JSONValue(propTemperature, 0)));
+        that->_temperature[0] = temperature;
+        that->_temperature[1] = temperature;
+        that->_temperature[2] = temperature;
         
       }
 
@@ -3169,7 +3200,7 @@ void SquidletProcessRequest_Dummy(
   float temperature = SquidletGetTemperature(that);
   char temperatureStr[10] = {'\0'};
   sprintf(temperatureStr, "%.2f", temperature);
-  JSONAddProp(jsonResult, "temp", temperatureStr);
+  JSONAddProp(jsonResult, "temperature", temperatureStr);
   char successStr[2] = {'\0'};
   sprintf(successStr, "%d", success);
   JSONAddProp(jsonResult, "success", successStr);
@@ -3186,7 +3217,7 @@ void SquidletProcessRequest_Dummy(
   bool compact = true;
   if (!JSONSaveToStr(jsonResult, *bufferResult, THESQUID_MAXPAYLOADSIZE, compact)) {
     sprintf(*bufferResult, 
-      "{\"success\":\"0\",\"temp\":\"0.0\","
+      "{\"success\":\"0\",\"temperature\":\"0.0\","
       "\"err\":\"JSONSaveToStr failed\"}");
   }
 }  
@@ -3366,7 +3397,7 @@ void SquidletProcessRequest_Benchmark(
   float temperature = SquidletGetTemperature(that);
   char temperatureStr[10] = {'\0'};
   sprintf(temperatureStr, "%.2f", temperature);
-  JSONAddProp(jsonResult, "temp", temperatureStr);
+  JSONAddProp(jsonResult, "temperature", temperatureStr);
   char successStr[2] = {'\0'};
   sprintf(successStr, "%d", success);
   JSONAddProp(jsonResult, "success", successStr);
@@ -3384,7 +3415,7 @@ void SquidletProcessRequest_Benchmark(
   bool compact = true;
   if (!JSONSaveToStr(jsonResult, *bufferResult, THESQUID_MAXPAYLOADSIZE, compact)) {
     sprintf(*bufferResult, 
-      "{\"success\":\"0\",\"temp\":\"0.0\","
+      "{\"success\":\"0\",\"temperature\":\"0.0\","
       "\"err\":\"JSONSaveToStr failed\"}");
   }
 
@@ -3469,7 +3500,7 @@ void SquidletProcessRequest_PovRay(
   SquidletAddStatsToJSON(that, json);
   if (!JSONSaveToStr(json, *bufferResult, bufferResultLen, true)) {
     sprintf(*bufferResult, 
-      "{\"success\":\"0\",\"temperature\":\"0\","
+      "{\"success\":\"0\",\"temperature\":\"0.0\","
       "\"err\":\"JSONSaveToStr failed\"}");
   }
 
