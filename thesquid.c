@@ -81,6 +81,8 @@ SquidletInfo* SquidletInfoCreate(
     that->_timeToProcessMs[i] = 0.0;
     that->_timeWaitedTaskMs[i] = 0.0;
     that->_timeWaitedAckMs[i] = 0.0;
+    that->_timeTransferSquadSquidMs[i] = 0.0;
+    that->_timeTransferSquidSquadMs[i] = 0.0;
   }
 
   // Return the new squidletInfo
@@ -142,38 +144,44 @@ void SquidletInfoStatsPrintln(
   }
 #endif
   // Print the stats on the stream 
-  fprintf(stream, "  nbAcceptedConnection: %lu\n", 
+  fprintf(stream, "    nbAcceptedConnection: %lu\n", 
     that->_nbAcceptedConnection);
-  fprintf(stream, "        nbAcceptedTask: %lu\n", 
+  fprintf(stream, "          nbAcceptedTask: %lu\n", 
     that->_nbAcceptedTask);
-  fprintf(stream, "         nbRefusedTask: %lu\n", 
+  fprintf(stream, "           nbRefusedTask: %lu\n", 
     that->_nbRefusedTask);
-  fprintf(stream, "nbFailedReceptTaskData: %lu\n", 
+  fprintf(stream, "  nbFailedReceptTaskData: %lu\n", 
     that->_nbFailedReceptTaskData);
-  fprintf(stream, "nbFailedReceptTaskSize: %lu\n", 
+  fprintf(stream, "  nbFailedReceptTaskSize: %lu\n", 
     that->_nbFailedReceptTaskSize);
-  fprintf(stream, "          nbSentResult: %lu\n", 
+  fprintf(stream, "            nbSentResult: %lu\n", 
     that->_nbSentResult);
-  fprintf(stream, "    nbFailedSendResult: %lu\n", 
+  fprintf(stream, "      nbFailedSendResult: %lu\n", 
     that->_nbFailedSendResult);
-  fprintf(stream, "nbFailedSendResultSize: %lu\n", 
+  fprintf(stream, "  nbFailedSendResultSize: %lu\n", 
     that->_nbFailedSendResultSize);
-  fprintf(stream, "     nbFailedReceptAck: %lu\n", 
+  fprintf(stream, "       nbFailedReceptAck: %lu\n", 
     that->_nbFailedReceptAck);
-  fprintf(stream, "        nbTaskComplete: %lu\n", 
+  fprintf(stream, "          nbTaskComplete: %lu\n", 
     that->_nbTaskComplete);
-  fprintf(stream, "       timeToProcessMs: %07.0f/%07.0f/%07.0f\n", 
+  fprintf(stream, "         timeToProcessMs: %07.0f/%07.0f/%07.0f\n", 
     that->_timeToProcessMs[0], that->_timeToProcessMs[1],
     that->_timeToProcessMs[2]);
-  fprintf(stream, "      timeWaitedTaskMs: %07.0f/%07.0f/%07.0f\n", 
+  fprintf(stream, "        timeWaitedTaskMs: %07.0f/%07.0f/%07.0f\n", 
     that->_timeWaitedTaskMs[0], that->_timeWaitedTaskMs[1],
     that->_timeWaitedTaskMs[2]);
-  fprintf(stream, "       timeWaitedAckMs: %07.0f/%07.0f/%07.0f\n", 
+  fprintf(stream, "         timeWaitedAckMs: %07.0f/%07.0f/%07.0f\n", 
     that->_timeWaitedAckMs[0], that->_timeWaitedAckMs[1],
     that->_timeWaitedAckMs[2]);
-  fprintf(stream, "           temperature: %03.0f/%03.0f/%03.0f\n", 
+  fprintf(stream, "             temperature: %03.0f/%03.0f/%03.0f\n", 
     that->_temperature[0], that->_temperature[1],
     that->_temperature[2]);
+  fprintf(stream, "timeTransferSquadSquidMs: %07.0f/%07.0f/%07.0f\n", 
+    that->_timeTransferSquadSquidMs[0], that->_timeTransferSquadSquidMs[1],
+    that->_timeTransferSquadSquidMs[2]);
+  fprintf(stream, "timeTransferSquidSquadMs: %07.0f/%07.0f/%07.0f\n", 
+    that->_timeTransferSquidSquadMs[0], that->_timeTransferSquidSquadMs[1],
+    that->_timeTransferSquidSquadMs[2]);
 }
 
 // -------------- SquidletTaskRequest
@@ -1347,6 +1355,8 @@ bool SquadSendTaskData(
   }
 
   // Send the task data
+  struct timeval start;
+  gettimeofday(&start, NULL);
   if (send(squidlet->_sock, task->_data, len, flags) == -1) {
     // If we couldn't send the data
 
@@ -1355,8 +1365,35 @@ bool SquadSendTaskData(
 
     return false;
   } else {
+    // Update the stats
+    struct timeval stop;
+    gettimeofday(&stop, NULL);
+    float deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
+      (float)(stop.tv_usec - start.tv_usec) / 1000.0;
+    if (squidlet->_timeTransferSquadSquidMs[0] > deltams) {
+      squidlet->_timeTransferSquadSquidMs[0] = deltams;
+    }
+    if (squidlet->_nbTaskComplete <= SQUID_RANGEAVGSTAT &&
+      squidlet->_nbTaskComplete > 0) {
+      squidlet->_timeTransferSquadSquidMs[1] = 
+        (squidlet->_timeTransferSquadSquidMs[1] * 
+        (float)(squidlet->_nbTaskComplete - 1) +
+        deltams) / 
+        (float)(squidlet->_nbTaskComplete);
+    } else {
+      squidlet->_timeTransferSquadSquidMs[1] = 
+        (squidlet->_timeTransferSquadSquidMs[1] * 
+        (float)(SQUID_RANGEAVGSTAT - 1) +
+        deltams) / 
+        (float)SQUID_RANGEAVGSTAT;
+    }
+    if (squidlet->_timeTransferSquadSquidMs[2] < deltams) {
+      squidlet->_timeTransferSquadSquidMs[2] = deltams;
+    }
+
     if (SquadGetFlagTextOMeter(that) == true)
       SquadPushHistory(that, "sent task data");
+
   }
 
   // Return the success code
@@ -1803,6 +1840,8 @@ void SquidletUpdateStats(
       JSONProperty(jsonResult, "timeWaitedAckMs");
     JSONNode* propTemperature = \
       JSONProperty(jsonResult, "temperature");
+    JSONNode* propTimeTransferSquidSquad = \
+      JSONProperty(jsonResult, "timeTransferSquidSquadMs");
   
     // If all the properties are present
     if (propNbAcceptedConnection != NULL &&
@@ -1818,7 +1857,8 @@ void SquidletUpdateStats(
       propTimeToProcessMs != NULL &&
       propTimeWaitedTaskMs != NULL &&
       propTimeWaitedAckMs != NULL &&
-      propTemperature != NULL) {
+      propTemperature != NULL &&
+      propTimeTransferSquidSquad != NULL) {
 
       // Update the stats with the received info from the Squidlet 
       that->_nbAcceptedConnection = 
@@ -1934,6 +1974,28 @@ void SquidletUpdateStats(
           that->_temperature[2] = temperature;
         }
         
+        float timeTransferSquidSquadMs = 
+          atof(JSONLabel(JSONValue(propTimeTransferSquidSquad, 0)));
+        if (that->_timeTransferSquidSquadMs[0] > timeTransferSquidSquadMs) {
+          that->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
+        }
+        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          that->_timeTransferSquidSquadMs[1] = 
+            (that->_timeTransferSquidSquadMs[1] * 
+            (float)(that->_nbTaskComplete - 1) +
+            temperature) / 
+            (float)(that->_nbTaskComplete);
+        } else {
+          that->_timeTransferSquidSquadMs[1] = 
+            (that->_timeTransferSquidSquadMs[1] * 
+            (float)(SQUID_RANGEAVGSTAT - 1) +
+            temperature) / 
+            (float)SQUID_RANGEAVGSTAT;
+        }
+        if (that->_timeTransferSquidSquadMs[2] < timeTransferSquidSquadMs) {
+          that->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
+        }
+        
       // Else, this is the first completed task
       } else {
         float timeToProcessMs = 
@@ -1959,6 +2021,12 @@ void SquidletUpdateStats(
         that->_temperature[0] = temperature;
         that->_temperature[1] = temperature;
         that->_temperature[2] = temperature;
+        
+        float timeTransferSquidSquadMs = 
+          atof(JSONLabel(JSONValue(propTimeTransferSquidSquad, 0)));
+        that->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
+        that->_timeTransferSquidSquadMs[1] = timeTransferSquidSquadMs;
+        that->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
         
       }
 
@@ -2461,7 +2529,7 @@ void SquadBenchmark(
         gettimeofday(&stop, NULL);
         
         // Display the stats of all the squidlets
-        //SquadPrintStatsSquidlets(that, stream);
+        SquadPrintStatsSquidlets(that, stream);
         
         // Display the perf for this step
         unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
@@ -3038,8 +3106,17 @@ void SquidletProcessRequest(
     // Send the result data size
     int flags = 0;
     size_t len = strlen(bufferResult);
+    struct timeval start;
+    gettimeofday(&start, NULL);
     if (send(that->_sockReply, 
       (char*)&len, sizeof(size_t), flags) != -1) {
+
+      // Update stats
+      struct timeval stop;
+      gettimeofday(&stop, NULL);
+      that->_timeTransferSquidSquadMs = 
+        (stop.tv_sec - start.tv_sec) * 1000 + 
+        (stop.tv_usec - start.tv_usec) / 1000;
 
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
@@ -3299,6 +3376,10 @@ void SquidletAddStatsToJSON(
 
   sprintf(buffer, "%lu", that->_timeWaitedAckMs);
   JSONAddProp(json, "timeWaitedAckMs", buffer);
+  memset(buffer, 0, 20);
+
+  sprintf(buffer, "%lu", that->_timeTransferSquidSquadMs);
+  JSONAddProp(json, "timeTransferSquidSquadMs", buffer);
   memset(buffer, 0, 20);
 }
 
