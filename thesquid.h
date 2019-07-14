@@ -513,7 +513,7 @@ typedef struct Squidlet {
   unsigned long _timeWaitedTaskMs;
   struct timeval _timeLastTaskComplete;
   unsigned long _timeWaitedAckMs;
-  unsigned long _timeTransferSquidSquadMs;
+  float _timeTransferSquidSquadMs;
 } Squidlet;
 
 // ================ Functions declaration ====================

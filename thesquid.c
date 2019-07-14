@@ -173,13 +173,13 @@ void SquidletInfoStatsPrintln(
   fprintf(stream, "         timeWaitedAckMs: %07.0f/%07.0f/%07.0f\n", 
     that->_timeWaitedAckMs[0], that->_timeWaitedAckMs[1],
     that->_timeWaitedAckMs[2]);
-  fprintf(stream, "             temperature: %03.0f/%03.0f/%03.0f\n", 
+  fprintf(stream, "             temperature: %03.1f/%03.1f/%03.1f\n", 
     that->_temperature[0], that->_temperature[1],
     that->_temperature[2]);
-  fprintf(stream, "timeTransferSquadSquidMs: %07.0f/%07.0f/%07.0f\n", 
+  fprintf(stream, "timeTransferSquadSquidMs: %04.3f/%04.3f/%04.3f\n", 
     that->_timeTransferSquadSquidMs[0], that->_timeTransferSquadSquidMs[1],
     that->_timeTransferSquadSquidMs[2]);
-  fprintf(stream, "timeTransferSquidSquadMs: %07.0f/%07.0f/%07.0f\n", 
+  fprintf(stream, "timeTransferSquidSquadMs: %04.3f/%04.3f/%04.3f\n", 
     that->_timeTransferSquidSquadMs[0], that->_timeTransferSquidSquadMs[1],
     that->_timeTransferSquidSquadMs[2]);
 }
@@ -1983,19 +1983,18 @@ void SquidletUpdateStats(
           that->_timeTransferSquidSquadMs[1] = 
             (that->_timeTransferSquidSquadMs[1] * 
             (float)(that->_nbTaskComplete - 1) +
-            temperature) / 
+            timeTransferSquidSquadMs) / 
             (float)(that->_nbTaskComplete);
         } else {
           that->_timeTransferSquidSquadMs[1] = 
             (that->_timeTransferSquidSquadMs[1] * 
             (float)(SQUID_RANGEAVGSTAT - 1) +
-            temperature) / 
+            timeTransferSquidSquadMs) / 
             (float)SQUID_RANGEAVGSTAT;
         }
         if (that->_timeTransferSquidSquadMs[2] < timeTransferSquidSquadMs) {
           that->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
         }
-        
       // Else, this is the first completed task
       } else {
         float timeToProcessMs = 
@@ -2465,7 +2464,7 @@ void SquadBenchmark(
     for (size_t sizePayload = 10; !flagStop && 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
       // Loop on nbLoop
-      for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; 
+      for (int nbLoop = 32; !flagStop && nbLoop <= nbMaxLoop; 
         nbLoop *= 2) {
 
         // Reset the stats of all the squidlet
@@ -3211,7 +3210,6 @@ void SquidletProcessRequest(
     }
 
     ++(that->_nbTaskComplete);
-    gettimeofday(&(that->_timeLastTaskComplete), NULL);
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), 
@@ -3219,6 +3217,8 @@ void SquidletProcessRequest(
     }
 
   }
+
+  gettimeofday(&(that->_timeLastTaskComplete), NULL);
 
 }
 
@@ -3378,7 +3378,7 @@ void SquidletAddStatsToJSON(
   JSONAddProp(json, "timeWaitedAckMs", buffer);
   memset(buffer, 0, 20);
 
-  sprintf(buffer, "%lu", that->_timeTransferSquidSquadMs);
+  sprintf(buffer, "%.3f", that->_timeTransferSquidSquadMs);
   JSONAddProp(json, "timeTransferSquidSquadMs", buffer);
   memset(buffer, 0, 20);
 }
