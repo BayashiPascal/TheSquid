@@ -833,11 +833,11 @@ bool SquadSendTaskRequest(
     SquadPushHistory(that, lineHistory);
   }
 
-  // Set the timeout of the socket for sending and receiving to 1s
+  // Set the timeout of the socket for sending and receiving to 1ms
   // and allow the reuse of address
   struct timeval tv;
-  tv.tv_sec = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec = 0;
+  tv.tv_usec = 1000;
   int retSnd = setsockopt(squidlet->_sock, SOL_SOCKET, SO_SNDTIMEO, 
     (char*)&tv, sizeof(tv));
   int retRcv = setsockopt(squidlet->_sock, SOL_SOCKET, SO_RCVTIMEO, 
@@ -2416,9 +2416,9 @@ void SquadBenchmark(
   }
 #endif
   fprintf(stream, "-- Benchmark started --\n");
-  int lengthTest = 30;
+  int lengthTest = 240;
   size_t maxSizePayload = 1000;
-  int nbMaxLoop = 128; //1024;
+  int nbMaxLoop = 512; //1024;
   // If the squad has no squidlet
   if (SquadGetNbSquidlets(that) == 0) {
     // Run the benchmark locally
@@ -2464,7 +2464,7 @@ void SquadBenchmark(
     for (size_t sizePayload = 10; !flagStop && 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
       // Loop on nbLoop
-      for (int nbLoop = 32; !flagStop && nbLoop <= nbMaxLoop; 
+      for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; 
         nbLoop *= 2) {
 
         // Reset the stats of all the squidlet
@@ -2508,10 +2508,11 @@ void SquadBenchmark(
           SquidletTaskRequestFree(&task);
         }
         
+        gettimeofday(&stop, NULL);
+
         // Wait for the currently running tasks to finish
         while (!flagStop && SquadGetNbRunningTasks(that) > 0) {
           GSet completedTasks = SquadStep(that);
-          nbComplete += GSetNbElem(&completedTasks);
           while (GSetNbElem(&completedTasks) > 0L) {
             SquidletTaskRequest* task = GSetPop(&completedTasks);
             // If the task failed
@@ -2525,10 +2526,9 @@ void SquadBenchmark(
             SquidletTaskRequestFree(&task);
           }
         } 
-        gettimeofday(&stop, NULL);
         
         // Display the stats of all the squidlets
-        SquadPrintStatsSquidlets(that, stream);
+        //SquadPrintStatsSquidlets(that, stream);
         
         // Display the perf for this step
         unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
@@ -3740,7 +3740,6 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer,
   do {
     // Try to read one more byte, if successful moves the pointer to
     // the next byte to read by one byte
-    //ssize_t nbReadByte = read(sock, freadPtr, nb);
     ssize_t nbReadByte = fread(freadPtr, 1, nb, fp);
     if (nbReadByte > 0) {
       freadPtr += nbReadByte;
@@ -3748,7 +3747,7 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer,
     // Update the elapsed time
     elapsedTime = time(NULL) - startTime;
   } while (freadPtr != freadPtrEnd && maxWait != 0 && 
-    elapsedTime <= maxWait && !Squidlet_CtrlC);
+    elapsedTime < maxWait && !Squidlet_CtrlC);
   *sock = dup(*sock);
   fclose(fp);
 
