@@ -33,7 +33,7 @@ void SquidletAddStatsToJSON(
 
 // Update the statitics of the SquidletInfo 'that' with the result of the 
 // 'task'
-void SquidletUpdateStats(
+void SquidletInfoUpdateStats(
          SquidletInfo* const that, 
   SquidletTaskRequest* const task);
   
@@ -1660,7 +1660,6 @@ GSet SquadStep(
             bufferHistory);
           SquadPushHistory(that, lineHistory); 
         }
-
         // Post process the completed task
         SquadProcessCompletedTask(that, runningTask);
         // Put back the squidlet in the set of squidlets
@@ -1780,12 +1779,12 @@ void SquadProcessCompletedTask(
   }
   
   // Update the stats about the squidlets
-  SquidletUpdateStats(task->_squidlet, task->_request);
+  SquidletInfoUpdateStats(task->_squidlet, task->_request);
 }
 
 // Update the statitics of the SquidletInfo 'that' with the result of the 
 // 'task'
-void SquidletUpdateStats(
+void SquidletInfoUpdateStats(
       SquidletInfo* const that, 
   SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
@@ -2416,7 +2415,7 @@ void SquadBenchmark(
 #endif
   fprintf(stream, "-- Benchmark started --\n");
   int lengthTest = 120;
-  size_t maxSizePayload = 1000;
+  size_t maxSizePayload = 900;
   int nbMaxLoop = 1024;
   char* header = "nbLoopPerTask\tnbBytePayload\tnbComplete\n";
   // If the squad has no squidlet
@@ -2425,7 +2424,8 @@ void SquadBenchmark(
     fprintf(stream, "Execution on local device:\n");
     fprintf(stream, "%s", header);
     for (size_t sizePayload = 10; 
-      sizePayload <= maxSizePayload; sizePayload *= 10) {
+      sizePayload <= maxSizePayload; 
+      sizePayload = MIN(sizePayload * 10, maxSizePayload)) {
       char* buffer = PBErrMalloc(TheSquidErr, sizePayload + 1);
       memset(buffer, ' ', sizePayload);
       buffer[sizePayload] = '\0';
@@ -2456,10 +2456,11 @@ void SquadBenchmark(
     time_t maxWait = 1000;
     unsigned int id = 0;
     bool flagStop = false;
-    for (size_t sizePayload = 1000; !flagStop && 
-      sizePayload <= maxSizePayload; sizePayload *= 10) {
+    for (size_t sizePayload = 10; !flagStop && 
+      sizePayload <= maxSizePayload; 
+      sizePayload = MIN(sizePayload * 10, maxSizePayload)) {
       // Loop on nbLoop
-      for (int nbLoop = 1024; !flagStop && nbLoop <= nbMaxLoop; 
+      for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; 
         nbLoop *= 2) {
 
         // Reset the stats of all the squidlet
@@ -2509,8 +2510,8 @@ void SquadBenchmark(
               (float)deltams / (float)(squidlet->_nbTaskComplete);
 
 // PASCAL
-//SquidletInfoPrint(squidlet, stdout);
-//printf(" A %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
+SquidletInfoPrint(squidlet, stdout);
+printf(" A %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
 
           } while (GSetIterStep(&iter));
         }
@@ -2545,8 +2546,8 @@ void SquadBenchmark(
                 (float)deltams / (float)(squidlet->_nbTaskComplete);
 
 // PASCAL
-//SquidletInfoPrint(squidlet, stdout);
-//printf(" B %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
+SquidletInfoPrint(squidlet, stdout);
+printf(" B %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
 
             }
             SquadRunningTaskFree(&completedTask);
@@ -2570,8 +2571,8 @@ void SquadBenchmark(
             nbTaskExpected += (float) deltams / squidlet->_timePerTask;
 
 // PASCAL
-//SquidletInfoPrint(squidlet, stdout);
-//printf(" C %lu %f \n", deltams,  squidlet->_timePerTask);fflush(stdout);
+SquidletInfoPrint(squidlet, stdout);
+printf(" C %f += %lu / %f \n", nbTaskExpected, deltams,  squidlet->_timePerTask);fflush(stdout);
 
           } while (GSetIterStep(&iter));
         }
@@ -3252,7 +3253,6 @@ void SquidletProcessRequest(
       }
     }
 
-    ++(that->_nbTaskComplete);
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), 
@@ -3322,6 +3322,8 @@ void SquidletProcessRequest_Dummy(
   that->_timeToProcessMs = 
     (now.tv_sec - start.tv_sec) * 1000 +
     (now.tv_usec - start.tv_usec) / 1000;
+
+  ++(that->_nbTaskComplete);
 
   // Prepare the result data as JSON
   JSONNode* jsonResult = JSONCreate();
@@ -3524,6 +3526,8 @@ void SquidletProcessRequest_Benchmark(
     (now.tv_sec - start.tv_sec) * 1000 +
     (now.tv_usec - start.tv_usec) / 1000;
 
+  ++(that->_nbTaskComplete);
+
   // Prepare the result data as JSON
   JSONNode* jsonResult = JSONCreate();
   float temperature = SquidletGetTemperature(that);
@@ -3616,6 +3620,8 @@ void SquidletProcessRequest_PovRay(
       }
     }
   }
+
+  ++(that->_nbTaskComplete);
 
   // Prepare the result data as JSON
   *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
