@@ -223,9 +223,10 @@ void UnitTestDummy() {
       
       // Step the Squad
       GSet completedTasks = SquadStep(squad);
-      //sleep(1);
+      sleep(1);
       while (GSetNbElem(&completedTasks) > 0L) {
-        SquidletTaskRequest* task = GSetPop(&completedTasks);
+        SquadRunningTask* completedTask = GSetPop(&completedTasks);
+        SquidletTaskRequest* task = completedTask->_request;
         printf("squad : ");
         SquidletTaskRequestPrint(task, stdout);
         if (strstr(task->_bufferResult, "\"success\":\"1\"") == NULL) {
@@ -234,7 +235,7 @@ void UnitTestDummy() {
         } else {
           printf(" succeeded\n");
         }
-        SquidletTaskRequestFree(&task);
+        SquadRunningTaskFree(&completedTask);
       }
       
     } while (SquadGetNbTaskToComplete(squad) > 0L && 
@@ -339,7 +340,8 @@ void UnitTestPovRay() {
       // Step the Squad
       GSet completedTasks = SquadStep(squad);
       while (GSetNbElem(&completedTasks) > 0L) {
-        SquidletTaskRequest* task = GSetPop(&completedTasks);
+        SquadRunningTask* completedTask = GSetPop(&completedTasks);
+        SquidletTaskRequest* task = completedTask->_request;
         printf("squad : ");
         SquidletTaskRequestPrint(task, stdout);
         if (strstr(task->_bufferResult, "\"success\":\"1\"") == NULL) {
@@ -348,7 +350,7 @@ void UnitTestPovRay() {
         } else {
           printf(" succeeded\n");
         }
-        SquidletTaskRequestFree(&task);
+        SquadRunningTaskFree(&completedTask);
       }
       
     } while (SquadGetNbTaskToComplete(squad) > 0L && 
@@ -364,7 +366,7 @@ void UnitTestPovRay() {
     // Compare the result to the reference
     GenBrush* result = GBCreateFromFile("./testPov.tga");
     GenBrush* ref = GBCreateFromFile("./testPovRef.tga");
-    if (GBIsSameAs(result, ref) == false) {
+    if (result == NULL || GBIsSameAs(result, ref) == false) {
       TheSquidErr->_type = PBErrTypeUnitTestFailed;
       sprintf(TheSquidErr->_msg, "UnitTestPovRay failed");
       TheSquidErr->_fatal = false;
@@ -395,11 +397,11 @@ void UnitTestLoadTasks() {
 
 void UnitTestAll() {
   UnitTestSquad();
+  UnitTestLoadTasks();
   UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
   UnitTestPovRay();
-  UnitTestLoadTasks();
   printf("UnitTestAll OK\n");
 }
 

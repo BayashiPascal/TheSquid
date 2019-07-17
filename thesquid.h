@@ -81,6 +81,9 @@ typedef struct SquidletInfo {
   float _temperature[3];
   float _timeTransferSquadSquidMs[3];
   float _timeTransferSquidSquadMs[3];
+  // Variables used by the benchmark
+  float _timePerTask;
+  float _nbTaskExpected;
 } SquidletInfo;
 
 // ================ Functions declaration ====================
@@ -407,7 +410,7 @@ unsigned long SquadGetNbSquidlets(
 
 // Step the Squad 'that', i.e. tries to affect the remaining tasks to 
 // available Squidlet and check for completion of running task.
-// Return a GSet of completed SquidletTaskRequest at this step
+// Return a GSet of completed SquadRunningTask at this step
 // Non blocking, if there is no task to compute or no squidlet 
 // available, and no task completed, do nothing and return an empty set
 GSet SquadStep(

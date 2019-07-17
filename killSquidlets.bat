@@ -1,1 +1,1 @@
-for pid in `ps | grep squidlet | awk '{print $1}'`; do kill -INT $pid;  done
+for pid in `lsof -n | grep LISTEN | grep squidlet | awk '{print $2}'`; do kill -INT $pid;  done

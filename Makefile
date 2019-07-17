@@ -62,3 +62,6 @@ squad.o: \
 valgrind_squad :
 	valgrind -v --track-origins=yes --leak-check=full \
 	--gen-suppressions=yes --show-leak-kinds=all ./squad
+
+lsPortListeners:
+	lsof -n | grep LISTEN

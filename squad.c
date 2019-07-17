@@ -232,7 +232,8 @@ int main(int argc, char** argv) {
         while (GSetNbElem(&completedTasks) > 0) {
           
           // Pop the completed task
-          SquidletTaskRequest* task = GSetPop(&completedTasks);
+          SquadRunningTask* completedTask = GSetPop(&completedTasks);
+          SquidletTaskRequest* task = completedTask->_request;
           
           // Display the completed task
           printf("Squad : ");
@@ -243,18 +244,19 @@ int main(int argc, char** argv) {
 
             printf(" succeeded\n");
 
-            // Free the task
-            SquidletTaskRequestFree(&task);
-
           // Else, the task has failed
           } else {
 
             printf(" failed !!\n");
 
             // Put the task back into the set of tasks to complete
+            completedTask->_request = NULL;
             SquadTryAgainTask(squad, task);
 
           }
+
+          // Free the completed task
+          SquadRunningTaskFree(&completedTask);
 
         }
 

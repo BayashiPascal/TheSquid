@@ -303,7 +303,6 @@ void SquadRunningTaskFree(
     return;
   
   // Free memory
-  SquidletInfoFree(&((*that)->_squidlet));
   SquidletTaskRequestFree(&((*that)->_request));
   free(*that);
   *that = NULL;
@@ -833,11 +832,11 @@ bool SquadSendTaskRequest(
     SquadPushHistory(that, lineHistory);
   }
 
-  // Set the timeout of the socket for sending and receiving to 1ms
+  // Set the timeout of the socket for sending and receiving to 1us
   // and allow the reuse of address
   struct timeval tv;
   tv.tv_sec = 0;
-  tv.tv_usec = 1000;
+  tv.tv_usec = 1;
   int retSnd = setsockopt(squidlet->_sock, SOL_SOCKET, SO_SNDTIMEO, 
     (char*)&tv, sizeof(tv));
   int retRcv = setsockopt(squidlet->_sock, SOL_SOCKET, SO_RCVTIMEO, 
@@ -1620,7 +1619,7 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
 
 // Step the Squad 'that', i.e. tries to affect the remaining tasks to 
 // available Squidlet and check for completion of running task.
-// Return a GSet of completed SquidletTaskRequest at this step
+// Return a GSet of completed SquadRunningTask at this step
 // Non blocking, if there is no task to compute or no squidlet 
 // available, and no task completed, do nothing and return an empty set
 GSet SquadStep(
@@ -1666,12 +1665,8 @@ GSet SquadStep(
         SquadProcessCompletedTask(that, runningTask);
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
-        runningTask->_squidlet = NULL;
         // Add the task to the set of completed tasks
-        GSetAppend(&completedTasks, runningTask->_request);
-        runningTask->_request = NULL;
-        // Free memory
-        SquadRunningTaskFree(&runningTask);
+        GSetAppend(&completedTasks, runningTask);
         // Remove the task from the running tasks
         flag = GSetIterRemoveElem(&iter);
       // Else if we've been waiting too long for this task to complete
@@ -2056,6 +2051,10 @@ void SquadProcessCompletedTask_PovRay(
   JSONNode* jsonRequest = JSONCreate();
   JSONNode* jsonResult = JSONCreate();
 
+// PASCAL
+printf("%s\n", task->_data);
+printf("%s\n", task->_bufferResult);
+
   // If we could decode the JSON
   if (JSONLoadFromStr(jsonResult, task->_bufferResult) && 
     JSONLoadFromStr(jsonRequest, task->_data)) {
@@ -2416,15 +2415,15 @@ void SquadBenchmark(
   }
 #endif
   fprintf(stream, "-- Benchmark started --\n");
-  int lengthTest = 240;
+  int lengthTest = 120;
   size_t maxSizePayload = 1000;
-  int nbMaxLoop = 512; //1024;
+  int nbMaxLoop = 1024;
+  char* header = "nbLoopPerTask\tnbBytePayload\tnbComplete\n";
   // If the squad has no squidlet
   if (SquadGetNbSquidlets(that) == 0) {
     // Run the benchmark locally
     fprintf(stream, "Execution on local device:\n");
-    fprintf(stream, 
-      "\tnbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
+    fprintf(stream, "%s", header);
     for (size_t sizePayload = 10; 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
       char* buffer = PBErrMalloc(TheSquidErr, sizePayload + 1);
@@ -2441,11 +2440,8 @@ void SquadBenchmark(
           ++nbComplete;
           gettimeofday(&stop, NULL);
         } while (stop.tv_sec - start.tv_sec < lengthTest);
-        unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-          (stop.tv_usec - start.tv_usec) / 1000;
-        float timePerTaskMs = (float) deltams / (float)nbComplete;
-        fprintf(stream, "step\t%04d\t%08u\t%07lu\t%011.2f\n", 
-          nbLoop, sizePayload, nbComplete, timePerTaskMs);
+        fprintf(stream, "%04d\t%08u\t%07lu\n", 
+          nbLoop, sizePayload, nbComplete);
         fflush(stdout);
       }
       free(buffer);
@@ -2454,17 +2450,16 @@ void SquadBenchmark(
   } else {
     // Run the benchmark on the squidlets
     fprintf(stream, "Execution on TheSquid:\n");
-    fprintf(stream, 
-      "\tnbLoopPerTask\tnbBytePayload\tnbTaskComp\ttimeMsPerTask\n");
+    fprintf(stream, "%s", header);
 
     // Loop on payload size
     time_t maxWait = 1000;
     unsigned int id = 0;
     bool flagStop = false;
-    for (size_t sizePayload = 10; !flagStop && 
+    for (size_t sizePayload = 1000; !flagStop && 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
       // Loop on nbLoop
-      for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; 
+      for (int nbLoop = 1024; !flagStop && nbLoop <= nbMaxLoop; 
         nbLoop *= 2) {
 
         // Reset the stats of all the squidlet
@@ -2473,7 +2468,6 @@ void SquadBenchmark(
         // Loop during lengthTest seconds
         struct timeval stop, start;
         gettimeofday(&start, NULL);
-        unsigned long nbComplete = 0;
         do {
           
           // Create benchmark tasks if there are no more
@@ -2486,9 +2480,9 @@ void SquadBenchmark(
 
           // Step the Squad
           GSet completedTasks = SquadStep(that);
-          nbComplete += GSetNbElem(&completedTasks);
           while (GSetNbElem(&completedTasks) > 0L) {
-            SquidletTaskRequest* task = GSetPop(&completedTasks);
+            SquadRunningTask* completedTask = GSetPop(&completedTasks);
+            SquidletTaskRequest* task = completedTask->_request;
             // If the task failed
             if (strstr(task->_bufferResult, 
               "\"success\":\"1\"") == NULL) {
@@ -2497,10 +2491,29 @@ void SquadBenchmark(
               fprintf(stream, "%s\n", task->_bufferResult);
               flagStop = true;
             }
-            SquidletTaskRequestFree(&task);
+            SquadRunningTaskFree(&completedTask);
           }
           gettimeofday(&stop, NULL);
         } while (!flagStop && (stop.tv_sec - start.tv_sec) < lengthTest);
+
+        // Update the timePerTask of Squidlets which are not running 
+        // at this point
+        if (SquadGetNbSquidlets(that) > 0) {
+          unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
+            (stop.tv_usec - start.tv_usec) / 1000;
+          GSetIterForward iter = 
+            GSetIterForwardCreateStatic(SquadSquidlets(that));
+          do {
+            SquidletInfo* squidlet = GSetIterGet(&iter);
+            squidlet->_timePerTask = 
+              (float)deltams / (float)(squidlet->_nbTaskComplete);
+
+// PASCAL
+//SquidletInfoPrint(squidlet, stdout);
+//printf(" A %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
+
+          } while (GSetIterStep(&iter));
+        }
 
         // Flush the remaining tasks
         while (SquadGetNbRemainingTasks(that) > 0) {
@@ -2508,13 +2521,15 @@ void SquadBenchmark(
           SquidletTaskRequestFree(&task);
         }
         
-        gettimeofday(&stop, NULL);
-
         // Wait for the currently running tasks to finish
         while (!flagStop && SquadGetNbRunningTasks(that) > 0) {
           GSet completedTasks = SquadStep(that);
+          gettimeofday(&stop, NULL);
+          unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
+            (stop.tv_usec - start.tv_usec) / 1000;
           while (GSetNbElem(&completedTasks) > 0L) {
-            SquidletTaskRequest* task = GSetPop(&completedTasks);
+            SquadRunningTask* completedTask = GSetPop(&completedTasks);
+            SquidletTaskRequest* task = completedTask->_request;
             // If the task failed
             if (strstr(task->_bufferResult, 
               "\"success\":\"1\"") == NULL) {
@@ -2522,20 +2537,48 @@ void SquadBenchmark(
               fprintf(stream, " failed !!\n");
               fprintf(stream, "%s\n", task->_bufferResult);
               flagStop = true;
+            // Else, the task succeeded
+            } else {
+              // Update the timePerTask
+              SquidletInfo* squidlet = completedTask->_squidlet;
+              squidlet->_timePerTask = 
+                (float)deltams / (float)(squidlet->_nbTaskComplete);
+
+// PASCAL
+//SquidletInfoPrint(squidlet, stdout);
+//printf(" B %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
+
             }
-            SquidletTaskRequestFree(&task);
+            SquadRunningTaskFree(&completedTask);
           }
         } 
         
+        gettimeofday(&stop, NULL);
+
         // Display the stats of all the squidlets
         //SquadPrintStatsSquidlets(that, stream);
         
-        // Display the perf for this step
+        // Calculate and display the perf for this step
+        float nbTaskExpected = 0.0;
         unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
           (stop.tv_usec - start.tv_usec) / 1000;
-        float timePerTaskMs = (float) deltams / (float)nbComplete;
-        fprintf(stream, "step\t%04d\t%08u\t%07lu\t%011.2f\n", 
-          nbLoop, sizePayload, nbComplete, timePerTaskMs);
+        if (SquadGetNbSquidlets(that) > 0) {
+          GSetIterForward iter = 
+            GSetIterForwardCreateStatic(SquadSquidlets(that));
+          do {
+            SquidletInfo* squidlet = GSetIterGet(&iter);
+            nbTaskExpected += (float) deltams / squidlet->_timePerTask;
+
+// PASCAL
+//SquidletInfoPrint(squidlet, stdout);
+//printf(" C %lu %f \n", deltams,  squidlet->_timePerTask);fflush(stdout);
+
+          } while (GSetIterStep(&iter));
+        }
+
+
+        fprintf(stream, "%04d\t%08u\t%07.2f\n", 
+          nbLoop, sizePayload, nbTaskExpected);
         fflush(stream);
       }
     }
@@ -3575,9 +3618,8 @@ void SquidletProcessRequest_PovRay(
   }
 
   // Prepare the result data as JSON
-  size_t bufferResultLen = strlen(buffer) + 100;
-  *bufferResult = PBErrMalloc(TheSquidErr, bufferResultLen);
-  memset(*bufferResult, 0, bufferResultLen);
+  *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
+  memset(*bufferResult, 0, THESQUID_MAXPAYLOADSIZE);
   char successStr[10] = {'\0'};
   sprintf(successStr, "%d", success);
   JSONAddProp(json, "success", successStr);
@@ -3587,7 +3629,7 @@ void SquidletProcessRequest_PovRay(
   JSONAddProp(json, "temperature", temperatureStr);
   // Append the statistics data
   SquidletAddStatsToJSON(that, json);
-  if (!JSONSaveToStr(json, *bufferResult, bufferResultLen, true)) {
+  if (!JSONSaveToStr(json, *bufferResult, THESQUID_MAXPAYLOADSIZE, true)) {
     sprintf(*bufferResult, 
       "{\"success\":\"0\",\"temperature\":\"0.0\","
       "\"err\":\"JSONSaveToStr failed\"}");
