@@ -2050,10 +2050,6 @@ void SquadProcessCompletedTask_PovRay(
   JSONNode* jsonRequest = JSONCreate();
   JSONNode* jsonResult = JSONCreate();
 
-// PASCAL
-printf("%s\n", task->_data);
-printf("%s\n", task->_bufferResult);
-
   // If we could decode the JSON
   if (JSONLoadFromStr(jsonResult, task->_bufferResult) && 
     JSONLoadFromStr(jsonRequest, task->_data)) {
@@ -2414,7 +2410,7 @@ void SquadBenchmark(
   }
 #endif
   fprintf(stream, "-- Benchmark started --\n");
-  int lengthTest = 120;
+  int lengthTest = 240;
   size_t maxSizePayload = 900;
   int nbMaxLoop = 1024;
   char* header = "nbLoopPerTask\tnbBytePayload\tnbComplete\n";
@@ -2423,9 +2419,8 @@ void SquadBenchmark(
     // Run the benchmark locally
     fprintf(stream, "Execution on local device:\n");
     fprintf(stream, "%s", header);
-    for (size_t sizePayload = 10; 
-      sizePayload <= maxSizePayload; 
-      sizePayload = MIN(sizePayload * 10, maxSizePayload)) {
+    for (size_t sizePayload = 9; 
+      sizePayload <= maxSizePayload; sizePayload *= 10) {
       char* buffer = PBErrMalloc(TheSquidErr, sizePayload + 1);
       memset(buffer, ' ', sizePayload);
       buffer[sizePayload] = '\0';
@@ -2456,9 +2451,8 @@ void SquadBenchmark(
     time_t maxWait = 1000;
     unsigned int id = 0;
     bool flagStop = false;
-    for (size_t sizePayload = 10; !flagStop && 
-      sizePayload <= maxSizePayload; 
-      sizePayload = MIN(sizePayload * 10, maxSizePayload)) {
+    for (size_t sizePayload = 9; !flagStop && 
+      sizePayload <= maxSizePayload; sizePayload *= 10) {
       // Loop on nbLoop
       for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; 
         nbLoop *= 2) {
@@ -2508,11 +2502,6 @@ void SquadBenchmark(
             SquidletInfo* squidlet = GSetIterGet(&iter);
             squidlet->_timePerTask = 
               (float)deltams / (float)(squidlet->_nbTaskComplete);
-
-// PASCAL
-SquidletInfoPrint(squidlet, stdout);
-printf(" A %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
-
           } while (GSetIterStep(&iter));
         }
 
@@ -2544,11 +2533,6 @@ printf(" A %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTa
               SquidletInfo* squidlet = completedTask->_squidlet;
               squidlet->_timePerTask = 
                 (float)deltams / (float)(squidlet->_nbTaskComplete);
-
-// PASCAL
-SquidletInfoPrint(squidlet, stdout);
-printf(" B %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTaskComplete);fflush(stdout);
-
             }
             SquadRunningTaskFree(&completedTask);
           }
@@ -2569,11 +2553,6 @@ printf(" B %f = %lu / %lu \n", squidlet->_timePerTask, deltams,  squidlet->_nbTa
           do {
             SquidletInfo* squidlet = GSetIterGet(&iter);
             nbTaskExpected += (float) deltams / squidlet->_timePerTask;
-
-// PASCAL
-SquidletInfoPrint(squidlet, stdout);
-printf(" C %f += %lu / %f \n", nbTaskExpected, deltams,  squidlet->_timePerTask);fflush(stdout);
-
           } while (GSetIterStep(&iter));
         }
 
