@@ -661,6 +661,53 @@ bool SquadLoadSquidlets(
   return true;
 }
 
+// Load the Squidlet info from the string 'str' into the Squad 'that'
+// Return true if it could load the info, else false
+bool SquadLoadSquidletsFromStr(
+  Squad* const that, 
+   char* const str) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (str == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'str' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  // Discard the current squidlets info if any
+  while (GSetNbElem(SquadSquidlets(that)) > 0) {
+    SquidletInfo* squidletInfo = GSetPop((GSet*)SquadSquidlets(that));
+    SquidletInfoFree(&squidletInfo);
+  }
+
+  // Declare a json to load the encoded data
+  JSONNode* json = JSONCreate();
+
+  // Load the whole encoded data
+  if (JSONLoadFromStr(json, str) == false) {
+    TheSquidErr->_type = PBErrTypeIOError;
+    sprintf(TheSquidErr->_msg, "JSONLoadFromStr failed");
+    JSONFree(&json);
+    return false;
+  }
+
+  // Decode the data from the JSON
+  if (!SquadDecodeAsJSON(that, json)) {
+    JSONFree(&json);
+    return false;
+  }
+
+  // Free the memory used by the JSON
+  JSONFree(&json);
+  
+  // Return the succes code
+  return true;
+}
+
 // Decode the JSON info of a Squad
 bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
 

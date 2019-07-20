@@ -62,7 +62,9 @@ int main(int argc, char** argv) {
     if (strcmp(argv[iArg], "-help") == 0) {
 
       // Display the help message and quit
-      printf("squad [-squidlets <path to squidlets config file>] ");
+      printf("squad [-squidlets <path to squidlets config file | ");
+      printf("'{\"_squidlets\":[{\"_name\":\"name\",");
+      printf("\"_ip\":\"a.b.c.d\",\"_port\":\"port\"}]}'> ");
       printf("[-verbose] [-tasks <path to tasks file>] ");
       printf("[-freq <delay in second between step, default: 1>] ");
       printf("[-check] [-benchmark] [-help]\n");
@@ -90,50 +92,65 @@ int main(int argc, char** argv) {
   // If the user has provided a squidlet configuration file
   if (squidletsFilePath != NULL) {
 
-    // Open the squidlets file
-    FILE* squidletsFile = fopen(squidletsFilePath, "r");
+    // Declare a variable to memorize if we could lod the squidlet
+    // configuration
+    bool retLoadSquidlets = false;
     
-    // If we couldn't open the squidlets file
-    if (squidletsFile == NULL) {
-
-        // Print an error message
-        fprintf(stderr, "Squad: Couldn't open the squidlets file: %s\n", 
-          squidletsFilePath);
-        fprintf(stderr, "errno: %s\n", strerror(errno));
-
-        // Free memory
-        SquadFree(&squad);
-
-        // Stop here
-        return 2;
-
-    // Else, we could open the squidlets file
-    } else {
-
+    // If the Squidlet configuration is inlined
+    if (squidletsFilePath[0] == '{') {
+      
       // Load the content of the squidlets file
-      bool retLoadSquidlets = SquadLoadSquidlets(squad, squidletsFile);
+      retLoadSquidlets = SquadLoadSquidletsFromStr(squad, squidletsFilePath);
 
-      // If we couldn't oad the squidlets file
-      if (retLoadSquidlets == false) {
+    // Else, the provided argument must really be a file path
+    } else {
+      // Open the squidlets file
+      FILE* squidletsFile = fopen(squidletsFilePath, "r");
+      
+      // If we couldn't open the squidlets file
+      if (squidletsFile == NULL) {
 
-        // Print an error message
-        fprintf(stderr, 
-          "Squad: Couldn't load the squidlets config file %s\n",
-          squidletsFilePath);
-        fprintf(stderr, "TheSquidErr: %s\n", TheSquidErr->_msg);
-        
-        // Free memory
-        SquadFree(&squad);
+          // Print an error message
+          fprintf(stderr, "Squad: Couldn't open the squidlets file: %s\n", 
+            squidletsFilePath);
+          fprintf(stderr, "errno: %s\n", strerror(errno));
 
-        // Stop here
-        return 3;
+          // Free memory
+          SquadFree(&squad);
+
+          // Stop here
+          return 2;
+
+      // Else, we could open the squidlets file
+      } else {
+
+        // Load the content of the squidlets file
+        retLoadSquidlets = SquadLoadSquidlets(squad, squidletsFile);
+
+        // Close the squidlets file
+        fclose(squidletsFile);
 
       }
 
-      // Close the squidlets file
-      fclose(squidletsFile);
+    }
+  
+    // If we couldn't load the squidlets configuration
+    if (retLoadSquidlets == false) {
+
+      // Print an error message
+      fprintf(stderr, 
+        "Squad: Couldn't load the squidlets config file %s\n",
+        squidletsFilePath);
+      fprintf(stderr, "TheSquidErr: %s\n", TheSquidErr->_msg);
+      
+      // Free memory
+      SquadFree(&squad);
+
+      // Stop here
+      return 3;
 
     }
+
   }
 
   // Set the TextOMeter accordingly to the -verbose argument

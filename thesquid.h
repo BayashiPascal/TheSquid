@@ -272,6 +272,12 @@ bool SquadLoadSquidlets(
   Squad* const that, 
    FILE* const stream);
 
+// Load the Squidlet info from the string 'str' into the Squad 'that'
+// Return true if it could load the info, else false
+bool SquadLoadSquidletsFromStr(
+  Squad* const that, 
+   char* const str);
+
 // Send the task request 'request' from the Squad 'that' to its
 // Squidlet 'squidlet'
 // Create a socket, open a connection, ask the squidlet if it can 
