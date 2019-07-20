@@ -383,9 +383,9 @@ Squad* SquadCreate(void) {
   }
 
   // Init properties
-  that->_squidlets = GSetCreateStatic();
-  that->_tasks = GSetCreateStatic();
-  that->_runningTasks = GSetCreateStatic();
+  that->_squidlets = GSetSquidletInfoCreateStatic();
+  that->_tasks = GSetSquidletTaskRequestCreateStatic();
+  that->_runningTasks = GSetSquadRunningTaskCreateStatic();
   that->_flagTextOMeter = false;
   that->_textOMeter = NULL;
   for (int i = 0; i < SQUAD_TXTOMETER_NBLINEHISTORY; ++i) {

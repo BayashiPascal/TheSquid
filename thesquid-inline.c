@@ -31,7 +31,7 @@ bool SquidletTaskHasSucceeded(
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadSquidlets(
+const GSetSquidletInfo* SquadSquidlets(
   const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -47,7 +47,7 @@ const GSet* SquadSquidlets(
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadTasks(
+const GSetSquidletTaskRequest* SquadTasks(
   const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -63,7 +63,7 @@ const GSet* SquadTasks(
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadRunningTasks(
+const GSetSquadRunningTask* SquadRunningTasks(
   const Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {

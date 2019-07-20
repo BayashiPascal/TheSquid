@@ -204,11 +204,11 @@ typedef struct Squad {
   // File descriptor of the socket
   short _fd;
   // GSet of SquidletInfo, set of squidlets used by the Squad
-  GSet _squidlets;
+  GSetSquidletInfo _squidlets;
   // GSet of SquidletTaskRequest, set of tasks to execute
-  GSet _tasks;
+  GSetSquidletTaskRequest _tasks;
   // GSet of SquadRunningTask, set of tasks currently under execution
-  GSet _runningTasks;
+  GSetSquadRunningTask _runningTasks;
   // Flag to memorize if info are displayed with a TextOMeter
   bool _flagTextOMeter;
   // TextOMeter to display info 
@@ -249,21 +249,21 @@ bool SquadLoadTasks(
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadSquidlets(
+const GSetSquidletInfo* SquadSquidlets(
   const Squad* const that);
 
 // Get the set of task to execute of the Squad 'that'
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadTasks(
+const GSetSquidletTaskRequest* SquadTasks(
   const Squad* const that);
 
 // Get the set of running tasks of the Squad 'that'
 #if BUILDMODE != 0 
 inline 
 #endif 
-const GSet* SquadRunningTasks(
+const GSetSquadRunningTask* SquadRunningTasks(
   const Squad* const that);
 
 // Load the Squidlet info from the file 'stream' into the Squad 'that'
