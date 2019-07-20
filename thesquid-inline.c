@@ -1,6 +1,26 @@
 // ============ THESQUID-INLINE.C ================
 
-// -------------- SquidletTask
+// -------------- SquidletInfo
+
+// ================ Functions implementation ====================
+
+// Return the stats of the SquidletInfo 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const SquidletInfoStats* SquidletInfoStatistics(
+  const SquidletInfo* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return &(that->_stats);
+}
+
+// -------------- SquidletTaskRequest
 
 // ================ Functions implementation ====================
 
@@ -21,6 +41,102 @@ bool SquidletTaskHasSucceeded(
 #endif
   return (that->_bufferResult != NULL && 
     strstr(that->_bufferResult, "\"success\":\"1\"") != NULL);
+}
+
+// Return the type of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+SquidletTaskType SquidletTaskGetType(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_type;
+}
+
+// Return the id of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquidletTaskGetId(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_id;
+}
+
+// Return the subid of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquidletTaskGetSubId(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_subId;
+}
+
+// Return the data of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const char* SquidletTaskData(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_data;
+}
+
+// Return the buffer result of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const char* SquidletTaskBufferResult(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_bufferResult;
+}
+
+// Return the max wait time of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+time_t SquidletTaskGetMaxWaitTime(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  return that->_maxWaitTime;
 }
 
 // -------------- Squad

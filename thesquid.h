@@ -32,8 +32,8 @@
 #define THESQUID_PORTMAX          9999
 #define THESQUID_TASKREFUSED      0
 #define THESQUID_TASKACCEPTED     1
-#define THESQUID_ACCEPT_TIMEOUT   1 // in seconds
-#define THESQUID_PROC_TIMEOUT     60 // in seconds
+#define THESQUID_ACCEPT_TIMEOUT   1    // in seconds
+#define THESQUID_PROC_TIMEOUT     60   // in seconds
 #define THESQUID_MAXPAYLOADSIZE   1024 // bytes
 
 #define SQUAD_TXTOMETER_LINE1             \
@@ -49,22 +49,14 @@
 #define SQUAD_TXTOMETER_LENGTHLINEHISTORY 200
 #define SQUAD_TXTOMETER_NBTASKDISPLAYED   32
 
+// Range for the sliding average when computing stats
 #define SQUID_RANGEAVGSTAT 100
 
 // -------------- SquidletInfo
 
 // ================= Data structure ===================
 
-typedef struct SquidletInfo {
-  // Name of the squidlet
-  char* _name;
-  // IP of the squidlet
-  char* _ip;
-  // Port of the squidlet
-  int _port;
-  // Socket to communicate with this squidlet
-  short _sock;
-  // Variables for statistics
+typedef struct SquidletInfoStats {
   unsigned long _nbAcceptedConnection;
   unsigned long _nbAcceptedTask;
   unsigned long _nbRefusedTask;
@@ -81,9 +73,21 @@ typedef struct SquidletInfo {
   float _temperature[3];
   float _timeTransferSquadSquidMs[3];
   float _timeTransferSquidSquadMs[3];
-  // Variables used by the benchmark
   float _timePerTask;
   float _nbTaskExpected;
+} SquidletInfoStats;
+
+typedef struct SquidletInfo {
+  // Name of the squidlet
+  char* _name;
+  // IP of the squidlet
+  char* _ip;
+  // Port of the squidlet
+  int _port;
+  // Socket to communicate with this squidlet
+  short _sock;
+  // Statistics
+  SquidletInfoStats _stats;
 } SquidletInfo;
 
 // ================ Functions declaration ====================
@@ -104,10 +108,21 @@ void SquidletInfoPrint(
   const SquidletInfo* const that, 
                 FILE* const stream);
 
-// Print the statistics of the SquidletInfo 'that' on the file 'stream'
+// Print the SquidletInfoStats 'that' on the file 'stream'
 void SquidletInfoStatsPrintln(
-  const SquidletInfo* const that, 
-                FILE* const stream);
+  const SquidletInfoStats* const that, 
+                     FILE* const stream);
+
+// Init the stats of the SquidletInfoStats 'that' 
+void SquidletInfoStatsInit(
+  SquidletInfoStats* const that);
+
+// Return the stats of the SquidletInfo 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const SquidletInfoStats* SquidletInfoStatistics(
+  const SquidletInfo* const that);
                 
 // -------------- SquidletTaskRequest
 
@@ -167,6 +182,52 @@ inline
 bool SquidletTaskHasSucceeded(
   const SquidletTaskRequest* const that);
 
+// Return the type of the task 'that' as a string
+const char* SquidletTaskTypeAsStr(
+  const SquidletTaskRequest* const that);
+
+// Return the type of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+SquidletTaskType SquidletTaskGetType(
+  const SquidletTaskRequest* const that);
+
+// Return the id of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquidletTaskGetId(
+  const SquidletTaskRequest* const that);
+
+// Return the subid of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+unsigned long SquidletTaskGetSubId(
+  const SquidletTaskRequest* const that);
+
+// Return the data of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const char* SquidletTaskData(
+  const SquidletTaskRequest* const that);
+
+// Return the buffer result of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+const char* SquidletTaskBufferResult(
+  const SquidletTaskRequest* const that);
+
+// Return the max wait time of the task 'that'
+#if BUILDMODE != 0 
+inline 
+#endif 
+time_t SquidletTaskGetMaxWaitTime(
+  const SquidletTaskRequest* const that);
+
 // -------------- SquadRunningTask
 
 // ================= Data structure ===================
@@ -203,11 +264,11 @@ void SquadRunningTaskPrint(
 typedef struct Squad {
   // File descriptor of the socket
   short _fd;
-  // GSet of SquidletInfo, set of squidlets used by the Squad
+  // Set of squidlets used by the Squad
   GSetSquidletInfo _squidlets;
-  // GSet of SquidletTaskRequest, set of tasks to execute
+  // Set of tasks to execute
   GSetSquidletTaskRequest _tasks;
-  // GSet of SquadRunningTask, set of tasks currently under execution
+  // Set of tasks currently under execution
   GSetSquadRunningTask _runningTasks;
   // Flag to memorize if info are displayed with a TextOMeter
   bool _flagTextOMeter;

@@ -67,6 +67,24 @@ SquidletInfo* SquidletInfoCreate(
   that->_ip = strdup(ip);
   that->_port = port;
   that->_sock = -1;
+  
+  // Init the stats
+  SquidletInfoStatsInit(&(that->_stats));
+
+  // Return the new squidletInfo
+  return that;
+}
+
+// Init the stats of the SquidletInfoStats 'that' 
+void SquidletInfoStatsInit(
+  SquidletInfoStats* const that) {
+#if BUILDMODE == 0
+  if (name == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
   that->_nbAcceptedConnection = 0;
   that->_nbAcceptedTask = 0;
   that->_nbRefusedTask = 0;
@@ -84,9 +102,6 @@ SquidletInfo* SquidletInfoCreate(
     that->_timeTransferSquadSquidMs[i] = 0.0;
     that->_timeTransferSquidSquadMs[i] = 0.0;
   }
-
-  // Return the new squidletInfo
-  return that;
 }
 
 // Free the memory used by the SquidletInfo 'that'
@@ -127,10 +142,10 @@ void SquidletInfoPrint(
   fprintf(stream, "%s(%s:%d)", that->_name, that->_ip, that->_port);
 }
 
-// Print the statistics of the SquidletInfo 'that' on the file 'stream'
+// Print the SquidletInfoStats 'that' on the file 'stream'
 void SquidletInfoStatsPrintln(
-  const SquidletInfo* const that, 
-                FILE* const stream) {
+  const SquidletInfoStats* const that, 
+                     FILE* const stream) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -252,15 +267,37 @@ void SquidletTaskRequestPrint(
   }
 #endif
   // Get a truncated version of the data
-  char truncData[150];
-  truncData[149] = '\0';
-  strncpy(truncData, that->_data, 149);
+  #define SquidletTaskRequestPrint_lengthTrunc 150
+  char truncData[SquidletTaskRequestPrint_lengthTrunc];
+  truncData[SquidletTaskRequestPrint_lengthTrunc - 1] = '\0';
+  strncpy(truncData, SquidletTaskData(that), 
+    SquidletTaskRequestPrint_lengthTrunc - 1);
 
   // Print the info on the stream 
   fprintf(stream, "%s(#%lu-%lu) %s", 
-    squidletTaskTypeStr[that->_type], that->_id, 
-    that->_subId, truncData);
+    SquidletTaskTypeAsStr(that), 
+    SquidletTaskGetId(that), 
+    SquidletTaskGetSubId(that), 
+    truncData);
 }
+
+// Return the type of the task 'that' as a string
+const char* SquidletTaskTypeAsStr(
+  const SquidletTaskRequest* const that) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  if (that->_type >= 0 && that->_type < sizeof(squidletTaskTypeStr)) {
+    return squidletTaskTypeStr[that->_type];
+  } else {
+    return squidletTaskTypeStr[0];
+  }
+}
+
 
 // -------------- SquadRunningTask
 
@@ -1416,25 +1453,27 @@ bool SquadSendTaskData(
     gettimeofday(&stop, NULL);
     float deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
       (float)(stop.tv_usec - start.tv_usec) / 1000.0;
-    if (squidlet->_timeTransferSquadSquidMs[0] > deltams) {
-      squidlet->_timeTransferSquadSquidMs[0] = deltams;
+    SquidletInfoStats* stats = 
+      (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
+    if (stats->_timeTransferSquadSquidMs[0] > deltams) {
+      stats->_timeTransferSquadSquidMs[0] = deltams;
     }
-    if (squidlet->_nbTaskComplete <= SQUID_RANGEAVGSTAT &&
-      squidlet->_nbTaskComplete > 0) {
-      squidlet->_timeTransferSquadSquidMs[1] = 
-        (squidlet->_timeTransferSquadSquidMs[1] * 
-        (float)(squidlet->_nbTaskComplete - 1) +
+    if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT &&
+      stats->_nbTaskComplete > 0) {
+      stats->_timeTransferSquadSquidMs[1] = 
+        (stats->_timeTransferSquadSquidMs[1] * 
+        (float)(stats->_nbTaskComplete - 1) +
         deltams) / 
-        (float)(squidlet->_nbTaskComplete);
+        (float)(stats->_nbTaskComplete);
     } else {
-      squidlet->_timeTransferSquadSquidMs[1] = 
-        (squidlet->_timeTransferSquadSquidMs[1] * 
+      stats->_timeTransferSquadSquidMs[1] = 
+        (stats->_timeTransferSquadSquidMs[1] * 
         (float)(SQUID_RANGEAVGSTAT - 1) +
         deltams) / 
         (float)SQUID_RANGEAVGSTAT;
     }
-    if (squidlet->_timeTransferSquadSquidMs[2] < deltams) {
-      squidlet->_timeTransferSquadSquidMs[2] = deltams;
+    if (stats->_timeTransferSquadSquidMs[2] < deltams) {
+      stats->_timeTransferSquadSquidMs[2] = deltams;
     }
 
     if (SquadGetFlagTextOMeter(that) == true)
@@ -1902,171 +1941,173 @@ void SquidletInfoUpdateStats(
       propTimeTransferSquidSquad != NULL) {
 
       // Update the stats with the received info from the Squidlet 
-      that->_nbAcceptedConnection = 
+      SquidletInfoStats* stats = 
+        (SquidletInfoStats*)SquidletInfoStatistics(that);
+      stats->_nbAcceptedConnection = 
         atol(JSONLabel(JSONValue(propNbAcceptedConnection, 0)));
-      that->_nbAcceptedTask = 
+      stats->_nbAcceptedTask = 
         atol(JSONLabel(JSONValue(propNbAcceptedTask, 0)));
-      that->_nbRefusedTask = 
+      stats->_nbRefusedTask = 
         atol(JSONLabel(JSONValue(propNbRefusedTask, 0)));
-      that->_nbFailedReceptTaskData = 
+      stats->_nbFailedReceptTaskData = 
         atol(JSONLabel(JSONValue(propNbFailedReceptTaskData, 0)));
-      that->_nbFailedReceptTaskSize = 
+      stats->_nbFailedReceptTaskSize = 
         atol(JSONLabel(JSONValue(propNbFailedReceptTaskSize, 0)));
-      that->_nbSentResult = 
+      stats->_nbSentResult = 
         atol(JSONLabel(JSONValue(propNbSentResult, 0)));
-      that->_nbFailedSendResult = 
+      stats->_nbFailedSendResult = 
         atol(JSONLabel(JSONValue(propNbFailedSendResult, 0)));
-      that->_nbFailedSendResultSize = 
+      stats->_nbFailedSendResultSize = 
         atol(JSONLabel(JSONValue(propNbFailedSendResultSize, 0)));
-      that->_nbFailedReceptAck = 
+      stats->_nbFailedReceptAck = 
         atol(JSONLabel(JSONValue(propNbFailedReceptAck, 0)));
-      that->_nbTaskComplete = 
+      stats->_nbTaskComplete = 
         atol(JSONLabel(JSONValue(propNbTaskComplete, 0)));
       
       // If its not the first completed task
-      if (that->_nbTaskComplete > 1) {
+      if (stats->_nbTaskComplete > 1) {
         
         // Update the statistics about time
         float timeToProcessMs = 
           atof(JSONLabel(JSONValue(propTimeToProcessMs, 0)));
-        if (that->_timeToProcessMs[0] > timeToProcessMs) {
-          that->_timeToProcessMs[0] = timeToProcessMs;
+        if (stats->_timeToProcessMs[0] > timeToProcessMs) {
+          stats->_timeToProcessMs[0] = timeToProcessMs;
         }
-        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
-          that->_timeToProcessMs[1] = 
-            (that->_timeToProcessMs[1] * 
-            (float)(that->_nbTaskComplete - 1) +
+        if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          stats->_timeToProcessMs[1] = 
+            (stats->_timeToProcessMs[1] * 
+            (float)(stats->_nbTaskComplete - 1) +
             timeToProcessMs) / 
-            (float)(that->_nbTaskComplete);
+            (float)(stats->_nbTaskComplete);
         } else {
-          that->_timeToProcessMs[1] = 
-            (that->_timeToProcessMs[1] * 
+          stats->_timeToProcessMs[1] = 
+            (stats->_timeToProcessMs[1] * 
             (float)(SQUID_RANGEAVGSTAT - 1) +
             timeToProcessMs) / 
             (float)SQUID_RANGEAVGSTAT;
         }
-        if (that->_timeToProcessMs[2] < timeToProcessMs) {
-          that->_timeToProcessMs[2] = timeToProcessMs;
+        if (stats->_timeToProcessMs[2] < timeToProcessMs) {
+          stats->_timeToProcessMs[2] = timeToProcessMs;
         }
         
         float timeWaitedTaskMs = 
           atof(JSONLabel(JSONValue(propTimeWaitedTaskMs, 0)));
-        if (that->_timeWaitedTaskMs[0] > timeWaitedTaskMs) {
-          that->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
+        if (stats->_timeWaitedTaskMs[0] > timeWaitedTaskMs) {
+          stats->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
         }
-        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
-          that->_timeWaitedTaskMs[1] = 
-            (that->_timeWaitedTaskMs[1] * 
-            (float)(that->_nbTaskComplete - 1) +
+        if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          stats->_timeWaitedTaskMs[1] = 
+            (stats->_timeWaitedTaskMs[1] * 
+            (float)(stats->_nbTaskComplete - 1) +
             timeWaitedTaskMs) / 
-            (float)(that->_nbTaskComplete);
+            (float)(stats->_nbTaskComplete);
         } else {
-          that->_timeWaitedTaskMs[1] = 
-            (that->_timeWaitedTaskMs[1] * 
+          stats->_timeWaitedTaskMs[1] = 
+            (stats->_timeWaitedTaskMs[1] * 
             (float)(SQUID_RANGEAVGSTAT - 1) +
             timeWaitedTaskMs) / 
             (float)SQUID_RANGEAVGSTAT;
         }
-        if (that->_timeWaitedTaskMs[2] < timeWaitedTaskMs) {
-          that->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
+        if (stats->_timeWaitedTaskMs[2] < timeWaitedTaskMs) {
+          stats->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
         }
         
         float timeWaitedAckMs = 
           atof(JSONLabel(JSONValue(propTimeWaitedAckMs, 0)));
-        if (that->_timeWaitedAckMs[0] > timeWaitedAckMs) {
-          that->_timeWaitedAckMs[0] = timeWaitedAckMs;
+        if (stats->_timeWaitedAckMs[0] > timeWaitedAckMs) {
+          stats->_timeWaitedAckMs[0] = timeWaitedAckMs;
         }
-        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
-          that->_timeWaitedAckMs[1] = 
-            (that->_timeWaitedAckMs[1] * 
-            (float)(that->_nbTaskComplete - 1) +
+        if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          stats->_timeWaitedAckMs[1] = 
+            (stats->_timeWaitedAckMs[1] * 
+            (float)(stats->_nbTaskComplete - 1) +
             timeWaitedAckMs) / 
-            (float)(that->_nbTaskComplete);
+            (float)(stats->_nbTaskComplete);
         } else {
-          that->_timeWaitedAckMs[1] = 
-            (that->_timeWaitedAckMs[1] * 
+          stats->_timeWaitedAckMs[1] = 
+            (stats->_timeWaitedAckMs[1] * 
             (float)(SQUID_RANGEAVGSTAT - 1) +
             timeWaitedAckMs) / 
             (float)SQUID_RANGEAVGSTAT;
         }
-        if (that->_timeWaitedAckMs[2] < timeWaitedAckMs) {
-          that->_timeWaitedAckMs[2] = timeWaitedAckMs;
+        if (stats->_timeWaitedAckMs[2] < timeWaitedAckMs) {
+          stats->_timeWaitedAckMs[2] = timeWaitedAckMs;
         }
 
         float temperature = 
           atof(JSONLabel(JSONValue(propTemperature, 0)));
-        if (that->_temperature[0] > temperature) {
-          that->_temperature[0] = temperature;
+        if (stats->_temperature[0] > temperature) {
+          stats->_temperature[0] = temperature;
         }
-        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
-          that->_temperature[1] = 
-            (that->_temperature[1] * 
-            (float)(that->_nbTaskComplete - 1) +
+        if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          stats->_temperature[1] = 
+            (stats->_temperature[1] * 
+            (float)(stats->_nbTaskComplete - 1) +
             temperature) / 
-            (float)(that->_nbTaskComplete);
+            (float)(stats->_nbTaskComplete);
         } else {
-          that->_temperature[1] = 
-            (that->_temperature[1] * 
+          stats->_temperature[1] = 
+            (stats->_temperature[1] * 
             (float)(SQUID_RANGEAVGSTAT - 1) +
             temperature) / 
             (float)SQUID_RANGEAVGSTAT;
         }
-        if (that->_temperature[2] < temperature) {
-          that->_temperature[2] = temperature;
+        if (stats->_temperature[2] < temperature) {
+          stats->_temperature[2] = temperature;
         }
         
         float timeTransferSquidSquadMs = 
           atof(JSONLabel(JSONValue(propTimeTransferSquidSquad, 0)));
-        if (that->_timeTransferSquidSquadMs[0] > timeTransferSquidSquadMs) {
-          that->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
+        if (stats->_timeTransferSquidSquadMs[0] > timeTransferSquidSquadMs) {
+          stats->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
         }
-        if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
-          that->_timeTransferSquidSquadMs[1] = 
-            (that->_timeTransferSquidSquadMs[1] * 
-            (float)(that->_nbTaskComplete - 1) +
+        if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
+          stats->_timeTransferSquidSquadMs[1] = 
+            (stats->_timeTransferSquidSquadMs[1] * 
+            (float)(stats->_nbTaskComplete - 1) +
             timeTransferSquidSquadMs) / 
-            (float)(that->_nbTaskComplete);
+            (float)(stats->_nbTaskComplete);
         } else {
-          that->_timeTransferSquidSquadMs[1] = 
-            (that->_timeTransferSquidSquadMs[1] * 
+          stats->_timeTransferSquidSquadMs[1] = 
+            (stats->_timeTransferSquidSquadMs[1] * 
             (float)(SQUID_RANGEAVGSTAT - 1) +
             timeTransferSquidSquadMs) / 
             (float)SQUID_RANGEAVGSTAT;
         }
-        if (that->_timeTransferSquidSquadMs[2] < timeTransferSquidSquadMs) {
-          that->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
+        if (stats->_timeTransferSquidSquadMs[2] < timeTransferSquidSquadMs) {
+          stats->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
         }
       // Else, this is the first completed task
       } else {
         float timeToProcessMs = 
           atof(JSONLabel(JSONValue(propTimeToProcessMs, 0)));
-        that->_timeToProcessMs[0] = timeToProcessMs;
-        that->_timeToProcessMs[1] = timeToProcessMs;
-        that->_timeToProcessMs[2] = timeToProcessMs;
+        stats->_timeToProcessMs[0] = timeToProcessMs;
+        stats->_timeToProcessMs[1] = timeToProcessMs;
+        stats->_timeToProcessMs[2] = timeToProcessMs;
 
         float timeWaitedTaskMs = 
           atof(JSONLabel(JSONValue(propTimeWaitedTaskMs, 0)));
-        that->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
-        that->_timeWaitedTaskMs[1] = timeWaitedTaskMs;
-        that->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
+        stats->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
+        stats->_timeWaitedTaskMs[1] = timeWaitedTaskMs;
+        stats->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
         
         float timeWaitedAckMs = 
           atof(JSONLabel(JSONValue(propTimeWaitedAckMs, 0)));
-        that->_timeWaitedAckMs[0] = timeWaitedAckMs;
-        that->_timeWaitedAckMs[1] = timeWaitedAckMs;
-        that->_timeWaitedAckMs[2] = timeWaitedAckMs;
+        stats->_timeWaitedAckMs[0] = timeWaitedAckMs;
+        stats->_timeWaitedAckMs[1] = timeWaitedAckMs;
+        stats->_timeWaitedAckMs[2] = timeWaitedAckMs;
         
         float temperature = 
           atof(JSONLabel(JSONValue(propTemperature, 0)));
-        that->_temperature[0] = temperature;
-        that->_temperature[1] = temperature;
-        that->_temperature[2] = temperature;
+        stats->_temperature[0] = temperature;
+        stats->_temperature[1] = temperature;
+        stats->_temperature[2] = temperature;
         
         float timeTransferSquidSquadMs = 
           atof(JSONLabel(JSONValue(propTimeTransferSquidSquad, 0)));
-        that->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
-        that->_timeTransferSquidSquadMs[1] = timeTransferSquidSquadMs;
-        that->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
+        stats->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
+        stats->_timeTransferSquidSquadMs[1] = timeTransferSquidSquadMs;
+        stats->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
         
       }
 
@@ -2547,8 +2588,10 @@ void SquadBenchmark(
             GSetIterForwardCreateStatic(SquadSquidlets(that));
           do {
             SquidletInfo* squidlet = GSetIterGet(&iter);
-            squidlet->_timePerTask = 
-              (float)deltams / (float)(squidlet->_nbTaskComplete);
+            SquidletInfoStats* stats = 
+              (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
+            stats->_timePerTask = 
+              (float)deltams / (float)(stats->_nbTaskComplete);
           } while (GSetIterStep(&iter));
         }
 
@@ -2578,8 +2621,10 @@ void SquadBenchmark(
             } else {
               // Update the timePerTask
               SquidletInfo* squidlet = completedTask->_squidlet;
-              squidlet->_timePerTask = 
-                (float)deltams / (float)(squidlet->_nbTaskComplete);
+              SquidletInfoStats* stats = 
+                (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
+              stats->_timePerTask = 
+                (float)deltams / (float)(stats->_nbTaskComplete);
             }
             SquadRunningTaskFree(&completedTask);
           }
@@ -2599,7 +2644,9 @@ void SquadBenchmark(
             GSetIterForwardCreateStatic(SquadSquidlets(that));
           do {
             SquidletInfo* squidlet = GSetIterGet(&iter);
-            nbTaskExpected += (float) deltams / squidlet->_timePerTask;
+            SquidletInfoStats* stats = 
+              (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
+            nbTaskExpected += (float) deltams / stats->_timePerTask;
           } while (GSetIterStep(&iter));
         }
 
@@ -2673,7 +2720,7 @@ void SquadPrintStatsSquidlets(
       fprintf(stream, " --- ");
       SquidletInfoPrint(squidlet, stream);
       fprintf(stream, " --- \n");
-      SquidletInfoStatsPrintln(squidlet, stream);
+      SquidletInfoStatsPrintln(SquidletInfoStatistics(squidlet), stream);
     } while (GSetIterStep(&iter));
   }
 }
