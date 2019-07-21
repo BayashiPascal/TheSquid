@@ -2498,10 +2498,10 @@ void SquadBenchmark(
   }
 #endif
   fprintf(stream, "-- Benchmark started --\n");
-  int lengthTest = 240;
+  float lengthTest = 240000.0; // ms
   size_t maxSizePayload = 900;
-  int nbMaxLoop = 1024;
-  char* header = "nbLoopPerTask\tnbBytePayload\tnbComplete\n";
+  int nbMaxLoop = 2048;
+  char* header = "nbLoopPerTask\tnbBytePayload\tCompleted\tExpected\n";
   // If the squad has no squidlet
   if (SquadGetNbSquidlets(that) == 0) {
     // Run the benchmark locally
@@ -2518,13 +2518,17 @@ void SquadBenchmark(
         struct timeval stop, start;
         gettimeofday(&start, NULL);
         unsigned long nbComplete = 0;
+        float deltams = 0;
         do {
           TheSquidBenchmark(nbLoop, buffer);
           ++nbComplete;
           gettimeofday(&stop, NULL);
-        } while (stop.tv_sec - start.tv_sec < lengthTest);
-        fprintf(stream, "%04d\t%08u\t%07lu\n", 
-          nbLoop, sizePayload, nbComplete);
+          deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
+            (float)(stop.tv_usec - start.tv_usec) / 1000.0;
+        } while (deltams < lengthTest);
+        float nbTaskExpected = lengthTest / deltams * (float)nbComplete;
+        fprintf(stream, "%04d\t%08u\t%lu*%f/%f\t%.6f\n", 
+          nbLoop, sizePayload, nbComplete, lengthTest, deltams, nbTaskExpected);
         fflush(stdout);
       }
       free(buffer);
@@ -2551,6 +2555,7 @@ void SquadBenchmark(
         // Loop during lengthTest seconds
         struct timeval stop, start;
         gettimeofday(&start, NULL);
+        float deltams = 0.0;
         do {
           
           // Create benchmark tasks if there are no more
@@ -2577,13 +2582,13 @@ void SquadBenchmark(
             SquadRunningTaskFree(&completedTask);
           }
           gettimeofday(&stop, NULL);
-        } while (!flagStop && (stop.tv_sec - start.tv_sec) < lengthTest);
+          deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
+            (float)(stop.tv_usec - start.tv_usec) / 1000.0;
+        } while (!flagStop && deltams < lengthTest);
 
         // Update the timePerTask of Squidlets which are not running 
         // at this point
         if (SquadGetNbSquidlets(that) > 0) {
-          unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-            (stop.tv_usec - start.tv_usec) / 1000;
           GSetIterForward iter = 
             GSetIterForwardCreateStatic(SquadSquidlets(that));
           do {
@@ -2591,7 +2596,7 @@ void SquadBenchmark(
             SquidletInfoStats* stats = 
               (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
             stats->_timePerTask = 
-              (float)deltams / (float)(stats->_nbTaskComplete);
+              deltams / (float)(stats->_nbTaskComplete);
           } while (GSetIterStep(&iter));
         }
 
@@ -2605,8 +2610,8 @@ void SquadBenchmark(
         while (!flagStop && SquadGetNbRunningTasks(that) > 0) {
           GSet completedTasks = SquadStep(that);
           gettimeofday(&stop, NULL);
-          unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-            (stop.tv_usec - start.tv_usec) / 1000;
+          deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
+            (float)(stop.tv_usec - start.tv_usec) / 1000.0;
           while (GSetNbElem(&completedTasks) > 0L) {
             SquadRunningTask* completedTask = GSetPop(&completedTasks);
             SquidletTaskRequest* task = completedTask->_request;
@@ -2624,7 +2629,7 @@ void SquadBenchmark(
               SquidletInfoStats* stats = 
                 (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
               stats->_timePerTask = 
-                (float)deltams / (float)(stats->_nbTaskComplete);
+                deltams / (float)(stats->_nbTaskComplete);
             }
             SquadRunningTaskFree(&completedTask);
           }
@@ -2637,8 +2642,8 @@ void SquadBenchmark(
         
         // Calculate and display the perf for this step
         float nbTaskExpected = 0.0;
-        unsigned long deltams = (stop.tv_sec - start.tv_sec) * 1000 + 
-          (stop.tv_usec - start.tv_usec) / 1000;
+        deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
+          (float)(stop.tv_usec - start.tv_usec) / 1000.0;
         if (SquadGetNbSquidlets(that) > 0) {
           GSetIterForward iter = 
             GSetIterForwardCreateStatic(SquadSquidlets(that));
@@ -2646,13 +2651,14 @@ void SquadBenchmark(
             SquidletInfo* squidlet = GSetIterGet(&iter);
             SquidletInfoStats* stats = 
               (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
-            nbTaskExpected += (float) deltams / stats->_timePerTask;
+            nbTaskExpected += deltams / stats->_timePerTask;
           } while (GSetIterStep(&iter));
         }
 
+        nbTaskExpected = lengthTest / deltams * nbTaskExpected;
 
-        fprintf(stream, "%04d\t%08u\t%07.2f\n", 
-          nbLoop, sizePayload, nbTaskExpected);
+        fprintf(stream, "%04d\t%08u\t%f*%f/%f\t%.6f\n", 
+          nbLoop, sizePayload, nbTaskExpected, lengthTest, deltams, nbTaskExpected);
         fflush(stream);
       }
     }
@@ -3815,11 +3821,11 @@ int TheSquidBenchmark(
   int res = 0;
   // Loop on sample code
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
-    for (unsigned int scaling = 200; scaling--;) {
+    for (unsigned int scaling = 10; scaling--;) {
       GSet set = GSetCreateStatic();
       for(unsigned long i = strlen(buffer); i--;) {
         GSetPush(&set, NULL);
-        set._head->_sortVal = (float)((i + iLoop) % 10);
+        set._head->_sortVal = (float)(i + scaling + iLoop);
       }
       GSetSort(&set);
       res = (int)round(set._head->_sortVal);
