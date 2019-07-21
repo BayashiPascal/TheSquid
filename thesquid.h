@@ -155,7 +155,8 @@ typedef struct SquidletTaskRequest {
 // ================ Functions declaration ====================
 
 // Return a new SquidletTaskRequest for a task of type 'type'
-// The task is identified by its 'id'. It holds a copy of 'data', a 
+// The task is identified by its 'id'/'subId', it will have at
+// maximum 'maxWait' seconds to complete. It holds a copy of 'data', a 
 // string in JSON format
 SquidletTaskRequest* SquidletTaskRequestCreate(
    SquidletTaskType type, 
@@ -169,6 +170,7 @@ void SquidletTaskRequestFree(
   SquidletTaskRequest** that);
 
 // Print the SquidletTaskRequest 'that' on the file 'stream'
+// Only a maximum of 100 first characters of the data are printed
 void SquidletTaskRequestPrint(
   const SquidletTaskRequest* const that, 
                        FILE* const stream);

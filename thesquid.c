@@ -7,13 +7,14 @@
   #include "thesquid-inline.c"
 #endif
 
-// ================ global variables ====================
+// ================ Module variables ====================
 
+// NAme of the tasks types
 const char* squidletTaskTypeStr[] = {
   "Null", "Dummy", "Benchmark", "PovRay", "ResetStats"  
 };
 
-// ================ Functions declaration ====================
+// ================ Module functions declaration ====================
 
 // Function to receive in blocking mode 'nb' bytes of data from
 // the socket 'sock' and store them into 'buffer' (which must be big 
@@ -31,8 +32,8 @@ void SquidletAddStatsToJSON(
   const Squidlet* const that, 
         JSONNode* const json);
 
-// Update the statitics of the SquidletInfo 'that' with the result of the 
-// 'task'
+// Update the statitics of the SquidletInfo 'that' with the result of 
+// the 'task'
 void SquidletInfoUpdateStats(
          SquidletInfo* const that, 
   SquidletTaskRequest* const task);
@@ -116,8 +117,10 @@ void SquidletInfoFree(
     close((*that)->_sock);
     
   // Free memory
-  free((*that)->_name);
-  free((*that)->_ip);
+  if ((*that)->_name != NULL)
+    free((*that)->_name);
+  if ((*that)->_ip != NULL)
+    free((*that)->_ip);
   free(*that);
   *that = NULL;
 }
@@ -204,7 +207,8 @@ void SquidletInfoStatsPrintln(
 // ================ Functions implementation ====================
 
 // Return a new SquidletTaskRequest for a task of type 'type'
-// The task is identified by its 'id'. It holds a copy of 'data', a 
+// The task is identified by its 'id'/'subId', it will have at
+// maximum 'maxWait' seconds to complete. It holds a copy of 'data', a 
 // string in JSON format
 SquidletTaskRequest* SquidletTaskRequestCreate(
    SquidletTaskType type, 
@@ -245,12 +249,14 @@ void SquidletTaskRequestFree(
   // Free memory
   if ((*that)->_bufferResult != NULL)
     free((*that)->_bufferResult);
-  free((*that)->_data);
+  if ((*that)->_data != NULL)
+    free((*that)->_data);
   free(*that);
   *that = NULL;  
 }
 
 // Print the SquidletTaskRequest 'that' on the file 'stream'
+// Only a maximum of 100 first characters of the data are printed
 void SquidletTaskRequestPrint(
   const SquidletTaskRequest* const that, 
                        FILE* const stream) {
@@ -266,12 +272,22 @@ void SquidletTaskRequestPrint(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Get a truncated version of the data
-  #define SquidletTaskRequestPrint_lengthTrunc 150
+
+  // Declare a buffer to truncate the data
+  #define SquidletTaskRequestPrint_lengthTrunc 100
   char truncData[SquidletTaskRequestPrint_lengthTrunc];
   truncData[SquidletTaskRequestPrint_lengthTrunc - 1] = '\0';
+
+  // Copy the data
   strncpy(truncData, SquidletTaskData(that), 
     SquidletTaskRequestPrint_lengthTrunc - 1);
+
+  // Add a mark if the data were too long
+  if (strlen(SquidletTaskData(that)) >= 
+    SquidletTaskRequestPrint_lengthTrunc) {
+    strcpy(truncData + SquidletTaskRequestPrint_lengthTrunc - 7, 
+      " (...)");
+  }
 
   // Print the info on the stream 
   fprintf(stream, "%s(#%lu-%lu) %s", 
@@ -291,10 +307,19 @@ const char* SquidletTaskTypeAsStr(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
+  // If the type is valid
   if (that->_type >= 0 && that->_type < sizeof(squidletTaskTypeStr)) {
+
+    // Return the name of the type
     return squidletTaskTypeStr[that->_type];
+
+  // Else, the name is not valid
   } else {
+
+    // Return the name of the default type
     return squidletTaskTypeStr[0];
+
   }
 }
 
