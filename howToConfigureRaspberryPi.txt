@@ -38,6 +38,7 @@ sudo nano /etc/hosts       # change "raspberrypi" to "Squidlet001"
 30) Open the Makefile with the command `nano Makefile` and make sure the BUILD_MODE is set to '1'
 31) Compile the repository TheSquid with the command `make`, others repository are automatically installed
 32) Check everything works fine with `./main`.
+33) Install lsof with `sudo apt update && sudo apt install lsof`
 
 Mount of NAS
 1) sudo mkdir /mnt/NAS

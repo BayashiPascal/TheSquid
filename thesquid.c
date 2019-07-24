@@ -2525,7 +2525,7 @@ void SquadBenchmark(
   fprintf(stream, "-- Benchmark started --\n");
   float lengthTest = 240000.0; // ms
   size_t maxSizePayload = 900;
-  int nbMaxLoop = 2048;
+  int nbMaxLoop = 1024;
   char* header = "nbLoopPerTask\tnbBytePayload\tCompleted\tExpected\n";
   // If the squad has no squidlet
   if (SquadGetNbSquidlets(that) == 0) {
@@ -2565,7 +2565,7 @@ void SquadBenchmark(
     fprintf(stream, "%s", header);
 
     // Loop on payload size
-    time_t maxWait = 1000;
+    time_t maxWait = 10000;
     unsigned int id = 0;
     bool flagStop = false;
     for (size_t sizePayload = 9; !flagStop && 
@@ -2630,7 +2630,6 @@ void SquadBenchmark(
           SquidletTaskRequest* task = GSetPop(&(that->_tasks));
           SquidletTaskRequestFree(&task);
         }
-        
         // Wait for the currently running tasks to finish
         while (!flagStop && SquadGetNbRunningTasks(that) > 0) {
           GSet completedTasks = SquadStep(that);
@@ -2666,7 +2665,7 @@ void SquadBenchmark(
         //SquadPrintStatsSquidlets(that, stream);
         
         // Calculate and display the perf for this step
-        float nbTaskExpected = 0.0;
+        float nbTaskComplete = 0.0;
         deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
           (float)(stop.tv_usec - start.tv_usec) / 1000.0;
         if (SquadGetNbSquidlets(that) > 0) {
@@ -2676,14 +2675,14 @@ void SquadBenchmark(
             SquidletInfo* squidlet = GSetIterGet(&iter);
             SquidletInfoStats* stats = 
               (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
-            nbTaskExpected += deltams / stats->_timePerTask;
+            nbTaskComplete += deltams / stats->_timePerTask;
           } while (GSetIterStep(&iter));
         }
 
-        nbTaskExpected = lengthTest / deltams * nbTaskExpected;
+        float nbTaskExpected = lengthTest / deltams * nbTaskComplete;
 
         fprintf(stream, "%04d\t%08u\t%f*%f/%f\t%.6f\n", 
-          nbLoop, sizePayload, nbTaskExpected, lengthTest, deltams, nbTaskExpected);
+          nbLoop, sizePayload, nbTaskComplete, lengthTest, deltams, nbTaskExpected);
         fflush(stream);
       }
     }
