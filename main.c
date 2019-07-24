@@ -401,7 +401,7 @@ void UnitTestAll() {
   UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
-  UnitTestPovRay();
+  //UnitTestPovRay();
   printf("UnitTestAll OK\n");
 }
 

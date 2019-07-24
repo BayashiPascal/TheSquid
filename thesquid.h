@@ -46,7 +46,7 @@
 #define SQUAD_TXTOMETER_FORMATRUNNING     "Running: %s\n"
 #define SQUAD_TXTOMETER_FORMATQUEUED      " Queued: %s\n"
 #define SQUAD_TXTOMETER_NBLINEHISTORY     20
-#define SQUAD_TXTOMETER_LENGTHLINEHISTORY 200
+#define SQUAD_TXTOMETER_LENGTHLINEHISTORY 100
 #define SQUAD_TXTOMETER_NBTASKDISPLAYED   32
 
 // Range for the sliding average when computing stats
@@ -245,7 +245,8 @@ typedef struct SquadRunningTask {
 
 // ================ Functions declaration ====================
 
-// Return a new SquadRunningTask with the 'request' and 'squidlet'
+// Return a new SquadRunningTask for the SquidletTaskRequest 'request' 
+// running on the SquidletInfo 'squidlet'
 SquadRunningTask* SquadRunningTaskCreate(
   SquidletTaskRequest* const request, 
          SquidletInfo* const squidlet);

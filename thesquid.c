@@ -80,7 +80,7 @@ SquidletInfo* SquidletInfoCreate(
 void SquidletInfoStatsInit(
   SquidletInfoStats* const that) {
 #if BUILDMODE == 0
-  if (name == NULL) {
+  if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
     sprintf(TheSquidErr->_msg, "'that' is null");
     PBErrCatch(TheSquidErr);
@@ -328,7 +328,8 @@ const char* SquidletTaskTypeAsStr(
 
 // ================ Functions implementation ====================
 
-// Return a new SquadRunningTask with the 'request' and 'squidlet'
+// Return a new SquadRunningTask for the SquidletTaskRequest 'request' 
+// running on the SquidletInfo 'squidlet'
 SquadRunningTask* SquadRunningTaskCreate(
   SquidletTaskRequest* const request, 
          SquidletInfo* const squidlet) {
@@ -365,7 +366,6 @@ void SquadRunningTaskFree(
     return;
   
   // Free memory
-  SquidletTaskRequestFree(&((*that)->_request));
   free(*that);
   *that = NULL;
 }
@@ -388,9 +388,17 @@ void SquadRunningTaskPrint(
 #endif
   // Print the info on the stream 
   fprintf(stream, "[");
-  SquidletTaskRequestPrint(that->_request, stream);
+  if (that->_request != NULL) {
+    SquidletTaskRequestPrint(that->_request, stream);
+  } else {
+    fprintf(stream, "<null>");
+  }
   fprintf(stream, "]/[");
-  SquidletInfoPrint(that->_squidlet, stream);
+  if (that->_squidlet != NULL) {
+    SquidletInfoPrint(that->_squidlet, stream);
+  } else {
+    fprintf(stream, "<null>");
+  }
   fprintf(stream, "]");
 }
 
@@ -398,9 +406,9 @@ void SquadRunningTaskPrint(
 
 // ================ Functions declaration ====================
 
-// Decode the JSON info of a Squad
+// Decode the JSON info of a Squad from the JSON node 'json'
 bool SquadDecodeAsJSON(
-  Squad* that, 
+     Squad* that, 
   JSONNode* json);
 
 // Refresh the content of the TextOMeter attached to the 
@@ -409,11 +417,10 @@ void SquadUpdateTextOMeter(
   const Squad* const that);
 
 // Add one line to the history of messages for the TextOMeter
-// 'msg' must be less than 
-// SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10 characters long
+// 'msg' is truncated if it doesn't fit in one line of history
 void SquadPushHistory(
   Squad* const that, 
-  char* msg);
+         char* msg);
 
 // Request the execution of a task on a squidlet for the squad 'that'
 // Return true if the request was successfull, fals else
@@ -770,8 +777,10 @@ bool SquadLoadSquidletsFromStr(
   return true;
 }
 
-// Decode the JSON info of a Squad
-bool SquadDecodeAsJSON(Squad* that, JSONNode* json) {
+// Decode the JSON info of a Squad from the JSON node 'json'
+bool SquadDecodeAsJSON(
+     Squad* that, 
+  JSONNode* json) {
 
   // Get the property _squidlets from the JSON
   JSONNode* prop = JSONProperty(json, "_squidlets");
@@ -1798,10 +1807,10 @@ GSet SquadStep(
         // Put back the task to the set of tasks
         SquadTryAgainTask(that, runningTask->_request);
         runningTask->_request = NULL;
-        // Free memory
-        SquadRunningTaskFree(&runningTask);
         // Remove the task from the running tasks
         flag = GSetIterRemoveElem(&iter);
+        // Free memory
+        SquadRunningTaskFree(&runningTask);
       } else {
 
         if (SquadGetFlagTextOMeter(that) == true) {
@@ -2300,9 +2309,10 @@ void SquadSetFlagTextOMeter(
 }
 
 // Add one line to the history of messages for the TextOMeter
-// 'msg' must be less than 
-// SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10 characters long
-void SquadPushHistory(Squad* const that, char* msg) {
+// 'msg' is truncated if it doesn't fit in one line of history
+void SquadPushHistory(
+  Squad* const that, 
+         char* msg) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2314,20 +2324,27 @@ void SquadPushHistory(Squad* const that, char* msg) {
     sprintf(TheSquidErr->_msg, "'msg' is null");
     PBErrCatch(TheSquidErr);
   }
-  if (strlen(msg) >= SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10) {
-    TheSquidErr->_type = PBErrTypeInvalidArg;
-    sprintf(TheSquidErr->_msg, "'msg' is too long (%d<100)",
-      strlen(msg));
-    PBErrCatch(TheSquidErr);
-  }
 #endif
+  // Loop oin each line of the history except the last one
   for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY - 1; 
     ++iLine) {
+    // Copy the following line into the current line to 
+    // 'move up' the history by one step
     strcpy(that->_history[iLine], that->_history[iLine + 1]);
   }
+  // Increment the counter of lines written in history
   ++(that->_countLineHistory);
+  // Write the new line at the end of history, ensuring there is no
+  // overflow
   sprintf(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1], 
-    "[%06u] %s\n", that->_countLineHistory, msg);
+    "[%06u] ", that->_countLineHistory);
+  strncpy(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1] + 9, 
+    msg, SQUAD_TXTOMETER_LENGTHLINEHISTORY - 11);
+  unsigned long len = 
+    MIN(SQUAD_TXTOMETER_LENGTHLINEHISTORY - 2, strlen(
+    that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1]));
+  that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1][len] = '\n';
+  that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1][len + 1] = '\0';
   SquadUpdateTextOMeter(that);
 }
 
@@ -2604,6 +2621,7 @@ void SquadBenchmark(
               fprintf(stream, "%s\n", task->_bufferResult);
               flagStop = true;
             }
+            SquidletTaskRequestFree(&task);
             SquadRunningTaskFree(&completedTask);
           }
           gettimeofday(&stop, NULL);
@@ -2655,6 +2673,7 @@ void SquadBenchmark(
               stats->_timePerTask = 
                 deltams / (float)(stats->_nbTaskComplete);
             }
+            SquidletTaskRequestFree(&task);
             SquadRunningTaskFree(&completedTask);
           }
         } 
