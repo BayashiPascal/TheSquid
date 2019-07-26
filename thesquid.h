@@ -123,7 +123,15 @@ inline
 #endif 
 const SquidletInfoStats* SquidletInfoStatistics(
   const SquidletInfo* const that);
-                
+
+// Update the statistics about the transfer time of the SquidletInfoStats
+// 'that' given that it took 'deltams' millisecond to send 'len' bytes
+// of data
+void SquidletInfoStatsUpdateTimeTransfer(
+  SquidletInfoStats* const that,
+               const float deltams,
+              const size_t len);
+
 // -------------- SquidletTaskRequest
 
 // ================= Data structure ===================
@@ -295,6 +303,7 @@ void SquadFree(
 
 // Load a list of tasks stored in json format from the file 'stream'
 // and add them to the set of tasks of the Squad 'that'
+// If the Squad had already tasks, the loaded ones are added to them
 // Return true if the tasks could be loaded, else false
 // Example:
 // {"tasks":[
@@ -389,7 +398,7 @@ void SquadAddTask_Dummy(
   const unsigned long id,
          const time_t maxWait);
   
-// Add a benchamrk task uniquely identified by its 'id' to the list of 
+// Add a benchmark task uniquely identified by its 'id' to the list of 
 // task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered

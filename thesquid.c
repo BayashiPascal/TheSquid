@@ -9,7 +9,7 @@
 
 // ================ Module variables ====================
 
-// NAme of the tasks types
+// Name of the tasks types
 const char* squidletTaskTypeStr[] = {
   "Null", "Dummy", "Benchmark", "PovRay", "ResetStats"  
 };
@@ -457,9 +457,9 @@ Squad* SquadCreate(void) {
   that->_runningTasks = GSetSquadRunningTaskCreateStatic();
   that->_flagTextOMeter = false;
   that->_textOMeter = NULL;
-  for (int i = 0; i < SQUAD_TXTOMETER_NBLINEHISTORY; ++i) {
-    that->_history[i][0] = '\n';
-    that->_history[i][1] = '\0';
+  for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY; ++iLine) {
+    that->_history[iLine][0] = '\n';
+    that->_history[iLine][1] = '\0';
   }
   that->_countLineHistory = 0;
 
@@ -499,6 +499,7 @@ void SquadFree(
 
 // Load a list of tasks stored in json format from the file 'stream'
 // and add them to the set of tasks of the Squad 'that'
+// If the Squad had already tasks, the loaded ones are added to them
 // Return true if the tasks could be loaded, else false
 // Example of list of tasks:
 // {"tasks":[
@@ -577,9 +578,9 @@ bool SquadLoadTasks(
     }
     
     // Convert values
-    int type = atoi(JSONLabel(JSONValue(propType, 0)));
-    unsigned long id = atol(JSONLabel(JSONValue(propId, 0)));
-    time_t maxWait = atoi(JSONLabel(JSONValue(propMaxWait, 0)));
+    int type = atoi(JSONLblVal(propType));
+    unsigned long id = atol(JSONLblVal(propId));
+    time_t maxWait = atoi(JSONLblVal(propMaxWait));
 
     // Switch according to the type of task and add the corresponding 
     // task
@@ -604,7 +605,7 @@ bool SquadLoadTasks(
           JSONFree(&json);
           return false;
         }
-        int nb = atoi(JSONLabel(JSONValue(prop, 0)));
+        int nb = atoi(JSONLblVal(prop));
         prop = JSONProperty(propTask, "payloadSize");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
@@ -612,7 +613,7 @@ bool SquadLoadTasks(
           JSONFree(&json);
           return false;
         }
-        size_t payloadSize = atol(JSONLabel(JSONValue(prop, 0)));
+        size_t payloadSize = atol(JSONLblVal(prop));
 
         // Add the task
         SquadAddTask_Benchmark(that, id, maxWait, nb, payloadSize);
@@ -629,7 +630,7 @@ bool SquadLoadTasks(
           JSONFree(&json);
           return false;
         }
-        char* ini = strdup(JSONLabel(JSONValue(prop, 0)));
+        char* ini = strdup(JSONLblVal(prop));
         prop = JSONProperty(propTask, "sizeMinFragment");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
@@ -637,7 +638,7 @@ bool SquadLoadTasks(
           JSONFree(&json);
           return false;
         }
-        int sizeMinFragment = atoi(JSONLabel(JSONValue(prop, 0)));
+        int sizeMinFragment = atoi(JSONLblVal(prop));
         prop = JSONProperty(propTask, "sizeMaxFragment");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
@@ -645,7 +646,7 @@ bool SquadLoadTasks(
           JSONFree(&json);
           return false;
         }
-        int sizeMaxFragment = atoi(JSONLabel(JSONValue(prop, 0)));
+        int sizeMaxFragment = atoi(JSONLblVal(prop));
 
         // Add the task
         SquadAddTask_PovRay(that, id, maxWait, ini, 
@@ -658,7 +659,8 @@ bool SquadLoadTasks(
       // Stats reset task
       case SquidletTaskType_ResetStats:
         
-        // Ignore this special task which can be only triggered at runtime
+        // Ignore this special task which can be only triggered
+        // at runtime
         break;
 
       // Invalid task type
@@ -795,6 +797,7 @@ bool SquadDecodeAsJSON(
   
   // Loop on squidlets
   for (int iSquidlet = 0; iSquidlet < nbSquidlet; ++iSquidlet) {
+
     // Get the JSON node for this squidlet
     JSONNode* propSquidlet = JSONValue(prop, iSquidlet);
     
@@ -826,12 +829,12 @@ bool SquadDecodeAsJSON(
     }
 
     // Create a SquidletInfo
-    char* name = JSONLabel(JSONValue(propName, 0));
-    char* ip = JSONLabel(JSONValue(propIp, 0));
-    int port = atoi(JSONLabel(JSONValue(propPort, 0)));
+    char* name = JSONLblVal(propName);
+    char* ip = JSONLblVal(propIp);
+    int port = atoi(JSONLblVal(propPort));
     SquidletInfo* squidletInfo = SquidletInfoCreate(name, ip, port);
     
-    // Add the the squidlet to the set of squidlets
+    // Add the squidlet to the set of squidlets
     GSetAppend((GSet*)SquadSquidlets(that), squidletInfo);
   }
 
@@ -879,7 +882,7 @@ bool SquadSendTaskRequest(
     squidlet->_sock = -1;
   }
   
-  // Create a socket
+  // Create the socket
   int protocol = 0;
   squidlet->_sock = socket(AF_INET, SOCK_STREAM, protocol);
   
@@ -1089,10 +1092,9 @@ void SquadAddTask_Dummy(
   }
 #endif
   // Prepare the data as JSON
-  // Hopefully the id will never have more than 90 digits
   char buffer[100];
   memset(buffer, 0, 100);
-  sprintf(buffer, "{\"v\":\"%d\"}", (int)id);
+  sprintf(buffer, "{\"v\":\"%lu\"}", id);
   unsigned long subid = 0;
 
   // Create the new task
@@ -1103,7 +1105,7 @@ void SquadAddTask_Dummy(
   GSetAppend((GSet*)SquadTasks(that), task);
 }
 
-// Add a benchamrk task uniquely identified by its 'id' to the list of 
+// Add a benchmark task uniquely identified by its 'id' to the list of 
 // task to execute by the squad 'that'
 // The task will have a maximum of 'maxWait' seconds to complete from 
 // the time it's accepted by the squidlet or it will be considered
@@ -1125,8 +1127,7 @@ void SquadAddTask_Benchmark(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Create a dummy buffer made of the alphabet character
-  // The length is tricked by the requested payloadSize
+  // Create a dummy buffer of length 'payloadSize'
   char* data = PBErrMalloc(TheSquidErr, payloadSize + 1);
   memset(data, ' ', payloadSize);
   data[payloadSize] = '\0';
@@ -1231,13 +1232,17 @@ void SquadAddTask_PovRay(
     while(fgets(oneLine, THESQUID_MAXPAYLOADSIZE, fp)) {
       
       // If we are on the line defining the width
-      if (strstr(oneLine, "Width=")) {
+      // and there is actually a value for the width
+      if (strstr(oneLine, "Width=") &&
+        strlen(oneLine) > 7) {
         
         // Decode the width
         sscanf(oneLine + 6, "%lu", &width);
 
       // If we are on the line defining the height
-      } else if (strstr(oneLine, "Height=")) {
+      // and there is actually a value for the height
+      } else if (strstr(oneLine, "Height=") &&
+        strlen(oneLine) > 8) {
         
         // Decode the height
         sscanf(oneLine + 7, "%lu", &height);
@@ -1251,7 +1256,9 @@ void SquadAddTask_PovRay(
         outImgPath = strdup(oneLine + 17);
 
         // Remove the return line
-        outImgPath[strlen(outImgPath) - 1] = '\0';
+        if (outImgPath[strlen(outImgPath) - 1] == '\n') {
+          outImgPath[strlen(outImgPath) - 1] = '\0';
+        }
 
         // Make sure the output file doesn't exists
         char* cmd = PBErrMalloc(TheSquidErr, sizeof(char) * 
@@ -1272,20 +1279,28 @@ void SquadAddTask_PovRay(
     PBErrCatch(TheSquidErr);
   }
 
-  // Get the size of one fragment
-  unsigned long nbSquidlets = SquadGetNbSquidlets(that);
-  if (nbSquidlets == 0)
-    nbSquidlets = 1;
+  // Get the nb of squidlets, force it to 1 at least to avoid division
+  // by zero
+  unsigned long nbSquidlets = MAX(1, SquadGetNbSquidlets(that));
+
+  // Declare a variable to memorize the size of one fragment
   unsigned long sizeFrag[2];
+
+  // Get the size of one fragment
   sizeFrag[0] = 
     MAX(sizeMinFragment, MIN(sizeMaxFragment, width / nbSquidlets));
   sizeFrag[1] = 
     MAX(sizeMinFragment, MIN(sizeMaxFragment, width / nbSquidlets));
   
-  // Get the nb of fragments
+  // Declare a variable to memorize the nb of fragments
   unsigned long nbFrag[2];
+
+  // Get the nb of fragments
   nbFrag[0] = width / sizeFrag[0];
   nbFrag[1] = height / sizeFrag[1];
+
+  // If the size of the image is not dividable we have to had one more
+  // fragment to render the last partial fragment
   if (sizeFrag[0] * nbFrag[0] < width)
     ++(nbFrag[0]);
   if (sizeFrag[1] * nbFrag[1] < height)
@@ -1293,13 +1308,16 @@ void SquadAddTask_PovRay(
   
   // Create a temporary GSet where to add the tasks to be able to 
   // shuffle it independantly of the eventual other task in the Squad
+  // Shuffling the task to render the fragments in random order
   GSet set = GSetCreateStatic();
   
   // Create the tasks for each fragment
   for (unsigned long i = 0; i < nbFrag[0]; ++i) {
     for (unsigned long j = 0; j < nbFrag[1]; ++j) {
+
       // Get the id of the task
       unsigned long taskId = i * nbFrag[1] + j;
+
       // Get the coordinates of the fragment
       // Pov-Ray starts counting at 1, so the top left is (1,1)
       unsigned long top = j * sizeFrag[1] + 1;
@@ -1310,12 +1328,14 @@ void SquadAddTask_PovRay(
       unsigned long right = (i + 1) * sizeFrag[0] + 1;
       if (right > width)
         right = width;
+
       // Get the name of the output file for this fragment
       int len = strlen(outImgPath);
       char* tga = PBErrMalloc(TheSquidErr, len + 6);
       memset(tga, 0, len + 6);
       strcpy(tga, outImgPath);
       sprintf(tga + len - 4, "-%05lu.tga", taskId);
+
       // Prepare the data as JSON
       char buffer[THESQUID_MAXPAYLOADSIZE];
       memset(buffer, 0, THESQUID_MAXPAYLOADSIZE);
@@ -1326,19 +1346,23 @@ void SquadAddTask_PovRay(
         "\"height\":\"%lu\",\"outTga\":\"%s\"}", 
         id, taskId, ini, tga, top, left, bottom, right, width, height,
         outImgPath);
+
       // Add the new task to the set of task to execute
       SquidletTaskRequest* task = SquidletTaskRequestCreate(
         SquidletTaskType_PovRay, id, taskId, buffer, maxWait);
       GSetAppend(&set, task);
+
       // Free memory
       free(tga);
     }
   }
+
+  // Shuffle the task and add them to the set of tasks
   GSetShuffle(&set);
   GSetAppendSet((GSet*)SquadTasks(that), &set);
-  GSetFlush(&set);
   
   // Free memory
+  GSetFlush(&set);
   free(outImgPath);
 
 }
@@ -1363,7 +1387,7 @@ bool SquadRequestSquidletToResetStats(
 #endif
 
     // Prepare the data as JSON
-    char* buffer = "{\"id\":\"0\",\"subid\":\"0\"}";
+    char* buffer = "{\"id\":\"0\"}";
     
     // Create the task
     unsigned long id = 0;
@@ -1375,6 +1399,7 @@ bool SquadRequestSquidletToResetStats(
     // Request the execution of the task by the squidlet
     bool ret = SquadSendTaskRequest(that, task, squidlet);
     if (ret) {
+
       // If the squidlet accepted to execute the task
       ret = SquadSendTaskData(that, squidlet, task);
     }
@@ -1399,10 +1424,10 @@ bool SquadRequestAllSquidletToResetStats(
   }
 #endif
 
-  // Declare a variable to ;e;eorize if all the request were successfull
+  // Declare a variable to memorize if all the requests were successfull
   bool flag = true;
   
-  // If the Squad has squidlets
+  // If the Squad has non-busy squidlets
   if (SquadGetNbSquidlets(that) > 0) {
 
     // Loop on the squidlets
@@ -1414,6 +1439,7 @@ bool SquadRequestAllSquidletToResetStats(
       SquidletInfo* squidlet = GSetIterGet(&iter);
 
       // Request the reset of the stats of this squidlet
+      // and update the flag with the returned flag
       flag &= SquadRequestSquidletToResetStats(that, squidlet);
 
     } while (GSetIterStep(&iter));
@@ -1438,7 +1464,18 @@ bool SquadSendTaskData(
     sprintf(TheSquidErr->_msg, "'that' is null");
     PBErrCatch(TheSquidErr);
   }
+  if (squidlet == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'squidlet' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
 #endif
+
   // Declare some variables to process the lines of history
   char lineHistory[200];
   char bufferHistory[100];
@@ -1449,8 +1486,8 @@ bool SquadSendTaskData(
   size_t len = strlen(task->_data);
   if (send(squidlet->_sock, 
     (char*)&len, sizeof(size_t), flags) == -1) {
-    // If we couldn't send the data size
 
+    // If we couldn't send the data size
     if (SquadGetFlagTextOMeter(that) == true) {
       sprintf(lineHistory, 
         "couldn't send task data size %d", len);
@@ -1471,47 +1508,31 @@ bool SquadSendTaskData(
     }
   }
 
-  // Send the task data
+  // Memorize the start time for the statistics
   struct timeval start;
   gettimeofday(&start, NULL);
+
+  // Send the task data, if we couldn't send the data
   if (send(squidlet->_sock, task->_data, len, flags) == -1) {
-    // If we couldn't send the data
 
     if (SquadGetFlagTextOMeter(that) == true)
       SquadPushHistory(that, "couldn't send task data");
 
     return false;
+
+  // Else, we could send the data
   } else {
-    // Update the stats
+
+    // Get the time to send the data
     struct timeval stop;
     gettimeofday(&stop, NULL);
     float deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
       (float)(stop.tv_usec - start.tv_usec) / 1000.0;
-    SquidletInfoStats* stats = 
-      (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
-    if (stats->_timeTransferSquadSquidMs[0] > deltams) {
-      stats->_timeTransferSquadSquidMs[0] = deltams;
-    }
-    if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT &&
-      stats->_nbTaskComplete > 0) {
-      stats->_timeTransferSquadSquidMs[1] = 
-        (stats->_timeTransferSquadSquidMs[1] * 
-        (float)(stats->_nbTaskComplete - 1) +
-        deltams) / 
-        (float)(stats->_nbTaskComplete);
-    } else {
-      stats->_timeTransferSquadSquidMs[1] = 
-        (stats->_timeTransferSquadSquidMs[1] * 
-        (float)(SQUID_RANGEAVGSTAT - 1) +
-        deltams) / 
-        (float)SQUID_RANGEAVGSTAT;
-    }
-    if (stats->_timeTransferSquadSquidMs[2] < deltams) {
-      stats->_timeTransferSquadSquidMs[2] = deltams;
-    }
 
-    if (SquadGetFlagTextOMeter(that) == true)
-      SquadPushHistory(that, "sent task data");
+    // Update the stats about transfer time
+    SquidletInfoStatsUpdateTimeTransfer(
+      (SquidletInfoStats*)SquidletInfoStatistics(squidlet),
+      deltams, len);
 
   }
 
@@ -1519,6 +1540,58 @@ bool SquadSendTaskData(
   return true;
 }
 
+// Update the statistics about the transfer time of the SquidletInfoStats
+// 'that' given that it took 'deltams' millisecond to send 'len' bytes
+// of data
+void SquidletInfoStatsUpdateTimeTransfer(
+  SquidletInfoStats* const that,
+               const float deltams,
+              const size_t len) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+
+  // Get the delay per byte
+  float deltamsUnit = deltams / (float)len;
+
+  // Update the max
+  if (that->_timeTransferSquadSquidMs[0] > deltamsUnit) {
+    that->_timeTransferSquadSquidMs[0] = deltamsUnit;
+  }
+
+  // Update the sliding average
+  // If the number of completed tasks is less than the length of the
+  // sliding average and there are actually completed tasks
+  if (that->_nbTaskComplete <= SQUID_RANGEAVGSTAT &&
+    that->_nbTaskComplete > 0) {
+
+    // Update the sliding average
+    that->_timeTransferSquadSquidMs[1] = 
+      (that->_timeTransferSquadSquidMs[1] * 
+      (float)(that->_nbTaskComplete - 1) +
+      deltamsUnit) / (float)(that->_nbTaskComplete);
+
+  // Else, the number of completed tasks is more than the length of the
+  // sliding average or there are no completed tasks yet
+  } else {
+
+    // Update the sliding average
+    that->_timeTransferSquadSquidMs[1] = 
+      (that->_timeTransferSquadSquidMs[1] * 
+      (float)(SQUID_RANGEAVGSTAT - 1) +
+      deltamsUnit) / (float)SQUID_RANGEAVGSTAT;
+  }
+
+  // Update the min
+  if (that->_timeTransferSquadSquidMs[2] < deltamsUnit) {
+    that->_timeTransferSquadSquidMs[2] = deltamsUnit;
+  }
+}
+  
 // Try to receive the result from the running task 'runningTask'
 // If the result is ready it is stored in the _bufferResult of the 
 // SquidletTaskRequest of the 'runningTask'
@@ -1978,32 +2051,32 @@ void SquidletInfoUpdateStats(
       SquidletInfoStats* stats = 
         (SquidletInfoStats*)SquidletInfoStatistics(that);
       stats->_nbAcceptedConnection = 
-        atol(JSONLabel(JSONValue(propNbAcceptedConnection, 0)));
+        atol(JSONLblVal(propNbAcceptedConnection));
       stats->_nbAcceptedTask = 
-        atol(JSONLabel(JSONValue(propNbAcceptedTask, 0)));
+        atol(JSONLblVal(propNbAcceptedTask));
       stats->_nbRefusedTask = 
-        atol(JSONLabel(JSONValue(propNbRefusedTask, 0)));
+        atol(JSONLblVal(propNbRefusedTask));
       stats->_nbFailedReceptTaskData = 
-        atol(JSONLabel(JSONValue(propNbFailedReceptTaskData, 0)));
+        atol(JSONLblVal(propNbFailedReceptTaskData));
       stats->_nbFailedReceptTaskSize = 
-        atol(JSONLabel(JSONValue(propNbFailedReceptTaskSize, 0)));
+        atol(JSONLblVal(propNbFailedReceptTaskSize));
       stats->_nbSentResult = 
-        atol(JSONLabel(JSONValue(propNbSentResult, 0)));
+        atol(JSONLblVal(propNbSentResult));
       stats->_nbFailedSendResult = 
-        atol(JSONLabel(JSONValue(propNbFailedSendResult, 0)));
+        atol(JSONLblVal(propNbFailedSendResult));
       stats->_nbFailedSendResultSize = 
-        atol(JSONLabel(JSONValue(propNbFailedSendResultSize, 0)));
+        atol(JSONLblVal(propNbFailedSendResultSize));
       stats->_nbFailedReceptAck = 
-        atol(JSONLabel(JSONValue(propNbFailedReceptAck, 0)));
+        atol(JSONLblVal(propNbFailedReceptAck));
       stats->_nbTaskComplete = 
-        atol(JSONLabel(JSONValue(propNbTaskComplete, 0)));
+        atol(JSONLblVal(propNbTaskComplete));
       
       // If its not the first completed task
       if (stats->_nbTaskComplete > 1) {
         
         // Update the statistics about time
         float timeToProcessMs = 
-          atof(JSONLabel(JSONValue(propTimeToProcessMs, 0)));
+          atof(JSONLblVal(propTimeToProcessMs));
         if (stats->_timeToProcessMs[0] > timeToProcessMs) {
           stats->_timeToProcessMs[0] = timeToProcessMs;
         }
@@ -2025,7 +2098,7 @@ void SquidletInfoUpdateStats(
         }
         
         float timeWaitedTaskMs = 
-          atof(JSONLabel(JSONValue(propTimeWaitedTaskMs, 0)));
+          atof(JSONLblVal(propTimeWaitedTaskMs));
         if (stats->_timeWaitedTaskMs[0] > timeWaitedTaskMs) {
           stats->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
         }
@@ -2047,7 +2120,7 @@ void SquidletInfoUpdateStats(
         }
         
         float timeWaitedAckMs = 
-          atof(JSONLabel(JSONValue(propTimeWaitedAckMs, 0)));
+          atof(JSONLblVal(propTimeWaitedAckMs));
         if (stats->_timeWaitedAckMs[0] > timeWaitedAckMs) {
           stats->_timeWaitedAckMs[0] = timeWaitedAckMs;
         }
@@ -2069,7 +2142,7 @@ void SquidletInfoUpdateStats(
         }
 
         float temperature = 
-          atof(JSONLabel(JSONValue(propTemperature, 0)));
+          atof(JSONLblVal(propTemperature));
         if (stats->_temperature[0] > temperature) {
           stats->_temperature[0] = temperature;
         }
@@ -2091,54 +2164,38 @@ void SquidletInfoUpdateStats(
         }
         
         float timeTransferSquidSquadMs = 
-          atof(JSONLabel(JSONValue(propTimeTransferSquidSquad, 0)));
-        if (stats->_timeTransferSquidSquadMs[0] > timeTransferSquidSquadMs) {
-          stats->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
-        }
-        if (stats->_nbTaskComplete <= SQUID_RANGEAVGSTAT) {
-          stats->_timeTransferSquidSquadMs[1] = 
-            (stats->_timeTransferSquidSquadMs[1] * 
-            (float)(stats->_nbTaskComplete - 1) +
-            timeTransferSquidSquadMs) / 
-            (float)(stats->_nbTaskComplete);
-        } else {
-          stats->_timeTransferSquidSquadMs[1] = 
-            (stats->_timeTransferSquidSquadMs[1] * 
-            (float)(SQUID_RANGEAVGSTAT - 1) +
-            timeTransferSquidSquadMs) / 
-            (float)SQUID_RANGEAVGSTAT;
-        }
-        if (stats->_timeTransferSquidSquadMs[2] < timeTransferSquidSquadMs) {
-          stats->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
-        }
+          atof(JSONLblVal(propTimeTransferSquidSquad));
+        SquidletInfoStatsUpdateTimeTransfer(
+          stats, timeTransferSquidSquadMs, 1);
+
       // Else, this is the first completed task
       } else {
         float timeToProcessMs = 
-          atof(JSONLabel(JSONValue(propTimeToProcessMs, 0)));
+          atof(JSONLblVal(propTimeToProcessMs));
         stats->_timeToProcessMs[0] = timeToProcessMs;
         stats->_timeToProcessMs[1] = timeToProcessMs;
         stats->_timeToProcessMs[2] = timeToProcessMs;
 
         float timeWaitedTaskMs = 
-          atof(JSONLabel(JSONValue(propTimeWaitedTaskMs, 0)));
+          atof(JSONLblVal(propTimeWaitedTaskMs));
         stats->_timeWaitedTaskMs[0] = timeWaitedTaskMs;
         stats->_timeWaitedTaskMs[1] = timeWaitedTaskMs;
         stats->_timeWaitedTaskMs[2] = timeWaitedTaskMs;
         
         float timeWaitedAckMs = 
-          atof(JSONLabel(JSONValue(propTimeWaitedAckMs, 0)));
+          atof(JSONLblVal(propTimeWaitedAckMs));
         stats->_timeWaitedAckMs[0] = timeWaitedAckMs;
         stats->_timeWaitedAckMs[1] = timeWaitedAckMs;
         stats->_timeWaitedAckMs[2] = timeWaitedAckMs;
         
         float temperature = 
-          atof(JSONLabel(JSONValue(propTemperature, 0)));
+          atof(JSONLblVal(propTemperature));
         stats->_temperature[0] = temperature;
         stats->_temperature[1] = temperature;
         stats->_temperature[2] = temperature;
         
         float timeTransferSquidSquadMs = 
-          atof(JSONLabel(JSONValue(propTimeTransferSquidSquad, 0)));
+          atof(JSONLblVal(propTimeTransferSquidSquad));
         stats->_timeTransferSquidSquadMs[0] = timeTransferSquidSquadMs;
         stats->_timeTransferSquidSquadMs[1] = timeTransferSquidSquadMs;
         stats->_timeTransferSquidSquadMs[2] = timeTransferSquidSquadMs;
@@ -2191,21 +2248,21 @@ void SquadProcessCompletedTask_PovRay(
       propRight != NULL && propBottom != NULL && propResultImg != NULL) {
       // Load the result image
       GenBrush* resultImg = 
-        GBCreateFromFile(JSONLabel(JSONValue(propResultImg, 0)));
+        GBCreateFromFile(JSONLblVal(propResultImg));
 
       // If the result image doesn't exists
       if (resultImg == NULL) {
         // Create the result image
         VecShort2D dim = VecShortCreateStatic2D();
-        VecSet(&dim, 0, atoi(JSONLabel(JSONValue(propWidth, 0))));
-        VecSet(&dim, 1, atoi(JSONLabel(JSONValue(propHeight, 0))));
+        VecSet(&dim, 0, atoi(JSONLblVal(propWidth)));
+        VecSet(&dim, 1, atoi(JSONLblVal(propHeight)));
         resultImg = GBCreateImage(&dim);
-        GBSetFileName(resultImg, JSONLabel(JSONValue(propResultImg, 0)));
+        GBSetFileName(resultImg, JSONLblVal(propResultImg));
       }
 
       // Load the fragment
       GenBrush* fragment = 
-        GBCreateFromFile(JSONLabel(JSONValue(propTga, 0)));
+        GBCreateFromFile(JSONLblVal(propTga));
 
       // If we could load the fragment
       if (fragment != NULL) {
@@ -2215,16 +2272,16 @@ void SquadProcessCompletedTask_PovRay(
         // Pov-Ray starts counting at 1, so the top left is (1,1)
         VecShort2D dim = VecShortCreateStatic2D();
         VecSet(&dim, 0,
-          atoi(JSONLabel(JSONValue(propRight, 0))) -
-          atoi(JSONLabel(JSONValue(propLeft, 0))) + 1);
+          atoi(JSONLblVal(propRight)) -
+          atoi(JSONLblVal(propLeft)) + 1);
         VecSet(&dim, 1, 
-          atoi(JSONLabel(JSONValue(propBottom, 0))) -
-          atoi(JSONLabel(JSONValue(propTop, 0))) + 1);
+          atoi(JSONLblVal(propBottom)) -
+          atoi(JSONLblVal(propTop)) + 1);
         VecShort2D posLR = VecShortCreateStatic2D();
-        VecSet(&posLR, 0, atoi(JSONLabel(JSONValue(propLeft, 0))) - 1);
+        VecSet(&posLR, 0, atoi(JSONLblVal(propLeft)) - 1);
         VecSet(&posLR, 1, 
-          atoi(JSONLabel(JSONValue(propHeight, 0))) -
-          atoi(JSONLabel(JSONValue(propBottom, 0))));
+          atoi(JSONLblVal(propHeight)) -
+          atoi(JSONLblVal(propBottom)));
         // Add the fragment to the result image
         VecShort2D pos = VecShortCreateStatic2D();
         do {
@@ -2252,7 +2309,7 @@ void SquadProcessCompletedTask_PovRay(
 
       // Delete the fragment
       char cmd[500];
-      sprintf(cmd, "rm %s", JSONLabel(JSONValue(propTga, 0)));
+      sprintf(cmd, "rm %s", JSONLblVal(propTga));
       int ret = system(cmd);
       (void)ret;
 
@@ -3282,7 +3339,7 @@ void SquidletProcessRequest(
       that->_timeTransferSquidSquadMs = 
         (stop.tv_sec - start.tv_sec) * 1000 + 
         (stop.tv_usec - start.tv_usec) / 1000;
-
+      that->_timeTransferSquidSquadMs /= (float)len;
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
@@ -3427,7 +3484,7 @@ void SquidletProcessRequest_Dummy(
     // Get the value to process
     JSONNode* prop = JSONProperty(json, "v");
     if (prop != NULL) {
-      int v = atoi(JSONLabel(JSONValue(prop, 0)));
+      int v = atoi(JSONLblVal(prop));
       // Process the value
       result = v * -1;
       // Sleep for v seconds
@@ -3587,7 +3644,7 @@ void SquidletProcessRequest_Benchmark(
     // Get the value to process
     JSONNode* prop = JSONProperty(json, "nb");
     if (prop != NULL) {
-      int nb = atoi(JSONLabel(JSONValue(prop, 0)));
+      int nb = atoi(JSONLblVal(prop));
       prop = JSONProperty(json, "v");
       if (prop != NULL) {
         if (SquidletStreamInfo(that)){
@@ -3597,7 +3654,7 @@ void SquidletProcessRequest_Benchmark(
         }
         // Run the benchmark function
         result = TheSquidBenchmark(nb, 
-          JSONLabel(JSONValue(prop, 0)));
+          JSONLblVal(prop));
 
         if (SquidletStreamInfo(that)){
           SquidletPrint(that, SquidletStreamInfo(that));
@@ -3726,12 +3783,12 @@ void SquidletProcessRequest_PovRay(
       char cmd[500];
       sprintf(cmd, 
         "povray %s +SC%s +SR%s +EC%s +ER%s +O%s +FT -D", 
-        JSONLabel(JSONValue(propIni, 0)),
-        JSONLabel(JSONValue(propLeft, 0)), 
-        JSONLabel(JSONValue(propTop, 0)), 
-        JSONLabel(JSONValue(propRight, 0)), 
-        JSONLabel(JSONValue(propBottom, 0)), 
-        JSONLabel(JSONValue(propTga, 0)));
+        JSONLblVal(propIni),
+        JSONLblVal(propLeft), 
+        JSONLblVal(propTop), 
+        JSONLblVal(propRight), 
+        JSONLblVal(propBottom), 
+        JSONLblVal(propTga));
 
       // Execute the Pov-Ray command
       int ret = system(cmd);
