@@ -222,7 +222,7 @@ void UnitTestDummy() {
     do {
       
       // Step the Squad
-      GSet completedTasks = SquadStep(squad);
+      GSetSquadRunningTask completedTasks = SquadStep(squad);
       sleep(1);
       while (GSetNbElem(&completedTasks) > 0L) {
         SquadRunningTask* completedTask = GSetPop(&completedTasks);
@@ -338,7 +338,7 @@ void UnitTestPovRay() {
     do {
       sleep(1);
       // Step the Squad
-      GSet completedTasks = SquadStep(squad);
+      GSetSquadRunningTask completedTasks = SquadStep(squad);
       while (GSetNbElem(&completedTasks) > 0L) {
         SquadRunningTask* completedTask = GSetPop(&completedTasks);
         SquidletTaskRequest* task = completedTask->_request;
@@ -401,7 +401,7 @@ void UnitTestAll() {
   UnitTestSquadCheckSquidlets();
   UnitTestSquidlet();
   UnitTestDummy();
-  //UnitTestPovRay();
+  UnitTestPovRay();
   printf("UnitTestAll OK\n");
 }
 

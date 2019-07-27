@@ -243,7 +243,7 @@ int main(int argc, char** argv) {
         sleep(freq);
 
         // Step the squad and get the completed tasks at this step
-        GSet completedTasks = SquadStep(squad);
+        GSetSquadRunningTask completedTasks = SquadStep(squad);
         
         // While there are completed tasks
         while (GSetNbElem(&completedTasks) > 0) {

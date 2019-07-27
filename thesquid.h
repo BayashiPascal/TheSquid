@@ -488,11 +488,11 @@ unsigned long SquadGetNbSquidlets(
   const Squad* const that);
 
 // Step the Squad 'that', i.e. tries to affect the remaining tasks to 
-// available Squidlet and check for completion of running task.
-// Return a GSet of completed SquadRunningTask at this step
+// available Squidlets and check for completion of running tasks.
+// Return the GSet of the completed SquadRunningTask at this step
 // Non blocking, if there is no task to compute or no squidlet 
 // available, and no task completed, do nothing and return an empty set
-GSet SquadStep(
+GSetSquadRunningTask SquadStep(
   Squad* const that);
 
 // Process the completed 'task' with the Squad 'that' after its 

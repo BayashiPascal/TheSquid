@@ -1615,7 +1615,7 @@ bool SquadReceiveTaskResult(
   }
   if (runningTask == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
-    sprintf(TheSquidErr->_msg, "'squidlet' is null");
+    sprintf(TheSquidErr->_msg, "'runningTask' is null");
     PBErrCatch(TheSquidErr);
   }
 #endif
@@ -1625,7 +1625,7 @@ bool SquadReceiveTaskResult(
   // Declare a variable to memorize the size in byte of the result data
   size_t sizeResultData = 0;
 
-  // Helper variables
+  // Shortcuts
   SquidletInfo* squidlet = runningTask->_squidlet;
   SquidletTaskRequest* task = runningTask->_request;
 
@@ -1645,7 +1645,7 @@ bool SquadReceiveTaskResult(
   if (SocketRecv(&(squidlet->_sock), sizeof(size_t), 
     (char*)&sizeResultData, 0)) {
 
-    // If the result is ready
+    // If we could get the size it means the result is ready
     if (sizeResultData > 0) {
 
       if (SquadGetFlagTextOMeter(that) == true) {
@@ -1680,9 +1680,12 @@ bool SquadReceiveTaskResult(
       // Wait to receive the result data with a time limit proportional
       // to the size of result data
       int timeOut = 5 + (int)round((float)sizeResultData / 100.0);
+
+      // If we coudln't received the result data
       if (!SocketRecv(&(squidlet->_sock), sizeResultData, 
         task->_bufferResult, timeOut)) {
-        // If we coudln't received the result data
+
+        // Free the memory allocated to the result buffer
         free(task->_bufferResult);
         task->_bufferResult = NULL;
 
@@ -1700,6 +1703,8 @@ bool SquadReceiveTaskResult(
         }
 
       } else {
+
+        // Set teh flag to memorized we have received the result
         receivedFlag = true;
         
         // Send the acknowledgement of received result
@@ -1719,6 +1724,9 @@ bool SquadReceiveTaskResult(
         }
 
       }
+
+    // Else, we couldn't get the size, it means the result is not
+    // ready yet
     } else {
 
       if (SquadGetFlagTextOMeter(that) == true) {
@@ -1734,14 +1742,16 @@ bool SquadReceiveTaskResult(
     }
   }
   
-  // Return the result
+  // Return the flag memorizing if we have received the result
   return receivedFlag;
 }
 
 // Request the execution of a task on a squidlet for the squad 'that'
-// Return true if the request was successfull, fals else
-bool SquadSendTaskOnSquidlet(Squad* const that, 
-  SquidletInfo* const squidlet, SquidletTaskRequest* const task) {
+// Return true if the request was successfull, false else
+bool SquadSendTaskOnSquidlet(
+                Squad* const that, 
+         SquidletInfo* const squidlet, 
+  SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -1759,19 +1769,29 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
     PBErrCatch(TheSquidErr);
   }
 #endif
+
   // Declare some variables to process the lines of history
   char lineHistory[200];
   char bufferHistory[100];
   FILE* streamBufferHistory = NULL;
+
   // Request the execution of the task by the squidlet
   bool ret = SquadSendTaskRequest(that, task, squidlet);
-  if (ret) {
-    // If the squidlet accepted to execute the task
-    if (SquadSendTaskData(that, squidlet, task)) {
-      // Create a new running task and add it to the set
+
+  // If the request was successfull
+  if (ret == true) {
+
+    // Send the task's data to teh squidlet
+    ret = SquadSendTaskData(that, squidlet, task);
+
+    // If we could send the task's data
+    if (ret == true) {
+
+      // Create a new running task and add it to the set of running tasks
       SquadRunningTask* runningTask = 
         SquadRunningTaskCreate(task, squidlet);
-
+      GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
+    
       if (SquadGetFlagTextOMeter(that) == true) {
         streamBufferHistory = fmemopen(bufferHistory, 100, "w");
         SquadRunningTaskPrint(runningTask, streamBufferHistory);
@@ -1781,7 +1801,7 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
         SquadPushHistory(that, lineHistory);
       }
 
-      GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
+    // Else, we couldn't send the task data
     } else {
 
       if (SquadGetFlagTextOMeter(that) == true) {
@@ -1792,8 +1812,10 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
           bufferHistory);
         SquadPushHistory(that, lineHistory);
       }
-      ret = false;
+
     }
+  
+  // Else, the request of execution wasn't successfull
   } else {
 
     if (SquadGetFlagTextOMeter(that) == true) {
@@ -1806,16 +1828,17 @@ bool SquadSendTaskOnSquidlet(Squad* const that,
     }
 
   }
+
   // Return the result
   return ret;
 }
 
 // Step the Squad 'that', i.e. tries to affect the remaining tasks to 
-// available Squidlet and check for completion of running task.
-// Return a GSet of completed SquadRunningTask at this step
+// available Squidlets and check for completion of running tasks.
+// Return the GSet of the completed SquadRunningTask at this step
 // Non blocking, if there is no task to compute or no squidlet 
 // available, and no task completed, do nothing and return an empty set
-GSet SquadStep(
+GSetSquadRunningTask SquadStep(
   Squad* const that) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1825,7 +1848,8 @@ GSet SquadStep(
   }
 #endif
   // Create the set of completed tasks
-  GSet completedTasks = GSetCreateStatic();
+  GSetSquadRunningTask completedTasks = \
+    GSetSquadRunningTaskCreateStatic();
 
   // Declare some variables to process the lines of history
   char lineHistory[200];
@@ -1834,16 +1858,27 @@ GSet SquadStep(
   
   // If there are running tasks
   if (SquadGetNbRunningTasks(that) > 0L) {
+
+    // Declare a flag to manage the removing of tasks during the loop
+    // on running tasks
+    bool flag = false;
+
     // Loop on running tasks
     GSetIterForward iter = 
       GSetIterForwardCreateStatic((GSet*)SquadRunningTasks(that));
-    bool flag = false;
     do {
+
+      // Reinit the flag to manage the removing of tasks during the loop
       flag = false;
+
       // Get the running tasks
       SquadRunningTask* runningTask = GSetIterGet(&iter);
-      // Check if the task is complete
-      if (SquadReceiveTaskResult(that, runningTask)) {
+
+      // Request the result for this task
+      bool complete = SquadReceiveTaskResult(that, runningTask);
+      
+      // If the task is complete
+      if (complete == true) {
 
         if (SquadGetFlagTextOMeter(that) == true) {
           streamBufferHistory = fmemopen(bufferHistory, 100, "w");
@@ -1853,15 +1888,21 @@ GSet SquadStep(
             bufferHistory);
           SquadPushHistory(that, lineHistory); 
         }
+
         // Post process the completed task
         SquadProcessCompletedTask(that, runningTask);
+
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
+
         // Add the task to the set of completed tasks
         GSetAppend(&completedTasks, runningTask);
+
         // Remove the task from the running tasks
         flag = GSetIterRemoveElem(&iter);
-      // Else if we've been waiting too long for this task to complete
+      
+      // Else, the task is not complete
+      // If we've been waiting too long for this task
       } else if (time(NULL) - runningTask->_startTime > 
         runningTask->_request->_maxWaitTime) {
 
@@ -1877,13 +1918,18 @@ GSet SquadStep(
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
         runningTask->_squidlet = NULL;
+
         // Put back the task to the set of tasks
         SquadTryAgainTask(that, runningTask->_request);
         runningTask->_request = NULL;
+
         // Remove the task from the running tasks
         flag = GSetIterRemoveElem(&iter);
+
         // Free memory
         SquadRunningTaskFree(&runningTask);
+
+      // Else, the task is not complete and we can wait more for it
       } else {
 
         if (SquadGetFlagTextOMeter(that) == true) {
@@ -1896,33 +1942,51 @@ GSet SquadStep(
         }
 
       }
+
     } while (flag || GSetIterStep(&iter));
+
   }
   
   // If there are tasks to execute and available squidlet
   if (SquadGetNbRemainingTasks(that) > 0L && 
     SquadGetNbSquidlets(that) > 0L) {
+
+    // Declare a flag to manage the removing of tasks during the loop
+    // on running tasks
+    bool flag = false;
+
     // Loop on squidlets
     GSetIterForward iter = 
       GSetIterForwardCreateStatic((GSet*)SquadSquidlets(that));
-    bool flag = false;
     do {
+
+      // Reinit the flag to manage the removing of tasks during the loop
       flag = false;
+
       // Get the squidlet
       SquidletInfo* squidlet = GSetIterGet(&iter);
-      // Get the next task
+
+      // Get the next task to complete
       SquidletTaskRequest* task = GSetPop((GSet*)SquadTasks(that));
-      // If there is a task
+
+      // If there is a task to complete
       if (task != NULL) {
+
         // Request the task on the squidlet
         bool ret = SquadSendTaskOnSquidlet(that, squidlet, task);
-        // If the squidlet refused the task or the data couldn't be sent
-        if (!ret) {
-          // Put back the task in the set
-          GSetPush((GSet*)SquadTasks(that), task);
-        } else {
+
+        // If the squidlet accepted the task
+        if (ret == true) {
+
           // Remove the squidlet from the available squidlet
           flag = GSetIterRemoveElem(&iter);
+
+        // Else, the squidlet refused the task or the data couldn't be
+        // sent
+        } else {
+
+          // Put back the task in the set
+          GSetPush((GSet*)SquadTasks(that), task);
         }
       }
     } while (flag || GSetIterStep(&iter));
@@ -1965,7 +2029,7 @@ void SquadProcessCompletedTask(
       SquadProcessCompletedTask_PovRay(that, task->_request);
       break;
     case SquidletTaskType_ResetStats:
-      // Should never pass here
+      // Nothing to do
       break;
     default:
       break;
@@ -1975,10 +2039,10 @@ void SquadProcessCompletedTask(
   SquidletInfoUpdateStats(task->_squidlet, task->_request);
 }
 
-// Update the statitics of the SquidletInfo 'that' with the result of the 
-// 'task'
+// Update the statitics of the SquidletInfo 'that' with the result of
+// the 'task'
 void SquidletInfoUpdateStats(
-      SquidletInfo* const that, 
+         SquidletInfo* const that, 
   SquidletTaskRequest* const task) {
 #if BUILDMODE == 0
   if (that == NULL) {
@@ -1992,11 +2056,15 @@ void SquidletInfoUpdateStats(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Decode the JSON data from the completed task
+
+  // Declare a variable to decode the JSON data from the completed task
   JSONNode* jsonResult = JSONCreate();
 
+  // Decode the JSON data from the completed task
+  bool ret = JSONLoadFromStr(jsonResult, task->_bufferResult);
+  
   // If we could decode the JSON
-  if (JSONLoadFromStr(jsonResult, task->_bufferResult)) {
+  if (ret == true) {
 
     // Get the properties
     JSONNode* propNbAcceptedConnection = \
@@ -2170,6 +2238,7 @@ void SquidletInfoUpdateStats(
 
       // Else, this is the first completed task
       } else {
+
         float timeToProcessMs = 
           atof(JSONLblVal(propTimeToProcessMs));
         stats->_timeToProcessMs[0] = timeToProcessMs;
@@ -2225,13 +2294,17 @@ void SquadProcessCompletedTask_PovRay(
   }
 #endif
 
-  // Decode the JSON data from the request and the completed task
+  // Declare variables to decode the JSON data from the request 
+  // and the completed task
   JSONNode* jsonRequest = JSONCreate();
   JSONNode* jsonResult = JSONCreate();
 
+  // Decode the JSON data from the request and the completed task
+  bool ret = JSONLoadFromStr(jsonResult, task->_bufferResult);
+  ret &= JSONLoadFromStr(jsonRequest, task->_data);
+  
   // If we could decode the JSON
-  if (JSONLoadFromStr(jsonResult, task->_bufferResult) && 
-    JSONLoadFromStr(jsonRequest, task->_data)) {
+  if (ret == true) {
 
     // Get the necessary properties
     JSONNode* propResultImg = JSONProperty(jsonRequest, "outTga");
@@ -2246,12 +2319,14 @@ void SquadProcessCompletedTask_PovRay(
     // If the necessary properties were present
     if (propTga != NULL && propTop != NULL && propLeft != NULL &&
       propRight != NULL && propBottom != NULL && propResultImg != NULL) {
+      
       // Load the result image
       GenBrush* resultImg = 
         GBCreateFromFile(JSONLblVal(propResultImg));
 
       // If the result image doesn't exists
       if (resultImg == NULL) {
+        
         // Create the result image
         VecShort2D dim = VecShortCreateStatic2D();
         VecSet(&dim, 0, atoi(JSONLblVal(propWidth)));
@@ -2266,6 +2341,7 @@ void SquadProcessCompletedTask_PovRay(
 
       // If we could load the fragment
       if (fragment != NULL) {
+        
         // Crop the relevant portion of the image
         // Pov-Ray has its coordinate system origin at the top left of 
         // the image, while GenBrush has its own at the bottom left
@@ -2282,20 +2358,19 @@ void SquadProcessCompletedTask_PovRay(
         VecSet(&posLR, 1, 
           atoi(JSONLblVal(propHeight)) -
           atoi(JSONLblVal(propBottom)));
-        // Add the fragment to the result image
-        VecShort2D pos = VecShortCreateStatic2D();
-        do {
-          VecShort2D posFinal = VecGetOp(&pos, 1, &posLR, 1);
-          GBPixel pix = GBGetFinalPixel(fragment, &posFinal);
-          GBSetFinalPixel(resultImg, &posFinal, &pix);
-        } while (VecStep(&pos, &dim));
         
+        // Add the fragment to the result image
+        GBCopyFragment(fragment, resultImg, &posLR, &posLR, &dim);
+
         // Save the result image
         GBRender(resultImg);
 
         // Free memory
         GBFree(&fragment);
+      
+      // Else, we couldn't load the fragment
       } else {
+
         if (SquadGetFlagTextOMeter(that) == true) {
           char lineHistory[200];
           sprintf(lineHistory, "Couldn't read the fragment (%s)", 
@@ -2308,12 +2383,15 @@ void SquadProcessCompletedTask_PovRay(
       GBFree(&resultImg);
 
       // Delete the fragment
-      char cmd[500];
+      char* cmd = PBErrMalloc(TheSquidErr, 
+        sizeof(char) * (1 + strlen(JSONLblVal(propTga)) + 3));
       sprintf(cmd, "rm %s", JSONLblVal(propTga));
       int ret = system(cmd);
+      free(cmd);
       (void)ret;
 
     } else {
+
       if (SquadGetFlagTextOMeter(that) == true) {
         char lineHistory[200];
         sprintf(lineHistory, 
@@ -2334,7 +2412,7 @@ void SquadProcessCompletedTask_PovRay(
 // the Squad 'that' to 'flag'
 void SquadSetFlagTextOMeter(
   Squad* const that, 
-  const bool flag) {
+    const bool flag) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2342,25 +2420,41 @@ void SquadSetFlagTextOMeter(
     PBErrCatch(TheSquidErr);
   }
 #endif
+  
   // Create a copy of the flag
   bool effectiveFlag = flag;
+  
   // If the requested flag is different from the current flag;
   if (that->_flagTextOMeter != effectiveFlag) {
+    
+    // If the user requested to turn on the textometer and the 
+    // textometer is currently off
     if (effectiveFlag && that->_textOMeter == NULL) {
+      
+      // Create the TextOMeter
       char title[] = "Squad";
       int width = SQUAD_TXTOMETER_LENGTHLINEHISTORY + 1;
       int height = SQUAD_TXTOMETER_NBLINEHISTORY + 
         SQUAD_TXTOMETER_NBTASKDISPLAYED + 4;
       that->_textOMeter = TextOMeterCreate(title, width, height);
+      
       // If we couldn't create the TextOMeter
       if (that->_textOMeter == NULL) {
+
         // Force the flag to false
         effectiveFlag = false;
       }
     }
+
+    // If the user requested to turn off the textometer and the 
+    // textometer is currently on
     if (!effectiveFlag && that->_textOMeter != NULL) {
+      
+      // Terminate the TextOMeter
       TextOMeterFree(&(that->_textOMeter));
     }
+
+    // Memorize the current status of the TextOMeter
     that->_flagTextOMeter = effectiveFlag;
   }
 }
@@ -2666,7 +2760,7 @@ void SquadBenchmark(
           }
 
           // Step the Squad
-          GSet completedTasks = SquadStep(that);
+          GSetSquadRunningTask completedTasks = SquadStep(that);
           while (GSetNbElem(&completedTasks) > 0L) {
             SquadRunningTask* completedTask = GSetPop(&completedTasks);
             SquidletTaskRequest* task = completedTask->_request;
@@ -2707,7 +2801,7 @@ void SquadBenchmark(
         }
         // Wait for the currently running tasks to finish
         while (!flagStop && SquadGetNbRunningTasks(that) > 0) {
-          GSet completedTasks = SquadStep(that);
+          GSetSquadRunningTask completedTasks = SquadStep(that);
           gettimeofday(&stop, NULL);
           deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
             (float)(stop.tv_usec - start.tv_usec) / 1000.0;
