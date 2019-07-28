@@ -2516,17 +2516,26 @@ void SquadUpdateTextOMeter(const Squad* const that) {
 #endif
   // Clear the TextOMeter
   TextOMeterClear(that->_textOMeter);
-  // .........................
-  char buffer[200];
+  
+  // Declare a buffer to send text to the TextOMeter
+  char buffer[SQUAD_TXTOMETER_LENGTHLINEHISTORY + 1];
+  
+  // Print the header
   sprintf(buffer, SQUAD_TXTOMETER_FORMAT1, 
     SquadGetNbRunningTasks(that), SquadGetNbRemainingTasks(that),
     SquadGetNbSquidlets(that));
   TextOMeterPrint(that->_textOMeter, buffer);
+
+  // Print the history
   for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY; ++iLine) {
     TextOMeterPrint(that->_textOMeter, that->_history[iLine]);
   }
+
+  // Print the tasks header
   sprintf(buffer, SQUAD_TXTOMETER_TASKHEADER);
   TextOMeterPrint(that->_textOMeter, buffer);
+
+  // Print the running tasks
   int iLine = 0;
   if (SquadGetNbRunningTasks(that) > 0) {
     GSetIterForward iter = GSetIterForwardCreateStatic(
@@ -2534,8 +2543,9 @@ void SquadUpdateTextOMeter(const Squad* const that) {
     do {
       SquadRunningTask* task = GSetIterGet(&iter);
       if (task != NULL) {
-        char bufferTask[100];
-        FILE* stream = fmemopen(bufferTask, 100, "w");
+        char bufferTask[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 12];
+        FILE* stream = fmemopen(
+          bufferTask, sizeof(bufferTask), "w");
         SquadRunningTaskPrint(task, stream);
         fclose(stream);
         sprintf(buffer, SQUAD_TXTOMETER_FORMATRUNNING, bufferTask);
@@ -2547,6 +2557,8 @@ void SquadUpdateTextOMeter(const Squad* const that) {
     } while (GSetIterStep(&iter) && 
       iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED);
   }
+
+  // Print the remaining tasks
   if (SquadGetNbRemainingTasks(that) > 0 &&
     iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED) {
     GSetIterForward iter = GSetIterForwardCreateStatic(
@@ -2554,8 +2566,9 @@ void SquadUpdateTextOMeter(const Squad* const that) {
     do {
       SquidletTaskRequest* task = GSetIterGet(&iter);
       if (task != NULL) {
-        char bufferTask[100];
-        FILE* stream = fmemopen(bufferTask, 100, "w");
+        char bufferTask[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 12];
+        FILE* stream = fmemopen(
+          bufferTask, sizeof(bufferTask), "w");
         SquidletTaskRequestPrint(task, stream);
         fclose(stream);
         sprintf(buffer, SQUAD_TXTOMETER_FORMATQUEUED, bufferTask);
@@ -2567,17 +2580,28 @@ void SquadUpdateTextOMeter(const Squad* const that) {
     } while (GSetIterStep(&iter) && 
       iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED - 1);
   }
+
+  // If there are more tasks than space to print them all
   if (iLine == SQUAD_TXTOMETER_NBTASKDISPLAYED - 1) {
+
+    // Print a mark to specify there are non displayed tasks
     sprintf(buffer, "...\n");
     TextOMeterPrint(that->_textOMeter, buffer);
+
+  // Else, there are remaining space to display more tasks
   } else {
+    
+    // Fill in the remainnig space with empty lines
     sprintf(buffer, "\n");
     for (; iLine < SQUAD_TXTOMETER_NBTASKDISPLAYED; ++iLine) {
       TextOMeterPrint(that->_textOMeter, buffer);
     }
   }
+
+  // Add an empty line at the bottom of the TextOMeter
   sprintf(buffer, "\n");
   TextOMeterPrint(that->_textOMeter, buffer);
+
   // Flush the content of the TextOMeter
   TextOMeterFlush(that->_textOMeter);
 }
@@ -2600,47 +2624,76 @@ bool SquadCheckSquidlets(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
   // Declare a variable to memorize the result
   bool res = true;
+
   // Declare variables to create a dummy task request
   char* buffer = "{\"v\":\"0\"}";
   time_t maxWait = 5;
-  // Loop on the squidlets
+
+  // If there are squidlets
   if (SquadGetNbSquidlets(that) > 0) {
+
+    // Loop on the squidlets
     GSetIterForward iter = 
       GSetIterForwardCreateStatic(SquadSquidlets(that));
     do {
+
       // Get the squidlet
       SquidletInfo* squidlet = GSetIterGet(&iter);
+
       // Display info about the squidlet
       SquidletInfoPrint(squidlet, stream);
       fprintf(stream, "\n");
-      // Request a dummy task from the squidlet
+
+      // Create a dummy task
+      unsigned long id = 0;
+      unsigned long subId = 0;
       SquidletTaskRequest* task = SquidletTaskRequestCreate(
-        SquidletTaskType_Dummy, 0, 0, buffer, maxWait);
+        SquidletTaskType_Dummy, id, subId, buffer, maxWait);
       GSetAppend((GSet*)SquadTasks(that), task);
+
+      // Memorize the start time
       struct timeval start;
       gettimeofday(&start, NULL);
+
+      // Request the execution of the dummy task on the squidlet
       bool ret = SquadSendTaskOnSquidlet(that, squidlet, task);
+
+      // Memorize the time to send the request
       struct timeval timeToSend;
       gettimeofday(&timeToSend, NULL);
+
+      // If the request was not successfull
       if (!ret) {
+        
+        // Set the flag and display a message on the stream
         res = false;
         fprintf(stream, "\tThe request for a dummy task failed.\n");
+
+      // Else, the request was successfull
       } else {
+
         // Get the running tasks
         SquadRunningTask* runningTask = 
           GSetPop((GSet*)SquadRunningTasks(that));
+
         // Loop until the task ends
         bool flagStop = false;
         while (!flagStop && time(NULL) - runningTask->_startTime <= 
           runningTask->_request->_maxWaitTime) {
+
           // If the task is completed
           if (SquadReceiveTaskResult(that, runningTask)) {
+
+            // Get the time to process
             struct timeval timeToProcess;
             gettimeofday(&timeToProcess, NULL);
+
             // Stop the loop
             flagStop = true;
+
             // Process the result
             SquidletTaskRequest* request = runningTask->_request;
             fprintf(stream, "\tRequest for dummy task succeeded.\n");
@@ -2656,9 +2709,13 @@ bool SquadCheckSquidlets(
               delayToSendms, delayToProcessms);
           }
         }
+
+        // If we got out of the loop without the flag raising, it means
+        // we gave up on time
         if (!flagStop) {
           fprintf(stream, "\tGave up due to time limit.\n");
         }
+
         // Free memory
         runningTask->_request = NULL;
         runningTask->_squidlet = NULL;
@@ -2666,6 +2723,7 @@ bool SquadCheckSquidlets(
       }
     } while (GSetIterStep(&iter));
   }
+
   // Return the result
   return res;
 }
@@ -2690,133 +2748,219 @@ void SquadBenchmark(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
   fprintf(stream, "-- Benchmark started --\n");
+
+  // Declare parameters of the benchmark
+  // The benchmark will last 'lengthTest' per pair of 'maxSizePayload'
+  // and 'nbMaxLoop'
+  // 'maxSizePayload' is the max size of the set to be sorted by the 
+  // Squidlet. The size starts at 9 and increment geometrically by 10
+  // 'nbMaxLoop' is the max number of time the set is sorted by the
+  // Squidlet for one given task. The number starts at 1 and increment
+  // geometrically by 2.
   float lengthTest = 240000.0; // ms
   size_t maxSizePayload = 900;
   int nbMaxLoop = 1024;
+
+  // Header for the results
   char* header = "nbLoopPerTask\tnbBytePayload\tCompleted\tExpected\n";
-  // If the squad has no squidlet
+
+  // If the squad has no squidlet, it means we are running the benchmark
+  // on the local device for comparison
   if (SquadGetNbSquidlets(that) == 0) {
-    // Run the benchmark locally
+
+    // Display info
     fprintf(stream, "Execution on local device:\n");
     fprintf(stream, "%s", header);
+
+    // Loop on the payload
     for (size_t sizePayload = 9; 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
+
+      // Create a dummy buffer with the size of the payload
+      // The content of the buffer is actually set up by the benchmark 
+      // function on the squidlet
       char* buffer = PBErrMalloc(TheSquidErr, sizePayload + 1);
       memset(buffer, ' ', sizePayload);
       buffer[sizePayload] = '\0';
 
       // Loop on nbLoop
       for (int nbLoop = 1; nbLoop <= nbMaxLoop; nbLoop *= 2) {
+
+        // Variable to memorize the starting time
         struct timeval stop, start;
         gettimeofday(&start, NULL);
+
+        // Variabel to memorize the number of completed tasks and 
+        // final time
         unsigned long nbComplete = 0;
         float deltams = 0;
+        
+        // Loop on the duration of the test
         do {
+          
+          // Execute the benchmark function
           TheSquidBenchmark(nbLoop, buffer);
+          
+          // Increment the number of completed task
           ++nbComplete;
+          
+          // Get the current time
           gettimeofday(&stop, NULL);
           deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
             (float)(stop.tv_usec - start.tv_usec) / 1000.0;
+
         } while (deltams < lengthTest);
+
+        // Calculate the exact nb of tasks completed in the delay of 
+        // the test
         float nbTaskExpected = lengthTest / deltams * (float)nbComplete;
+        
+        // Print results
         fprintf(stream, "%04d\t%08u\t%lu*%f/%f\t%.6f\n", 
           nbLoop, sizePayload, nbComplete, lengthTest, deltams, nbTaskExpected);
         fflush(stdout);
       }
+
+      // Free memory
       free(buffer);
     }
-  // Else the squad has at least one squidlet
+
+  // Else the squad has at least one squidlet, it means we execute the 
+  // benchmark on TheSquid
   } else {
-    // Run the benchmark on the squidlets
+    
+    // Display info
     fprintf(stream, "Execution on TheSquid:\n");
     fprintf(stream, "%s", header);
 
-    // Loop on payload size
+    // Variables to create the tasks and manage the loops
     time_t maxWait = 10000;
     unsigned int id = 0;
     bool flagStop = false;
+
+    // Loop on payload size
     for (size_t sizePayload = 9; !flagStop && 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
+
       // Loop on nbLoop
       for (int nbLoop = 1; !flagStop && nbLoop <= nbMaxLoop; 
         nbLoop *= 2) {
 
-        // Reset the stats of all the squidlet
+        // Reset the stats of all the squidlets
         SquadRequestAllSquidletToResetStats(that);
 
-        // Loop during lengthTest seconds
+        // Variable ti measure time of execution
         struct timeval stop, start;
         gettimeofday(&start, NULL);
         float deltams = 0.0;
+
+        // Loop during lengthTest seconds
         do {
           
-          // Create benchmark tasks if there are no more
+          // Create benchmark tasks, twice as many as squidlets to ensure
+          // there is always task ready to send in the SquadStep loop
           while (SquadGetNbRunningTasks(that) + 
             SquadGetNbRemainingTasks(that) < 
             2 * SquadGetNbSquidlets(that)) {
+
             SquadAddTask_Benchmark(that, id++, maxWait, nbLoop, 
               sizePayload);
+
           }
 
           // Step the Squad
           GSetSquadRunningTask completedTasks = SquadStep(that);
+
+          // Loop on co,pleted tasks
           while (GSetNbElem(&completedTasks) > 0L) {
+
+            // Get the completed task
             SquadRunningTask* completedTask = GSetPop(&completedTasks);
             SquidletTaskRequest* task = completedTask->_request;
+
             // If the task failed
             if (strstr(task->_bufferResult, 
               "\"success\":\"1\"") == NULL) {
+
+              // Display info and stop the benchmark
               SquidletTaskRequestPrint(task, stdout);
               fprintf(stream, " failed !!\n");
               fprintf(stream, "%s\n", task->_bufferResult);
               flagStop = true;
             }
+
+            // Free memory
             SquidletTaskRequestFree(&task);
             SquadRunningTaskFree(&completedTask);
           }
+
+          // Get the time
           gettimeofday(&stop, NULL);
           deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
             (float)(stop.tv_usec - start.tv_usec) / 1000.0;
+
         } while (!flagStop && deltams < lengthTest);
 
-        // Update the timePerTask of Squidlets which are not running 
-        // at this point
+        // If there are Squidlets which are not running at this point
         if (SquadGetNbSquidlets(that) > 0) {
+
+          // Loop on free Squidlets
           GSetIterForward iter = 
             GSetIterForwardCreateStatic(SquadSquidlets(that));
           do {
+
+            // Get the Squidlet
             SquidletInfo* squidlet = GSetIterGet(&iter);
+
+            // Update the timePerTask of the Squidlets
             SquidletInfoStats* stats = 
               (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
             stats->_timePerTask = 
               deltams / (float)(stats->_nbTaskComplete);
+
           } while (GSetIterStep(&iter));
         }
 
-        // Flush the remaining tasks
+        // Flush the remaining tasks to let only the remaining Squidlet
+        // finish their task and avoid starting new ones
         while (SquadGetNbRemainingTasks(that) > 0) {
           SquidletTaskRequest* task = GSetPop(&(that->_tasks));
           SquidletTaskRequestFree(&task);
         }
-        // Wait for the currently running tasks to finish
+
+        // While there are currently running tasks
         while (!flagStop && SquadGetNbRunningTasks(that) > 0) {
+
+          // Get the completed tasks
           GSetSquadRunningTask completedTasks = SquadStep(that);
+
+          // Measure time
           gettimeofday(&stop, NULL);
           deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
             (float)(stop.tv_usec - start.tv_usec) / 1000.0;
+
+          // Loop on completed tasks
           while (GSetNbElem(&completedTasks) > 0L) {
+
+            // Get the completed task
             SquadRunningTask* completedTask = GSetPop(&completedTasks);
             SquidletTaskRequest* task = completedTask->_request;
+
             // If the task failed
             if (strstr(task->_bufferResult, 
               "\"success\":\"1\"") == NULL) {
+                
+              // Display info and stop the benchmark
               SquidletTaskRequestPrint(task, stdout);
               fprintf(stream, " failed !!\n");
               fprintf(stream, "%s\n", task->_bufferResult);
               flagStop = true;
+
             // Else, the task succeeded
             } else {
+
               // Update the timePerTask
               SquidletInfo* squidlet = completedTask->_squidlet;
               SquidletInfoStats* stats = 
@@ -2824,39 +2968,54 @@ void SquadBenchmark(
               stats->_timePerTask = 
                 deltams / (float)(stats->_nbTaskComplete);
             }
+            
+            // Free memory
             SquidletTaskRequestFree(&task);
             SquadRunningTaskFree(&completedTask);
           }
         } 
-        
+ 
+        // Get the time when all the tasks have finished
         gettimeofday(&stop, NULL);
 
         // Display the stats of all the squidlets
         //SquadPrintStatsSquidlets(that, stream);
         
-        // Calculate and display the perf for this step
+        // Decalre a variable to memorize the extrapolated total
+        // number of completed tasks at the current time
         float nbTaskComplete = 0.0;
+        
+        // Calculate the delay from the start of this run
         deltams = (float)(stop.tv_sec - start.tv_sec) * 1000.0 + 
           (float)(stop.tv_usec - start.tv_usec) / 1000.0;
-        if (SquadGetNbSquidlets(that) > 0) {
-          GSetIterForward iter = 
-            GSetIterForwardCreateStatic(SquadSquidlets(that));
-          do {
-            SquidletInfo* squidlet = GSetIterGet(&iter);
-            SquidletInfoStats* stats = 
-              (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
-            nbTaskComplete += deltams / stats->_timePerTask;
-          } while (GSetIterStep(&iter));
-        }
 
+        // Loop on the Squidlets
+        GSetIterForward iter = 
+          GSetIterForwardCreateStatic(SquadSquidlets(that));
+        do {
+
+          // Calculate the total nb of completed tasks at the time of 
+          // completion
+          SquidletInfo* squidlet = GSetIterGet(&iter);
+          SquidletInfoStats* stats = 
+            (SquidletInfoStats*)SquidletInfoStatistics(squidlet);
+          nbTaskComplete += deltams / stats->_timePerTask;
+        } while (GSetIterStep(&iter));
+
+        // Calculate the exact nb of tasks completed in the delay of 
+        // the test
         float nbTaskExpected = lengthTest / deltams * nbTaskComplete;
 
+        // Display the results
         fprintf(stream, "%04d\t%08u\t%f*%f/%f\t%.6f\n", 
-          nbLoop, sizePayload, nbTaskComplete, lengthTest, deltams, nbTaskExpected);
+          nbLoop, sizePayload, nbTaskComplete, lengthTest,
+          deltams, nbTaskExpected);
         fflush(stream);
       }
     }
   }
+  
+  // Display info
   fprintf(stream, "-- Benchmark ended --\n");
   
 }
@@ -2882,11 +3041,13 @@ void SquadTryAgainTask(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
   // Ensure the result buffer is empty
   if (task->_bufferResult != NULL) {
     free(task->_bufferResult);
     task->_bufferResult = NULL;
   }
+
   // Put back the task in the set of task to complete
   GSetAppend((GSet*)SquadTasks(that), task);
 }
@@ -2908,14 +3069,18 @@ void SquadPrintStatsSquidlets(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
   // If there are currently available squidlets
   if (SquadGetNbSquidlets(that) > 0) {
+
     // Loop on the squidlets
     GSetIterForward iter = 
       GSetIterForwardCreateStatic(SquadSquidlets(that));
     do {
+
       // Get the squidlet
       SquidletInfo* squidlet = GSetIterGet(&iter);
+
       // Print the stats about this squidlet
       fprintf(stream, " --- ");
       SquidletInfoPrint(squidlet, stream);
