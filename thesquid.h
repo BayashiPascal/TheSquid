@@ -27,14 +27,15 @@
 
 // ================= Define ===================
 
-#define THESQUID_NBMAXPENDINGCONN 1
-#define THESQUID_PORTMIN          9000
-#define THESQUID_PORTMAX          9999
-#define THESQUID_TASKREFUSED      0
-#define THESQUID_TASKACCEPTED     1
-#define THESQUID_ACCEPT_TIMEOUT   1    // in seconds
-#define THESQUID_PROC_TIMEOUT     60   // in seconds
-#define THESQUID_MAXPAYLOADSIZE   1024 // bytes
+#define THESQUID_NBMAXPENDINGCONN       1
+#define THESQUID_PORTMIN                9000
+#define THESQUID_PORTMAX                9999
+#define THESQUID_TASKREFUSED            0
+#define THESQUID_TASKACCEPTED           1
+#define THESQUID_ACCEPT_TIMEOUT         1    // in seconds
+#define THESQUID_PROC_TIMEOUT           60   // in seconds
+#define THESQUID_MAXPAYLOADSIZE         1024 // bytes
+#define THESQUID_WAITDATARECEPT_TIMEOUT 5    // in seconds
 
 #define SQUAD_TXTOMETER_LINE1             \
   "NbRunning xxxxx NbQueued xxxxx NbSquidletAvail xxxxx\n"
