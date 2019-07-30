@@ -1,45 +1,45 @@
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 1
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 9
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"v":"1"}
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : process dummy task {"v":"1"}
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","v":"-1","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"1000","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 1
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 9
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"v":"1"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : process dummy task {"v":"1"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","v":"-1","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"1000","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
 
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 1
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 9
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"v":"3"}
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : process dummy task {"v":"3"}
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","v":"-3","nbAcceptedConnection":"2","nbAcceptedTask":"2","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"1","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"2","timeToProcessMs":"3000","timeWaitedTaskMs":"6","timeWaitedAckMs":"970","timeTransferSquidSquadMs":"0.000"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 1
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 9
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"v":"3"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : process dummy task {"v":"3"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","v":"-3","nbAcceptedConnection":"2","nbAcceptedTask":"2","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"1","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"2","timeToProcessMs":"3000","timeWaitedTaskMs":"4","timeWaitedAckMs":"972","timeTransferSquidSquadMs":"0.000"}
 
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 1
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 9
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"v":"5"}
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : process dummy task {"v":"5"}
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","v":"-5","nbAcceptedConnection":"3","nbAcceptedTask":"3","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"2","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"3","timeToProcessMs":"5000","timeWaitedTaskMs":"2","timeWaitedAckMs":"982","timeTransferSquidSquadMs":"0.000"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 1
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 9
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"v":"5"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : process dummy task {"v":"5"}
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","v":"-5","nbAcceptedConnection":"3","nbAcceptedTask":"3","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"2","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"3","timeToProcessMs":"5000","timeWaitedTaskMs":"2","timeWaitedAckMs":"990","timeTransferSquidSquadMs":"0.000"}
 
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-7101 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+6026 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task

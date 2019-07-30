@@ -3542,9 +3542,6 @@ void SquidletProcessRequest(
     fprintf(SquidletStreamInfo(that), " : process task\n");
   }
 
-  // Declare a variable to store the error message if any
-  char errMsg[300] = {0};
-
   // Declare a variable to memorize the size in byte of the input data
   size_t sizeInputData = 0;
 
@@ -3664,8 +3661,6 @@ void SquidletProcessRequest(
       fprintf(SquidletStreamInfo(that), 
         " : couldn't receive data size\n");
     }
-    sprintf(errMsg, "couldn't receive data size (%s)", 
-      strerror(errno));
 
   }
   
@@ -3997,63 +3992,67 @@ void SquidletAddStatsToJSON(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  char buffer[20] = {'\0'};
+  // Declare a variable to convert numbers into string
+  // Hopefully numbers won't have more than 99 digits
+  const int bufferSize = 99;
+  char buffer[bufferSize];
 
+  // Convert numbers into string and add the JSON property for each one
   sprintf(buffer, "%lu", that->_nbAcceptedConnection);
   JSONAddProp(json, "nbAcceptedConnection", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbAcceptedTask);
   JSONAddProp(json, "nbAcceptedTask", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbRefusedTask);
   JSONAddProp(json, "nbRefusedTask", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbFailedReceptTaskSize);
   JSONAddProp(json, "nbFailedReceptTaskSize", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbFailedReceptTaskData);
   JSONAddProp(json, "nbFailedReceptTaskData", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbSentResult);
   JSONAddProp(json, "nbSentResult", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbFailedSendResult);
   JSONAddProp(json, "nbFailedSendResult", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbFailedSendResultSize);
   JSONAddProp(json, "nbFailedSendResultSize", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbFailedReceptAck);
   JSONAddProp(json, "nbFailedReceptAck", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_nbTaskComplete);
   JSONAddProp(json, "nbTaskComplete", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_timeToProcessMs);
   JSONAddProp(json, "timeToProcessMs", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_timeWaitedTaskMs);
   JSONAddProp(json, "timeWaitedTaskMs", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%lu", that->_timeWaitedAckMs);
   JSONAddProp(json, "timeWaitedAckMs", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 
   sprintf(buffer, "%.3f", that->_timeTransferSquidSquadMs);
   JSONAddProp(json, "timeTransferSquidSquadMs", buffer);
-  memset(buffer, 0, 20);
+  memset(buffer, 0, bufferSize);
 }
 
 // Process a benchmark task request with the Squidlet 'that'
@@ -4085,66 +4084,69 @@ void SquidletProcessRequest_Benchmark(
   int result = 0;
 
   // Declare a variable to store the error message if any
-  char errMsg[300] = {'\0'};
+  char errMsg[THESQUID_MAXPAYLOADSIZE] = {'\0'};
 
   // Decode the input from JSON
   JSONNode* json = JSONCreate();
-  if (JSONLoadFromStr(json, buffer)) {
-    // Get the value to process
-    JSONNode* prop = JSONProperty(json, "nb");
-    if (prop != NULL) {
-      int nb = atoi(JSONLblVal(prop));
-      prop = JSONProperty(json, "v");
-      if (prop != NULL) {
-        if (SquidletStreamInfo(that)){
-          SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : run benchmark\n");
-        }
-        // Run the benchmark function
-        result = TheSquidBenchmark(nb, 
-          JSONLblVal(prop));
+  bool ret = JSONLoadFromStr(json, buffer);
 
-        if (SquidletStreamInfo(that)){
-          SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : benchmark complete\n");
-        }
+  // If we could decode the JSON
+  if (ret == true) {
 
-        // Set the flag for successfull process
-        success = true;
+    // Get the values to process
+    JSONNode* propNb = JSONProperty(json, "nb");
+    JSONNode* propV = JSONProperty(json, "v");
+    
+    // If the value were in the JSON
+    if (propNb != NULL && propV != NULL) {
 
-      } else {
-
-        if (SquidletStreamInfo(that)){
-          SquidletPrint(that, SquidletStreamInfo(that));
-          fprintf(SquidletStreamInfo(that), 
-            " : invalid data (v)\n");
-        }
-        sprintf(errMsg, "invalid data (v missing)");
-      }
-
-    } else {
+      // Convert the value from string to int 
+      int nb = atoi(JSONLblVal(propNb));
 
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
-          " : invalid data (nb)\n");
+          " : run benchmark\n");
       }
-      sprintf(errMsg, "invalid data (nb missing)");
 
+      // Run the benchmark function
+      result = TheSquidBenchmark(nb, JSONLblVal(propV));
+
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), 
+          " : benchmark complete\n");
+      }
+
+      // Set the flag for successfull process
+      success = true;
+
+    // Else, at least one value was missing
+    } else {
+
+      // Update the error message
+      sprintf(errMsg, "missing data (nb or v)");
+
+      if (SquidletStreamInfo(that)){
+        SquidletPrint(that, SquidletStreamInfo(that));
+        fprintf(SquidletStreamInfo(that), " : missing data (nb or v)\n");
+      }
     }
 
+  // Else, we couldn't decode the JSON
   } else {
+
+    // Update the error message
+    sprintf(errMsg, "couldn't load json (%s)", JSONErr->_msg);
 
     if (SquidletStreamInfo(that)){
       SquidletPrint(that, SquidletStreamInfo(that));
       fprintf(SquidletStreamInfo(that), 
         " : couldn't load json %s\n", buffer);
     }
-    sprintf(errMsg, "couldn't load json (%s)", JSONErr->_msg);
-
   }
+
+  // Free memory
   JSONFree(&json);
 
   // Update the time used to process the task
@@ -4154,17 +4156,23 @@ void SquidletProcessRequest_Benchmark(
     (now.tv_sec - start.tv_sec) * 1000 +
     (now.tv_usec - start.tv_usec) / 1000;
 
-  ++(that->_nbTaskComplete);
+  // Update the number of completed tasks if it was successfull
+  if (success == true) {
+    ++(that->_nbTaskComplete);
+  }
 
   // Prepare the result data as JSON
   JSONNode* jsonResult = JSONCreate();
   float temperature = SquidletGetTemperature(that);
+  // This software is not guaranteed to run under temperature having
+  // more than 7 digits, you've be warned !
   char temperatureStr[10] = {'\0'};
   sprintf(temperatureStr, "%.2f", temperature);
   JSONAddProp(jsonResult, "temperature", temperatureStr);
   char successStr[2] = {'\0'};
   sprintf(successStr, "%d", success);
   JSONAddProp(jsonResult, "success", successStr);
+  // Result is an int, 10 digits will be fine
   char resultStr[10] = {'\0'};
   sprintf(resultStr, "%d", result);
   JSONAddProp(jsonResult, "v", resultStr);
@@ -4173,11 +4181,13 @@ void SquidletProcessRequest_Benchmark(
   // Append the statistics data
   SquidletAddStatsToJSON(that, jsonResult);
 
-  // Convert the JSON to a string
+  // Convert the JSON to a string and store it in the result buffer
   *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
   memset(*bufferResult, 0, THESQUID_MAXPAYLOADSIZE);
   bool compact = true;
-  if (!JSONSaveToStr(jsonResult, *bufferResult, THESQUID_MAXPAYLOADSIZE, compact)) {
+  ret = JSONSaveToStr(jsonResult, 
+    *bufferResult, THESQUID_MAXPAYLOADSIZE, compact);
+  if (ret == false) {
     sprintf(*bufferResult, 
       "{\"success\":\"0\",\"temperature\":\"0.0\","
       "\"err\":\"JSONSaveToStr failed\"}");
@@ -4204,8 +4214,8 @@ void SquidletProcessRequest_PovRay(
   // Declare a variable to memorize if the process has been successful
   bool success = false;
 
-  // Process the data
-  if (SquidletStreamInfo(that)){
+  // Display info
+  if (SquidletStreamInfo(that)) {
     SquidletPrint(that, SquidletStreamInfo(that));
     fprintf(SquidletStreamInfo(that), 
       " : process Pov-Ray task %s\n", buffer);
@@ -4214,7 +4224,11 @@ void SquidletProcessRequest_PovRay(
 
   // Decode the input from JSON
   JSONNode* json = JSONCreate();
-  if (JSONLoadFromStr(json, buffer)) {
+  bool ret = JSONLoadFromStr(json, buffer);
+
+  // If we could decode the JSON
+  if (ret == true) {
+
     // Get the arguments
     JSONNode* propIni = JSONProperty(json, "ini");
     JSONNode* propTga = JSONProperty(json, "tga");
@@ -4222,7 +4236,8 @@ void SquidletProcessRequest_PovRay(
     JSONNode* propLeft = JSONProperty(json, "left");
     JSONNode* propBottom = JSONProperty(json, "bottom");
     JSONNode* propRight = JSONProperty(json, "right");
-    // If all the arguments are valids
+
+    // If all the arguments are presents
     if (propIni != NULL && propTga != NULL && propTop != NULL && 
       propLeft != NULL && propBottom != NULL && propRight != NULL) {
 
@@ -4249,21 +4264,29 @@ void SquidletProcessRequest_PovRay(
     }
   }
 
-  ++(that->_nbTaskComplete);
+  // Update the number of completed tasks if it was successfull
+  if (success == true) {
+    ++(that->_nbTaskComplete);
+  }
 
   // Prepare the result data as JSON
   *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
   memset(*bufferResult, 0, THESQUID_MAXPAYLOADSIZE);
-  char successStr[10] = {'\0'};
+  char successStr[2] = {'\0'};
   sprintf(successStr, "%d", success);
   JSONAddProp(json, "success", successStr);
   float temperature = SquidletGetTemperature(that);
+  // This software is not guaranteed to run under temperature having
+  // more than 7 digits, you've be warned !
   char temperatureStr[10] = {'\0'};
   sprintf(temperatureStr, "%.2f", temperature);
   JSONAddProp(json, "temperature", temperatureStr);
+
   // Append the statistics data
   SquidletAddStatsToJSON(that, json);
-  if (!JSONSaveToStr(json, *bufferResult, THESQUID_MAXPAYLOADSIZE, true)) {
+  ret = JSONSaveToStr(json, 
+    *bufferResult, THESQUID_MAXPAYLOADSIZE, true);
+  if (ret == false) {
     sprintf(*bufferResult, 
       "{\"success\":\"0\",\"temperature\":\"0.0\","
       "\"err\":\"JSONSaveToStr failed\"}");
@@ -4284,6 +4307,7 @@ void SquidletProcessRequest_StatsReset(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
   // Reset the stats
   SquidletResetStats(that);
 }  
@@ -4300,59 +4324,88 @@ float SquidletGetTemperature(
     PBErrCatch(TheSquidErr);
   }
 #endif
+
+  // The Squidlet's info are not used
   (void)that;
+
 #if BUILDARCH == 0
   return 0.0;
 #endif
+
 #if BUILDARCH == 1
   // Declare a variable to pipe the shell command
   FILE* fp = NULL;
+
   // Run the command and pipe its output
   fp = popen("vcgencmd measure_temp", "r");
+  
+  // If we could execute the command
   if (fp != NULL) {
+
     // Declare a variable to store the output
     char output[100] = {0};
+
     // Read the output, expected to be as:
     // temp=42.8'C
     while (fgets(output, sizeof(output), fp) != NULL);
+
     // Close the pipe
     pclose(fp);
+
     // Remove the line return and two last characters
     if (strlen(output) > 0)
       output[strlen(output) - 3] = '\0';
+
     // Convert the output to a float
     float t = 0.0;
     sscanf(output + 5, "%f", &t);
+
     // Return the result
     return t;
+
+  // Else, the command failed
   } else {
-    // Return the result
+
+    // Return the default result
     return 0.0;
   }
 #endif
+
 #if BUILDARCH == 2
   // Declare a variable to pipe the shell command
   FILE* fp = NULL;
+
   // Run the command and pipe its output
   fp = popen("vcgencmd measure_temp", "r");
+  
+  // If we could execute the command
   if (fp != NULL) {
+
     // Declare a variable to store the output
     char output[100] = {0};
+
     // Read the output, expected to be as:
     // temp=42.8'C
     while (fgets(output, sizeof(output), fp) != NULL);
+
     // Close the pipe
     pclose(fp);
+
     // Remove the line return and two last characters
     if (strlen(output) > 0)
       output[strlen(output) - 3] = '\0';
+
     // Convert the output to a float
     float t = 0.0;
     sscanf(output + 5, "%f", &t);
+
     // Return the result
     return t;
+
+  // Else, the command failed
   } else {
-    // Return the result
+
+    // Return the default result
     return 0.0;
   }
 #endif
@@ -4363,11 +4416,16 @@ float SquidletGetTemperature(
 // ================ Functions implementation ====================
 
 // Function for benchmark purpose
+// Create a set of null element of size equals to the size of the
+// buffer in the task data, and sort it 10 times the 'nbLoop' in the
+// task data, using each time diferrent sorting values for each element 
 int TheSquidBenchmark(
                 int nbLoop, 
   const char* const buffer) {
+
   // Variable to memorize the dummy result
   int res = 0;
+
   // Loop on sample code
   for (int iLoop = 0; iLoop < nbLoop; ++iLoop) {
     for (unsigned int scaling = 10; scaling--;) {
@@ -4381,6 +4439,7 @@ int TheSquidBenchmark(
       GSetFlush(&set);
     }
   }
+
   // Return the dummy result
   return res;
 }
@@ -4392,6 +4451,11 @@ int TheSquidBenchmark(
 bool SocketRecv(short* sock, unsigned long nb, char* buffer, 
   const time_t maxWait) {
 #if BUILDMODE == 0
+  if (sock == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'sock' is null");
+    PBErrCatch(TheSquidErr);
+  }
   if (buffer == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
     sprintf(TheSquidErr->_msg, "'buffer' is null");
@@ -4399,9 +4463,11 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer,
   }
 #endif
 
+  // Open the socket in reading mode
   FILE* fp = fdopen(*sock, "r");
 
-  // Declare a pointer to the next received byte
+  // Declare a pointer to the next received byte and initialize it
+  // on the first byte of the result buffer
   char* freadPtr = buffer;
   
   // Declare a pointer to the byte after the last received byte
@@ -4414,17 +4480,25 @@ bool SocketRecv(short* sock, unsigned long nb, char* buffer,
   // While we haven't received all the requested bytes and the time
   // limit is not reached
   do {
+
     // Try to read one more byte, if successful moves the pointer to
-    // the next byte to read by one byte
+    // the next byte in the result buffer
     ssize_t nbReadByte = fread(freadPtr, 1, nb, fp);
     if (nbReadByte > 0) {
       freadPtr += nbReadByte;
     }
+
     // Update the elapsed time
     elapsedTime = time(NULL) - startTime;
+
   } while (freadPtr != freadPtrEnd && maxWait != 0 && 
     elapsedTime < maxWait && !Squidlet_CtrlC);
+
+  // Duplicate the socket to avoid it being killed when we close the
+  // stream used to read the incoming bytes
   *sock = dup(*sock);
+  
+  // Close the stream 
   fclose(fp);
 
   // Return the success/failure code
