@@ -424,9 +424,39 @@ void SquadUpdateTextOMeter(
 
 // Add one line to the history of messages for the TextOMeter
 // 'msg' is truncated if it doesn't fit in one line of history
+// If the TextOmeter is not turned on, do nothing
+// Variadic function with the same signature as printf family
 void SquadPushHistory(
   Squad* const that, 
-         char* msg);
+         char* msg,
+               ...);
+
+// Add the result of SquidletInfoPrint(squidlet) to the history
+// of messages for the TextOMeter
+// The output of SquidletInfoPrint is truncated if it doesn't fit in
+// one line of history
+// If the TextOmeter is not turned on, do nothing
+void SquadPushHistorySquidletInfo(
+               Squad* const that, 
+  const SquidletInfo* const squidlet);
+
+// Add the result of SquidletTaskRequestPrint(request) to the history
+// of messages for the TextOMeter
+// The output of SquidletTaskRequest is truncated if it doesn't fit in
+// one line of history
+// If the TextOmeter is not turned on, do nothing
+void SquadPushHistorySquidletTaskRequest(
+                      Squad* const that, 
+  const SquidletTaskRequest* const request);
+
+// Add the result of SquadRunningTaskPrint(request) to the history
+// of messages for the TextOMeter
+// The output of SquadRunningTaskPrint is truncated if it doesn't fit in
+// one line of history
+// If the TextOmeter is not turned on, do nothing
+void SquadPushHistorySquadRunningTask(
+                   Squad* const that, 
+  const SquadRunningTask* const task);
 
 // Request the execution of a task on a squidlet for the squad 'that'
 // Return true if the request was successfull, fals else
@@ -895,18 +925,10 @@ bool SquadSendTaskRequest(
   // If we couldn't create the socket
   if (squidlet->_sock == -1) {
 
-    // Display info in the TextOMeter if necessary
-    if (SquadGetFlagTextOMeter(that) == true) {
-      char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-      sprintf(lineHistory, "can't create socket to squidlet:");
-      SquadPushHistory(that, lineHistory);
-      FILE* streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
-  
+    // Update history
+    SquadPushHistory(that, "can't create socket to squidlet:");
+    SquadPushHistorySquidletInfo(that, squidlet);
+
     // Return the failure code
     return false;
   }
@@ -929,35 +951,17 @@ bool SquadSendTaskRequest(
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
-    // Display info in the TextOMeter if necessary
-    if (SquadGetFlagTextOMeter(that) == true) {
-
-      char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-      sprintf(lineHistory, "can't connect to squidlet:");
-      SquadPushHistory(that, lineHistory);
-      FILE* streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "can't connect to squidlet:");
+    SquadPushHistorySquidletInfo(that, squidlet);
 
     // Return the failure code
     return false;
   }
 
-  // Display info in the TextOMeter if necessary
-  if (SquadGetFlagTextOMeter(that) == true) {
-
-    char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-    sprintf(lineHistory, "connected to squidlet:");
-    SquadPushHistory(that, lineHistory);
-    FILE* streamBufferHistory = fmemopen(lineHistory, 
-      SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-    SquidletInfoPrint(squidlet, streamBufferHistory);
-    fclose(streamBufferHistory);
-    SquadPushHistory(that, lineHistory);
-  }
+  // Update history
+  SquadPushHistory(that, "connected to squidlet:");
+  SquadPushHistorySquidletInfo(that, squidlet);
 
   // Set the timeout of the socket for sending and receiving to 1us
   // and allow the reuse of address
@@ -979,18 +983,9 @@ bool SquadSendTaskRequest(
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
-    // Display info in the TextOMeter if necessary
-    if (SquadGetFlagTextOMeter(that) == true) {
-
-      char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-      sprintf(lineHistory, "failed to configure socket to squidlet:");
-      SquadPushHistory(that, lineHistory);
-      FILE* streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "failed to configure socket to squidlet:");
+    SquadPushHistorySquidletInfo(that, squidlet);
 
     // Return the failure code
     return false;
@@ -1008,18 +1003,9 @@ bool SquadSendTaskRequest(
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
-    // Display info in the TextOMeter if necessary
-    if (SquadGetFlagTextOMeter(that) == true) {
-
-      char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-      sprintf(lineHistory, "failed to send the request to squidlet:");
-      SquadPushHistory(that, lineHistory);
-      FILE* streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "failed to send the request to squidlet:");
+    SquadPushHistorySquidletInfo(that, squidlet);
 
     // Return the failure code
     return false;
@@ -1039,43 +1025,19 @@ bool SquadSendTaskRequest(
     close(squidlet->_sock);
     squidlet->_sock = -1;
 
-    // Display info in the TextOMeter if necessary
-    if (SquadGetFlagTextOMeter(that) == true) {
-
-      char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-      sprintf(lineHistory, "task refused by squidlet:");
-      SquadPushHistory(that, lineHistory);
-      FILE* streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "task refused by squidlet:");
+    SquadPushHistorySquidletInfo(that, squidlet);
 
     // Return the failure code
     return false;
   }
 
-  // If we reach here the task has been accepted
-  // Display info in the TextOMeter if necessary
-  if (SquadGetFlagTextOMeter(that) == true) {
-      char lineHistory[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10];
-      sprintf(lineHistory, "task:");
-      SquadPushHistory(that, lineHistory);
-      FILE* streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletTaskRequestPrint(request, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-
-      sprintf(lineHistory, "accepted by squidlet:");
-      SquadPushHistory(that, lineHistory);
-      streamBufferHistory = fmemopen(lineHistory, 
-        SQUAD_TXTOMETER_LENGTHLINEHISTORY - 10, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      SquadPushHistory(that, lineHistory);
-  }
+  // Update history
+  SquadPushHistory(that, "request:");
+  SquadPushHistorySquidletTaskRequest(that, request);
+  SquadPushHistory(that, "accepted by squidlet:");
+  SquadPushHistorySquidletInfo(that, squidlet);
 
   // Return the success code
   return true;
@@ -1482,47 +1444,40 @@ bool SquadSendTaskData(
   }
 #endif
 
-  // Declare some variables to process the lines of history
-  char lineHistory[200];
-  char bufferHistory[100];
-  FILE* streamBufferHistory = NULL;
-
   // Send the task data size
   int flags = 0;
   size_t len = strlen(task->_data);
-  if (send(squidlet->_sock, 
-    (char*)&len, sizeof(size_t), flags) == -1) {
+  int ret = send(squidlet->_sock, (char*)&len, sizeof(size_t), flags);
+  
+  // If we couldn't send the data size
+  if (ret == -1) {
 
-    // If we couldn't send the data size
-    if (SquadGetFlagTextOMeter(that) == true) {
-      sprintf(lineHistory, 
-        "couldn't send task data size %d", len);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "couldn't send task data size %d", len);
 
     return false;
+
+  // Else, we could send the data size
   } else {
 
-    if (SquadGetFlagTextOMeter(that) == true) {
-      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      sprintf(lineHistory, 
-        "sent task data size %d to (%s)", len, 
-        bufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "sent task data size %d to squidlet:", len);
+    SquadPushHistorySquidletInfo(that, squidlet);
+
   }
 
   // Memorize the start time for the statistics
   struct timeval start;
   gettimeofday(&start, NULL);
 
-  // Send the task data, if we couldn't send the data
-  if (send(squidlet->_sock, task->_data, len, flags) == -1) {
+  // Send the task data
+  ret = send(squidlet->_sock, task->_data, len, flags);
 
-    if (SquadGetFlagTextOMeter(that) == true)
-      SquadPushHistory(that, "couldn't send task data");
+  // If we couldn't send the data
+  if (ret == -1) {
+
+    // Update history
+    SquadPushHistory(that, "couldn't send task data");
 
     return false;
 
@@ -1634,11 +1589,6 @@ bool SquadReceiveTaskResult(
   // Shortcuts
   SquidletInfo* squidlet = runningTask->_squidlet;
   SquidletTaskRequest* task = runningTask->_request;
-
-  // Declare some variables to process the lines of history
-  char lineHistory[200];
-  char bufferHistory[100];
-  FILE* streamBufferHistory = NULL;
   
   // Make sure the buffer to receive the task is empty
   if (task->_bufferResult != NULL) {
@@ -1654,30 +1604,20 @@ bool SquadReceiveTaskResult(
     // If we could get the size it means the result is ready
     if (sizeResultData > 0) {
 
-      if (SquadGetFlagTextOMeter(that) == true) {
-        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-        SquidletInfoPrint(squidlet, streamBufferHistory);
-        fclose(streamBufferHistory);
-        sprintf(lineHistory, 
-          "received the size of result from (%s)", 
-          bufferHistory);
-        SquadPushHistory(that, lineHistory);
-      }
+      // Update history
+      SquadPushHistory(that, 
+        "received the size of result from squidlet:");
+      SquadPushHistorySquidletInfo(that, squidlet);
 
       // Send the acknowledgement of received size of result
       char ack = 1;
       int flags = 0;
       (void)send(squidlet->_sock, &ack, sizeof(char), flags);
 
-      if (SquadGetFlagTextOMeter(that) == true) {
-        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-        SquidletInfoPrint(squidlet, streamBufferHistory);
-        fclose(streamBufferHistory);
-        sprintf(lineHistory, 
-          "send ack of received size of result data to (%s)", 
-          bufferHistory);
-        SquadPushHistory(that, lineHistory);
-      }
+      // Update history
+      SquadPushHistory(that, 
+        "send ack of received size of result data to squidlet:");
+      SquadPushHistorySquidletInfo(that, squidlet);
 
       // Allocate memory for the result data
       task->_bufferResult = PBErrMalloc(TheSquidErr, sizeResultData + 1);
@@ -1695,39 +1635,24 @@ bool SquadReceiveTaskResult(
         free(task->_bufferResult);
         task->_bufferResult = NULL;
 
-        if (SquadGetFlagTextOMeter(that) == true) {
-          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-          SquidletInfoPrint(squidlet, streamBufferHistory);
-          fclose(streamBufferHistory);
-          sprintf(lineHistory, 
-            "couldn't received result data from (%s)", 
-            bufferHistory);
-          SquadPushHistory(that, lineHistory);
-          sprintf(lineHistory, "waited for %ds", 
-            timeOut);
-          SquadPushHistory(that, lineHistory);
-        }
+        // Update history
+        SquadPushHistory(that, 
+          "couldn't received result data from squidlet:");
+        SquadPushHistorySquidletInfo(that, squidlet);
+        SquadPushHistory(that,"waited for %ds", timeOut);
 
       } else {
 
-        // Set teh flag to memorized we have received the result
+        // Set the flag to memorized we have received the result
         receivedFlag = true;
         
         // Send the acknowledgement of received result
         (void)send(squidlet->_sock, &ack, 1, flags);
         
-        if (SquadGetFlagTextOMeter(that) == true) {
-          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-          SquidletInfoPrint(squidlet, streamBufferHistory);
-          fclose(streamBufferHistory);
-          sprintf(lineHistory, 
-            "received result data from (%s)", 
-            bufferHistory);
-          SquadPushHistory(that, lineHistory);
-          sprintf(lineHistory, "size result data %d", 
-            sizeResultData);
-          SquadPushHistory(that, lineHistory);
-        }
+        // Update history
+        SquadPushHistory(that, "received result data from squidlet:");
+        SquadPushHistorySquidletInfo(that, squidlet);
+        SquadPushHistory(that,"size result data %d", sizeResultData);
 
       }
 
@@ -1735,15 +1660,10 @@ bool SquadReceiveTaskResult(
     // ready yet
     } else {
 
-      if (SquadGetFlagTextOMeter(that) == true) {
-        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-        SquidletInfoPrint(squidlet, streamBufferHistory);
-        fclose(streamBufferHistory);
-        sprintf(lineHistory, 
-          "received a null size of result from (%s)", 
-          bufferHistory);
-        SquadPushHistory(that, lineHistory);
-      }
+      // Update history
+      SquadPushHistory(that, 
+        "received a null size of result from squidlet:");
+      SquadPushHistorySquidletInfo(that, squidlet);
 
     }
   }
@@ -1776,11 +1696,6 @@ bool SquadSendTaskOnSquidlet(
   }
 #endif
 
-  // Declare some variables to process the lines of history
-  char lineHistory[200];
-  char bufferHistory[100];
-  FILE* streamBufferHistory = NULL;
-
   // Request the execution of the task by the squidlet
   bool ret = SquadSendTaskRequest(that, task, squidlet);
 
@@ -1797,41 +1712,26 @@ bool SquadSendTaskOnSquidlet(
       SquadRunningTask* runningTask = 
         SquadRunningTaskCreate(task, squidlet);
       GSetAppend((GSet*)SquadRunningTasks(that), runningTask);
-    
-      if (SquadGetFlagTextOMeter(that) == true) {
-        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-        SquadRunningTaskPrint(runningTask, streamBufferHistory);
-        fclose(streamBufferHistory);
-        sprintf(lineHistory, "task %s running", 
-          bufferHistory);
-        SquadPushHistory(that, lineHistory);
-      }
+
+      // Update history
+      SquadPushHistory(that, "created running task:");
+      SquadPushHistorySquadRunningTask(that, runningTask);
 
     // Else, we couldn't send the task data
     } else {
 
-      if (SquadGetFlagTextOMeter(that) == true) {
-        streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-        SquidletInfoPrint(squidlet, streamBufferHistory);
-        fclose(streamBufferHistory);
-        sprintf(lineHistory, "couldn't send data to %s", 
-          bufferHistory);
-        SquadPushHistory(that, lineHistory);
-      }
+      // Update history
+      SquadPushHistory(that, "couldn't send data to squidlet:");
+      SquadPushHistorySquidletInfo(that, squidlet);
 
     }
   
   // Else, the request of execution wasn't successfull
   } else {
 
-    if (SquadGetFlagTextOMeter(that) == true) {
-      streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-      SquidletInfoPrint(squidlet, streamBufferHistory);
-      fclose(streamBufferHistory);
-      sprintf(lineHistory, "task refused by %s", 
-        bufferHistory);
-      SquadPushHistory(that, lineHistory);
-    }
+    // Update history
+    SquadPushHistory(that, "task refused by squidlet:");
+    SquadPushHistorySquidletInfo(that, squidlet);
 
   }
 
@@ -1856,11 +1756,6 @@ GSetSquadRunningTask SquadStep(
   // Create the set of completed tasks
   GSetSquadRunningTask completedTasks = \
     GSetSquadRunningTaskCreateStatic();
-
-  // Declare some variables to process the lines of history
-  char lineHistory[200];
-  char bufferHistory[100];
-  FILE* streamBufferHistory = NULL;
   
   // If there are running tasks
   if (SquadGetNbRunningTasks(that) > 0L) {
@@ -1886,14 +1781,9 @@ GSetSquadRunningTask SquadStep(
       // If the task is complete
       if (complete == true) {
 
-        if (SquadGetFlagTextOMeter(that) == true) {
-          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-          SquadRunningTaskPrint(runningTask, streamBufferHistory);
-          fclose(streamBufferHistory);
-          sprintf(lineHistory, "task %s complete", 
-            bufferHistory);
-          SquadPushHistory(that, lineHistory); 
-        }
+        // Update history
+        SquadPushHistory(that, "completed task:");
+        SquadPushHistorySquadRunningTask(that, runningTask);
 
         // Post process the completed task
         SquadProcessCompletedTask(that, runningTask);
@@ -1912,14 +1802,9 @@ GSetSquadRunningTask SquadStep(
       } else if (time(NULL) - runningTask->_startTime > 
         runningTask->_request->_maxWaitTime) {
 
-        if (SquadGetFlagTextOMeter(that) == true) {
-          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-          SquadRunningTaskPrint(runningTask, streamBufferHistory);
-          fclose(streamBufferHistory);
-          sprintf(lineHistory, "task %s gave up", 
-            bufferHistory);
-          SquadPushHistory(that, lineHistory);
-        }
+        // Update history
+        SquadPushHistory(that, "gave up task:");
+        SquadPushHistorySquadRunningTask(that, runningTask);
 
         // Put back the squidlet in the set of squidlets
         GSetAppend((GSet*)SquadSquidlets(that), runningTask->_squidlet);
@@ -1938,14 +1823,9 @@ GSetSquadRunningTask SquadStep(
       // Else, the task is not complete and we can wait more for it
       } else {
 
-        if (SquadGetFlagTextOMeter(that) == true) {
-          streamBufferHistory = fmemopen(bufferHistory, 100, "w");
-          SquadRunningTaskPrint(runningTask, streamBufferHistory);
-          fclose(streamBufferHistory);
-          sprintf(lineHistory, "task %s still running", 
-            bufferHistory);
-          SquadPushHistory(that, lineHistory);
-        }
+        // Update history
+        SquadPushHistory(that, "waiting for task:");
+        SquadPushHistorySquadRunningTask(that, runningTask);
 
       }
 
@@ -2376,13 +2256,10 @@ void SquadProcessCompletedTask_PovRay(
       
       // Else, we couldn't load the fragment
       } else {
-
-        if (SquadGetFlagTextOMeter(that) == true) {
-          char lineHistory[200];
-          sprintf(lineHistory, "Couldn't read the fragment (%s)", 
-            GenBrushErr->_msg);
-          SquadPushHistory(that, lineHistory);
-        }
+        
+        // Update history
+        SquadPushHistory(that, "Couldn't read the fragment (%s)", 
+          GenBrushErr->_msg);
       }
 
       // Free memory
@@ -2398,12 +2275,9 @@ void SquadProcessCompletedTask_PovRay(
 
     } else {
 
-      if (SquadGetFlagTextOMeter(that) == true) {
-        char lineHistory[200];
-        sprintf(lineHistory, 
-          "Can't preprocess the Pov-Ray task (invalid data)");
-        SquadPushHistory(that, lineHistory);
-      }
+      SquadPushHistory(that, 
+        "Can't preprocess the Pov-Ray task (invalid data)");
+
     }
 
     // Free memory
@@ -2467,9 +2341,12 @@ void SquadSetFlagTextOMeter(
 
 // Add one line to the history of messages for the TextOMeter
 // 'msg' is truncated if it doesn't fit in one line of history
+// If the TextOmeter is not turned on, do nothing
+// Variadic function with the same signature as printf family
 void SquadPushHistory(
   Squad* const that, 
-         char* msg) {
+         char* msg,
+               ...) {
 #if BUILDMODE == 0
   if (that == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2482,27 +2359,157 @@ void SquadPushHistory(
     PBErrCatch(TheSquidErr);
   }
 #endif
-  // Loop oin each line of the history except the last one
+ 
+  // If the TextOMeter is not turned on
+  if (SquadGetFlagTextOMeter(that) == false) {
+
+    // Do nothing
+    return;
+  }
+ 
+  // Loop on each line of the history except the last one
   for (int iLine = 0; iLine < SQUAD_TXTOMETER_NBLINEHISTORY - 1; 
     ++iLine) {
+
     // Copy the following line into the current line to 
     // 'move up' the history by one step
     strcpy(that->_history[iLine], that->_history[iLine + 1]);
   }
+
   // Increment the counter of lines written in history
   ++(that->_countLineHistory);
+
   // Write the new line at the end of history, ensuring there is no
   // overflow
   sprintf(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1], 
     "[%06u] ", that->_countLineHistory);
-  strncpy(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1] + 9, 
-    msg, SQUAD_TXTOMETER_LENGTHLINEHISTORY - 11);
+  va_list ap;
+  va_start(ap, msg);
+  vsnprintf(that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1] + 9,
+    SQUAD_TXTOMETER_LENGTHLINEHISTORY - 11, msg, ap);
+  va_end(ap);
+
+  // Force a line return at the end of the line in history
   unsigned long len = 
     MIN(SQUAD_TXTOMETER_LENGTHLINEHISTORY - 2, strlen(
     that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1]));
   that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1][len] = '\n';
   that->_history[SQUAD_TXTOMETER_NBLINEHISTORY - 1][len + 1] = '\0';
+
+  // Update the TextOMeter
   SquadUpdateTextOMeter(that);
+}
+
+// Add the result of SquidletInfoPrint(squidlet) to the history
+// of messages for the TextOMeter
+// The output of SquidletInfoPrint is truncated if it doesn't fit in
+// one line of history
+// If the TextOmeter is not turned on, do nothing
+void SquadPushHistorySquidletInfo(
+               Squad* const that, 
+  const SquidletInfo* const squidlet) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (squidlet == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'squidlet' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  
+  // Declare a buffer to memorize the result of the SquidletInfoPrint
+  char buffer[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 1];
+  
+  // Open a stream on the buffer
+  FILE* stream = fmemopen(buffer, sizeof(buffer), "w");
+  
+  // Print the task
+  SquidletInfoPrint(squidlet, stream);
+
+  // Close the stream
+  fclose(stream);
+
+  // Push the buffer in history
+  SquadPushHistory(that, buffer);
+}
+
+// Add the result of SquidletTaskRequestPrint(request) to the history
+// of messages for the TextOMeter
+// The output of SquidletTaskRequest is truncated if it doesn't fit in
+// one line of history
+// If the TextOmeter is not turned on, do nothing
+void SquadPushHistorySquidletTaskRequest(
+                      Squad* const that, 
+  const SquidletTaskRequest* const request) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (request == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'request' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  
+  // Declare a buffer to memorize the result of the
+  // SquidletTaskRequestPrint
+  char buffer[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 1];
+  
+  // Open a stream on the buffer
+  FILE* stream = fmemopen(buffer, sizeof(buffer), "w");
+  
+  // Print the task
+  SquidletTaskRequestPrint(request, stream);
+
+  // Close the stream
+  fclose(stream);
+
+  // Push the buffer in history
+  SquadPushHistory(that, buffer);
+}
+
+// Add the result of SquadRunningTaskPrint(request) to the history
+// of messages for the TextOMeter
+// The output of SquadRunningTaskPrint is truncated if it doesn't fit in
+// one line of history
+// If the TextOmeter is not turned on, do nothing
+void SquadPushHistorySquadRunningTask(
+                   Squad* const that, 
+  const SquadRunningTask* const task) {
+#if BUILDMODE == 0
+  if (that == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'that' is null");
+    PBErrCatch(TheSquidErr);
+  }
+  if (task == NULL) {
+    TheSquidErr->_type = PBErrTypeNullPointer;
+    sprintf(TheSquidErr->_msg, "'task' is null");
+    PBErrCatch(TheSquidErr);
+  }
+#endif
+  
+  // Declare a buffer to memorize the result of the SquadRunningTaskPrint
+  char buffer[SQUAD_TXTOMETER_LENGTHLINEHISTORY - 1];
+  
+  // Open a stream on the buffer
+  FILE* stream = fmemopen(buffer, sizeof(buffer), "w");
+  
+  // Print the task
+  SquadRunningTaskPrint(task, stream);
+
+  // Close the stream
+  fclose(stream);
+
+  // Push the buffer in history
+  SquadPushHistory(that, buffer);
 }
 
 // Refresh the content of the TextOMeter attached to the 
