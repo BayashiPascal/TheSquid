@@ -1109,7 +1109,8 @@ void SquadAddTask_Benchmark(
   int bufferIdLen = strlen(bufferId);
 
   // Get the length of the json data without values
-  int jsonFormatLen = strlen("{\"id\":\"\",\"nb\":\"\",\"v\":\"\"}");
+  int jsonFormatLen = \
+    strlen("{\"id\":\"\",\"nb\":\"\",\"payloadSize\":\"\"}");
 
   // Get the length of the json data with values
   int bufferLength = 
@@ -1119,7 +1120,7 @@ void SquadAddTask_Benchmark(
   char* buffer = PBErrMalloc(TheSquidErr, bufferLength);
 
   // Create the JSON data
-  sprintf(buffer, "{\"id\":\"%s\",\"nb\":\"%s\",\"v\":\"%s\"}", 
+  sprintf(buffer, "{\"id\":\"%s\",\"nb\":\"%s\",\"payloadSize\":\"%s\"}", 
     bufferId, bufferNb, data);
   free(data);
 
@@ -4102,10 +4103,10 @@ void SquidletProcessRequest_Benchmark(
 
     // Get the values to process
     JSONNode* propNb = JSONProperty(json, "nb");
-    JSONNode* propV = JSONProperty(json, "v");
+    JSONNode* propPayloadSize = JSONProperty(json, "payloadSize");
     
     // If the value were in the JSON
-    if (propNb != NULL && propV != NULL) {
+    if (propNb != NULL && propPayloadSize != NULL) {
 
       // Convert the value from string to int 
       int nb = atoi(JSONLblVal(propNb));
@@ -4117,7 +4118,8 @@ void SquidletProcessRequest_Benchmark(
       }
 
       // Run the benchmark function
-      result = TheSquidBenchmark(nb, JSONLblVal(propV));
+      result = TheSquidBenchmark(nb, 
+        JSONLblVal(propPayloadSize));
 
       if (SquidletStreamInfo(that)){
         SquidletPrint(that, SquidletStreamInfo(that));

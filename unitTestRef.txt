@@ -1,31 +1,43 @@
 UnitTestSquad OK
-9068 bayashi-Aspire-X1935 127.0.1.1:9002
+UnitTestLoadTasks OK
+Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:48:45 2019
+UnitTestSquad OK
+UnitTestLoadTasks OK
+Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:48:45 2019
+UnitTestSquad OK
+UnitTestLoadTasks OK
+UnitTestDummy(127.0.1.1:9000)
+	Request for dummy task succeeded.
+	{"temperature":"0.00","success":"1","v":"0","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"0","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
+
+	delay to send: 1ms, delay to process: 38ms
+UnitTestDummy(127.0.1.1:9001)
+	Request for dummy task succeeded.
+	{"temperature":"0.00","success":"1","v":"0","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"0","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
+
+	delay to send: 0ms, delay to process: 39ms
+UnitTestSquadCheckSquidlets OK
+1856 bayashi-X101CH 127.0.1.1:9000
+squidlet temperature: 0.000000
 UnitTestSquidlet OK
-squad : t1 #0 succeeded
-squad : t1 #1 succeeded
-squad : t1 #2 succeeded
-squad : t1 #3 succeeded
-squad : t1 #4 succeeded
-squad : t1 #5 succeeded
+Squidlet #1 : 1862 bayashi-X101CH 127.0.1.1:9001
+Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:49:01 2019
+1856 bayashi-X101CH 127.0.1.1:9000
+squidlet temperature: 0.000000
+UnitTestSquidlet OK
+Squidlet #0 : 1861 bayashi-X101CH 127.0.1.1:9000
+Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:49:01 2019
+Squidlet #0 ended
+Squidlet #1 ended
+1856 bayashi-X101CH 127.0.1.1:9000
+squidlet temperature: 0.000000
+UnitTestSquidlet OK
+squad : Dummy(#0-0) {"v":"0"} succeeded
+squad : Dummy(#1-0) {"v":"1"} succeeded
+squad : Dummy(#2-0) {"v":"2"} succeeded
+squad : Dummy(#3-0) {"v":"3"} succeeded
+squad : Dummy(#4-0) {"v":"4"} succeeded
+squad : Dummy(#5-0) {"v":"5"} succeeded
 Squad ended
 UnitTestDummy OK
--- Benchmark --
-Execution on local device:
-nbLoopPerTask	nbBytePayload	nbTaskComp	timeMsPerTask
-001	00000100	0000131	00073936.99
-002	00000100	0000068	00148151.72
-004	00000100	0000033	00309290.36
-008	00000100	0000016	00635454.62
-016	00000100	0000009	01184525.44
-032	00000100	0000005	02370129.20
-Execution on TheSquid:
-nbLoopPerTask	nbBytePayload	nbTaskComp	timeMsPerTask
-001	00000100	0000172	00058277.31
-002	00000100	0000104	00096815.15
-004	00000100	0000054	00187079.83
-008	00000100	0000026	00394162.23
-016	00000100	0000012	00829801.17
-032	00000100	0000005	02036815.00
-Squad ended
-UnitTestBenchmark OK
 UnitTestAll OK

@@ -1,0 +1,21 @@
+\contentsline {section}{\numberline {1}Protocol}{3}
+\contentsline {section}{\numberline {2}Tasks}{3}
+\contentsline {subsection}{\numberline {2.1}File format}{3}
+\contentsline {subsection}{\numberline {2.2}Dummy}{3}
+\contentsline {subsection}{\numberline {2.3}Benchmark}{4}
+\contentsline {subsection}{\numberline {2.4}PovRay}{5}
+\contentsline {subsection}{\numberline {2.5}ResetStats}{5}
+\contentsline {subsection}{\numberline {2.6}Statistics data in task result}{5}
+\contentsline {section}{\numberline {3}Setup of the cluster}{5}
+\contentsline {subsection}{\numberline {3.1}Raspberry Pi 3B+}{5}
+\contentsline {section}{\numberline {4}Performance}{8}
+\contentsline {subsection}{\numberline {4.1}PC}{8}
+\contentsline {subsection}{\numberline {4.2}Raspberry Pi 3B+}{9}
+\contentsline {section}{\numberline {5}Interface}{10}
+\contentsline {section}{\numberline {6}Code}{22}
+\contentsline {subsection}{\numberline {6.1}thesquid.c}{22}
+\contentsline {subsection}{\numberline {6.2}squidlet.c}{95}
+\contentsline {subsection}{\numberline {6.3}squad.c}{98}
+\contentsline {section}{\numberline {7}Makefile}{103}
+\contentsline {section}{\numberline {8}Unit tests}{104}
+\contentsline {section}{\numberline {9}Unit tests output}{111}
