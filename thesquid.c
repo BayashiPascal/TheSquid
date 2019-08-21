@@ -1703,7 +1703,7 @@ bool SquadSendTaskOnSquidlet(
   // If the request was successfull
   if (ret == true) {
 
-    // Send the task's data to teh squidlet
+    // Send the task's data to the squidlet
     ret = SquadSendTaskData(that, squidlet, task);
 
     // If we could send the task's data
@@ -3439,7 +3439,7 @@ SquidletTaskRequest SquidletWaitRequest(
         fprintf(SquidletStreamInfo(that), " : setsockopt failed\n");
       }
 
-    // Else, we could set teh timeout
+    // Else, we could set the timeout
     } else {
 
       // Receive the task type, give up after 

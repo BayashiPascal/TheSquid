@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     if (strcmp(argv[iArg], "-help") == 0) {
 
       // Display the help message and quit
-      printf("squad [-squidlets <path to squidlets config file | ");
+      printf("squad [-squidlets <path/to/squidlets/config.file | ");
       printf("'{\"_squidlets\":[{\"_name\":\"name\",");
       printf("\"_ip\":\"a.b.c.d\",\"_port\":\"port\"}]}'> ");
       printf("[-verbose] [-tasks <path to tasks file>] ");

@@ -21,6 +21,14 @@ It uses the \begin{ttfamily}PBErr\end{ttfamily}, \begin{ttfamily}PBMath\end{ttfa
 
 \section{Protocol}
 
+The communication between a Squad and a Squidlet for one given task is as describe below. Communication is made via TCP/IP sockets. The listening socket of a Squildet is known to the Squad thanks to its configuration file which contains the IP and port of this socket. The Squidlet creates a socket to reply to the Squad upon reception of a task. The Squidlet gives up the processing of a task when an expected reply from the Squad is not received in a certain limit of time. The Squad gives up the processing of a task when an expected reply from the Squidlet is not received, and request again the execution of the failed task as soon as a Squidlet, eventually the same which failed to process the task, becomes available.\\
+
+\begin{center}
+\begin{figure}[H]
+\centering\includegraphics[width=8cm]{./protocol.png}\\
+\end{figure}
+\end{center}
+
 \section{Tasks}
 
 \subsection{File format}
@@ -42,6 +50,8 @@ Type: 1\\
 Data for the task request from the Squad to the Squidlet:\\
 \begin{ttfamily}\{"v":"1"\}\end{ttfamily}\\
 The value of "v" is actually copied from the "id" and needs not to be specified.\\
+
+Data added to the JSON structure of a task saved in a text file: same as above.\\
 
 Task action: waits for "v" seconds.\\
 
@@ -74,6 +84,8 @@ where
 \item "payloadSize" is a string whose content is ignored but size is used to set the quantity of data sent over the network
 \end{itemize}\\
 
+Data added to the JSON structure of a task saved in a text file : same as above.\\
+
 Task action: sorts "nb" times a set of GSet of 10*length(payloadSize).\\
 
 Data of the result of the task request from the Squidlet to the Squad, if successful:\\
@@ -98,8 +110,45 @@ where
 Type: 3\\
 
 Data for the task request from the Squad to the Squidlet:\\
-\begin{ttfamily}\{"SquidletTaskType":"3", "id":"1", "maxWait":"1", \\
-"ini":"./testPov.ini", "sizeMinFragment":"100", "sizeMaxFragment":"1000"\}\end{ttfamily}
+\begin{ttfamily}\{"subid":"1", "ini":"./testPov.ini", \\
+"tga":"./img.tga", "top":"0", "left":"0", "bottom":"99", \\
+"right":"99","width:"100","height":"100","outTga":"./img-00001.tga"\}\end{ttfamily}
+where
+\begin{itemize}
+\item "ini" is the path to the POV-Ray ini file describing the scene to render. It must contains at least the following parameters: Width, Height, Output\_File\_Name 
+\item "top", "left", "bottom", "right" are the coordinates of the fragment inside the final image to be rendered by this task
+\item "width" and "height" are the dimension of the fragment
+\item "subid" is the id of the subtask corresponding to this fragment
+\item "tga" is the path of the final image
+\item "outTga" is the path of the fragment
+\end{itemize}\\
+
+Data added to the JSON structure of a task saved in a text file:\\
+\begin{ttfamily}\{"ini":"./testPov.ini", "sizeMinFragment":"100", "sizeMaxFragment":"1000"\}\end{ttfamily}
+where
+\begin{itemize}
+\item "ini" is the path to the POV-Ray ini file describing the scene to render. It must contain at least the following parameters: Width, Height, Output\_File\_Name
+\item "sizeMinFragment" is the minimum size (width and height) of one square fragment corresponding to a given subtask
+\item "sizeMaxFragment" is the maximum size (width and height) of one square fragment corresponding to a given subtask
+\end{itemize}\\
+
+Task action: Render the image according to the ini file and save the result into a tga image at Output\_File\_Name. Fragments' position (top,left)-(bottom,right) are automatically calculated by dividing the width and height of the final image by the number of available Squidlets at the time of task request. If the result of division is not an integer the size of the last fragment of each line/column is corrected as necessary. The Squad postprocess the fragments processed by the Squidlets to recompose the final image.\\
+
+Data of the result of the task request from the Squidlet to the Squad, if successful:\\
+\begin{ttfamily}\{"success":"1","temperature":"0.0"\}\end{ttfamily}\\
+where
+\begin{itemize}
+\item "success" is the success flag
+\item "temperature" is the temperature of the device of the Squidlet if available
+\end{itemize}
+If failed:\\
+\begin{ttfamily}\{"success":"0","temperature":"0.0","err":"Invalid input"\}\end{ttfamily}\\
+where
+\begin{itemize}
+\item "success" is the failure flag
+\item "temperature" is the temperature of the device of the Squidlet if available
+\item "err" is the error message
+\end{itemize}
 
 \subsection{ResetStats}
 
@@ -108,6 +157,30 @@ Type: 4\\
 This task is a special task used by the function \begin{ttfamily}SquadRequestSquidletToResetStats\end{ttfamily}.
 
 \subsection{Statistics data in task result}
+
+Statistics about processing of task are automatically added to the data of the result of the task:\\
+\begin{ttfamily}{"nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0",\\
+"nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0",\\
+"nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0",\\
+"nbTaskComplete":"1","timeToProcessMs":"0","timeWaitedTaskMs":"0",\\
+"timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}\end{ttfamily}\\
+where
+\begin{itemize}
+\item "nbAcceptedConnection" is the number of accepted connection by the Squidlet
+\item "nbAcceptedTask" is the number of accepted task requests
+\item "nbRefusedTask" is the number of refused task requests
+\item "nbFailedReceptTaskSize" is the number of failure to receive the size of the data of the task
+\item "nbFailedReceptTaskData" is the number of failure to receive the data of the task
+\item "nbSentResult" is the number of sent result of processing
+\item "nbFailedSendResult" is the number of failure to send the result of processing
+\item "nbFailedSendResultSize" is the number of failure to send the size of the result of processing
+\item "nbFailedReceptAck" is the number of failure to receive the acknowledgement from the Squad
+\item "nbTaskComplete" is the number of successfully processed task
+\item "timeToProcessMs" is the average of the total time in millisecond used to process the last \begin{ttfamily}SQUID\_RANGEAVGSTAT\end{ttfamily} tasks
+\item "timeWaitedTaskMs" is the average of the time in millisecond between two successive task processing over the last \begin{ttfamily}SQUID\_RANGEAVGSTAT\end{ttfamily} tasks
+\item "timeWaitedAckMs" is the average of the time in millisecond waiting for acknowledgement from the Squad during the last \begin{ttfamily}SQUID\_RANGEAVGSTAT\end{ttfamily} tasks
+\item "timeTransferSquidSquadMs" is the average of the time per byte in millisecond to transfer data from the Squid to the Squad during the last \begin{ttfamily}SQUID\_RANGEAVGSTAT\end{ttfamily} tasks
+\end{itemize}
 
 \section{Setup of the cluster}
 
@@ -192,6 +265,29 @@ If you wish to use the PovRay task to render computer graphics using TheSquid, y
 \item sudo make install
 \item make check
 \end{enumerate}
+
+\subsection{Batch file}
+
+Below are a few batch files useful to operate TheSquid. They should be modified to match the user environment and are given as examples only.
+
+\subsubsection{startSquidlets.bat}
+
+\begin{ttfamily}
+for i in 1 2 3; do 
+ssh pi@1.1.1.\$i "cd /home/pi/GitHub/TheSquid; 
+(./squidlet -ip 1.1.1.\$i -port 9000 & 
+./squidlet -ip 1.1.1.\$i -port 9001); exit"; 
+done
+\end{ttfamily}
+
+\subsubsection{updateSquidlets.bat}
+
+\begin{ttfamily}
+for i in 1 2 3; do 
+ssh pi@1.1.1.\$i "cd GitHub/; rm -rf TheSquid; 
+git clone https://github.com/BayashiPascal/TheSquid.git; 
+cd TheSquid; make; exit"; done
+\end{ttfamily}
 
 \section{Performance}
 
