@@ -15,10 +15,10 @@
 \contentsline {subsection}{\numberline {4.1}PC}{12}
 \contentsline {subsection}{\numberline {4.2}Raspberry Pi 3B+}{13}
 \contentsline {section}{\numberline {5}Interface}{14}
-\contentsline {section}{\numberline {6}Code}{26}
-\contentsline {subsection}{\numberline {6.1}thesquid.c}{26}
-\contentsline {subsection}{\numberline {6.2}squidlet.c}{99}
-\contentsline {subsection}{\numberline {6.3}squad.c}{102}
-\contentsline {section}{\numberline {7}Makefile}{107}
-\contentsline {section}{\numberline {8}Unit tests}{108}
-\contentsline {section}{\numberline {9}Unit tests output}{115}
+\contentsline {section}{\numberline {6}Code}{27}
+\contentsline {subsection}{\numberline {6.1}thesquid.c}{27}
+\contentsline {subsection}{\numberline {6.2}squidlet.c}{105}
+\contentsline {subsection}{\numberline {6.3}squad.c}{107}
+\contentsline {section}{\numberline {7}Makefile}{112}
+\contentsline {section}{\numberline {8}Unit tests}{113}
+\contentsline {section}{\numberline {9}Unit tests output}{122}

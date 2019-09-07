@@ -24,6 +24,7 @@
 #include "pbcextension.h"
 #include "pbfilesys.h"
 #include "genbrush.h"
+#include "gdataset.h"
 
 // ================= Define ===================
 
@@ -142,7 +143,8 @@ typedef enum SquidletTaskType {
   SquidletTaskType_Dummy, 
   SquidletTaskType_Benchmark, 
   SquidletTaskType_PovRay,
-  SquidletTaskType_ResetStats} SquidletTaskType;
+  SquidletTaskType_ResetStats,
+  SquidletTaskType_EvalNeuranet} SquidletTaskType;
 
 typedef struct SquidletTaskRequest {
   // Task type
@@ -446,6 +448,21 @@ void SquadAddTask_PovRay(
    const unsigned int sizeMinFragment,
    const unsigned int sizeMaxFragment);
   
+// Add a dummy task uniquely identified by its 'id' to the list of 
+// task to execute by the squad 'that'
+// The task will have a maximum of 'maxWait' seconds to complete from 
+// the time it's accepted by the squidlet or it will be considered
+// as failed
+void SquadAddTask_EvalNeuraNet(
+         Squad* const that, 
+  const unsigned long id,
+         const time_t maxWait,
+    const char* const datasetPath,
+    const char* const neuranetPath,
+  const unsigned long neuranetId,
+          const float curBest,
+           const long cat);
+  
 // Send a request from the Squad 'that' to reset the stats of the
 // Squidlet 'squid'
 // Return true if the request was successfull, else false
@@ -564,7 +581,7 @@ extern bool Squidlet_CtrlC;
 
 typedef struct Squidlet {
   // File descriptor of the socket used by the Squidlet ot listen for
-  // conneciton
+  // connection
   short _fd;
   // Port the Squidlet is listening to
   int _port;
@@ -597,6 +614,10 @@ typedef struct Squidlet {
   struct timeval _timeLastTaskComplete;
   unsigned long _timeWaitedAckMs;
   float _timeTransferSquidSquadMs;
+  // Path of the last used GDataSet
+  char* _datasetPath;
+  // Last used GDataSet
+  GDataSetVecFloat _dataset;
 } Squidlet;
 
 // ================ Functions declaration ====================
@@ -681,6 +702,16 @@ void SquidletProcessRequest_PovRay(
 // Process a stats reset task request with the Squidlet 'that'
 void SquidletProcessRequest_StatsReset(
     Squidlet* const that);
+  
+// Process a neuranet evaluation task request with the Squidlet 'that'
+// The task request parameters are encoded in JSON and stored in the 
+// string 'buffer'
+// The result of the task are encoded in JSON format and stored in 
+// 'bufferResult' which is allocated as necessary
+void SquidletProcessRequest_EvalNeuranet(
+    Squidlet* const that,
+  const char* const buffer, 
+             char** bufferResult);
   
 // Get the PID of the Squidlet 'that'
 #if BUILDMODE != 0 

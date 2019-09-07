@@ -1,35 +1,27 @@
 UnitTestSquad OK
 UnitTestLoadTasks OK
-Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:48:45 2019
-UnitTestSquad OK
-UnitTestLoadTasks OK
-Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:48:45 2019
+Squidlet :  !!! Interrupted by Ctrl-C !!! Sat Sep  7 14:54:34 2019
 UnitTestSquad OK
 UnitTestLoadTasks OK
 UnitTestDummy(127.0.1.1:9000)
 	Request for dummy task succeeded.
 	{"temperature":"0.00","success":"1","v":"0","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"0","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
 
-	delay to send: 1ms, delay to process: 38ms
+	delay to send: 0ms, delay to process: 36ms
 UnitTestDummy(127.0.1.1:9001)
 	Request for dummy task succeeded.
 	{"temperature":"0.00","success":"1","v":"0","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"0","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
 
 	delay to send: 0ms, delay to process: 39ms
 UnitTestSquadCheckSquidlets OK
-1856 bayashi-X101CH 127.0.1.1:9000
+18188 bayashi-Aspire-X1935 127.0.1.1:9000
 squidlet temperature: 0.000000
 UnitTestSquidlet OK
-Squidlet #1 : 1862 bayashi-X101CH 127.0.1.1:9001
-Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:49:01 2019
-1856 bayashi-X101CH 127.0.1.1:9000
-squidlet temperature: 0.000000
-UnitTestSquidlet OK
-Squidlet #0 : 1861 bayashi-X101CH 127.0.1.1:9000
-Squidlet :  !!! Interrupted by Ctrl-C !!! Mon Aug 19 18:49:01 2019
+Squidlet #1 : 18194 bayashi-Aspire-X1935 127.0.1.1:9001
+Squidlet :  !!! Interrupted by Ctrl-C !!! Sat Sep  7 14:54:52 2019
 Squidlet #0 ended
 Squidlet #1 ended
-1856 bayashi-X101CH 127.0.1.1:9000
+18188 bayashi-Aspire-X1935 127.0.1.1:9000
 squidlet temperature: 0.000000
 UnitTestSquidlet OK
 squad : Dummy(#0-0) {"v":"0"} succeeded
@@ -40,4 +32,30 @@ squad : Dummy(#4-0) {"v":"4"} succeeded
 squad : Dummy(#5-0) {"v":"5"} succeeded
 Squad ended
 UnitTestDummy OK
+Squidlet #1 : 18228 bayashi-Aspire-X1935 127.0.1.1:9001
+Squidlet :  !!! Interrupted by Ctrl-C !!! Sat Sep  7 14:55:20 2019
+Squidlet #0 ended
+Squidlet #1 ended
+squad : PovRay(#1-3) {"id":"1","subid":"3","ini":"./testPov.ini","tga":"testPov-00003.tga","top":"1","left":"251", (...) succeeded
+squad : PovRay(#1-4) {"id":"1","subid":"4","ini":"./testPov.ini","tga":"testPov-00004.tga","top":"251","left":"251 (...) succeeded
+squad : PovRay(#1-5) {"id":"1","subid":"5","ini":"./testPov.ini","tga":"testPov-00005.tga","top":"501","left":"251 (...) succeeded
+squad : PovRay(#1-0) {"id":"1","subid":"0","ini":"./testPov.ini","tga":"testPov-00000.tga","top":"1","left":"1","b (...) succeeded
+squad : PovRay(#1-1) {"id":"1","subid":"1","ini":"./testPov.ini","tga":"testPov-00001.tga","top":"251","left":"1", (...) succeeded
+squad : PovRay(#1-2) {"id":"1","subid":"2","ini":"./testPov.ini","tga":"testPov-00002.tga","top":"501","left":"1", (...) succeeded
+Squidlet #0 : 18353 bayashi-Aspire-X1935 127.0.1.1:9000
+Squidlet :  !!! Interrupted by Ctrl-C !!! Sat Sep  7 14:55:32 2019
+Squidlet #1 ended
+Squidlet #0 ended
+squad : PovRay(#1-3) {"id":"1","subid":"3","ini":"./testPov.ini","tga":"testPov-00003.tga","top":"1","left":"251", (...) succeeded
+squad : PovRay(#1-4) {"id":"1","subid":"4","ini":"./testPov.ini","tga":"testPov-00004.tga","top":"251","left":"251 (...) succeeded
+squad : PovRay(#1-5) {"id":"1","subid":"5","ini":"./testPov.ini","tga":"testPov-00005.tga","top":"501","left":"251 (...) succeeded
+squad : PovRay(#1-0) {"id":"1","subid":"0","ini":"./testPov.ini","tga":"testPov-00000.tga","top":"1","left":"1","b (...) succeeded
+squad : PovRay(#1-1) {"id":"1","subid":"1","ini":"./testPov.ini","tga":"testPov-00001.tga","top":"251","left":"1", (...) succeeded
+squad : PovRay(#1-2) {"id":"1","subid":"2","ini":"./testPov.ini","tga":"testPov-00002.tga","top":"501","left":"1", (...) succeeded
+squad : EvalNeuranet(#0-0) {"id":"0","subid":"0","dataset":"./dataset.json","neuranet":"./nn.json","nnid":"0","best":"-1 (...) succeeded
+squad : EvalNeuranet(#1-0) {"id":"1","subid":"0","dataset":"./dataset.json","neuranet":"./nn.json","nnid":"1","best":"-1 (...) succeeded
+squad : EvalNeuranet(#2-0) {"id":"2","subid":"0","dataset":"./dataset.json","neuranet":"./nn.json","nnid":"2","best":"-1 (...) succeeded
+squad : EvalNeuranet(#3-0) {"id":"3","subid":"0","dataset":"./dataset.json","neuranet":"./nn.json","nnid":"3","best":"-1 (...) succeeded
+Squad ended
+UnitTestEvalNeuranet OK
 UnitTestAll OK
