@@ -4575,7 +4575,7 @@ void SquidletProcessRequest_EvalNeuranet(
           sprintf(successStr, "%d", success);
           JSONAddProp(jsonResult, "success", successStr);
           JSONAddProp(jsonResult, "nnid", JSONLblVal(propId));
-          char valueStr[10] = {'\0'};
+          char valueStr[100] = {'\0'};
           sprintf(valueStr, "%f", value);
           JSONAddProp(jsonResult, "v", valueStr);
 
