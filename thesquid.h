@@ -458,8 +458,8 @@ void SquadAddTask_EvalNeuraNet(
   const unsigned long id,
          const time_t maxWait,
     const char* const datasetPath,
-    const char* const neuranetPath,
-  const unsigned long neuranetId,
+    const char* const workingDirPath,
+ const VecLong* const nnids,
           const float curBest,
            const long cat);
   

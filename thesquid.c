@@ -710,22 +710,23 @@ bool SquadLoadTasks(
           return false;
         }
         char* dataset = JSONLblVal(prop);
-        prop = JSONProperty(propTask, "neuranet");
+        prop = JSONProperty(propTask, "workingDir");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
-          sprintf(TheSquidErr->_msg, "neuranet not found");
+          sprintf(TheSquidErr->_msg, "workingDir not found");
           JSONFree(&json);
           return false;
         }
-        char* neuranet = JSONLblVal(prop);
-        prop = JSONProperty(propTask, "nnid");
+        char* workingDir = JSONLblVal(prop);
+        prop = JSONProperty(propTask, "nnids");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
-          sprintf(TheSquidErr->_msg, "nnid not found");
+          sprintf(TheSquidErr->_msg, "nnids not found");
           JSONFree(&json);
           return false;
         }
-        unsigned long nnid = atol(JSONLblVal(prop));
+        VecLong* nnids = NULL;
+        VecDecodeAsJSON(&nnids, prop);
         prop = JSONProperty(propTask, "best");
         if (prop == NULL) {
           TheSquidErr->_type = PBErrTypeInvalidData;
@@ -745,7 +746,11 @@ bool SquadLoadTasks(
         
         // Add the task
         SquadAddTask_EvalNeuraNet(that, id, maxWait,
-          dataset, neuranet, nnid, bestVal, cat);
+          dataset, workingDir, nnids, bestVal, cat);
+        
+        // Free memory
+        VecFree(&nnids);
+        
         break;
       
       // Invalid task type
@@ -1395,8 +1400,8 @@ void SquadAddTask_EvalNeuraNet(
   const unsigned long id,
          const time_t maxWait,
     const char* const datasetPath,
-    const char* const neuranetPath,
-  const unsigned long neuranetId,
+    const char* const workingDirPath,
+ const VecLong* const nnids,
           const float curBest,
            const long cat) {
 #if BUILDMODE == 0
@@ -1408,13 +1413,17 @@ void SquadAddTask_EvalNeuraNet(
 #endif
   // Prepare the data as JSON
   unsigned long subid = 0;
+  char nnidsStr[THESQUID_MAXPAYLOADSIZE];
+  JSONNode* json = VecEncodeAsJSON(nnids);
+  JSONSaveToStr(json, nnidsStr, THESQUID_MAXPAYLOADSIZE, true);
   char buffer[THESQUID_MAXPAYLOADSIZE];
+  JSONFree(&json);
   memset(buffer, 0, THESQUID_MAXPAYLOADSIZE);
   sprintf(buffer, 
     "{\"id\":\"%lu\",\"subid\":\"%lu\",\"dataset\":\"%s\","
-    "\"neuranet\":\"%s\",\"nnid\":\"%lu\",\"best\":\"%f\","
+    "\"workingDir\":\"%s\",\"nnids\":%s,\"best\":\"%f\","
     "\"cat\":\"%ld\"}", 
-    id, subid, datasetPath, neuranetPath, neuranetId, curBest, cat);
+    id, subid, datasetPath, workingDirPath, nnidsStr, curBest, cat);
 
   // Create the new task
   SquidletTaskRequest* task = SquidletTaskRequestCreate(
@@ -4445,9 +4454,6 @@ void SquidletProcessRequest_EvalNeuranet(
   // Declare a variable to memorize if the process has been successful
   bool success = false;
 
-  // Declare a variable to memorize the value of the Neuranet
-  float value = 0.0; 
-
   // Allocate memory for the result
   *bufferResult = PBErrMalloc(TheSquidErr, THESQUID_MAXPAYLOADSIZE);
   memset(*bufferResult, 0, THESQUID_MAXPAYLOADSIZE);
@@ -4474,11 +4480,13 @@ void SquidletProcessRequest_EvalNeuranet(
     // Get the dataset path
     JSONNode* propDataset = JSONProperty(json, "dataset");
     
-    // Get the neuranet path
-    JSONNode* propNeuranet = JSONProperty(json, "neuranet");
+    // Get the working dir path
+    JSONNode* propWorkingDir = JSONProperty(json, "workingDir");
     
-    // Get the entity id
-    JSONNode* propId = JSONProperty(json, "nnid");
+    // Get the entity ids
+    JSONNode* propIds = JSONProperty(json, "nnids");
+    VecLong* nnids = NULL;
+    VecDecodeAsJSON(&nnids, propIds);
     
     // Get the best value
     JSONNode* propBest = JSONProperty(json, "best");
@@ -4488,12 +4496,12 @@ void SquidletProcessRequest_EvalNeuranet(
     
     // If all the values are present
     if (propDataset != NULL && 
-      propNeuranet != NULL && 
-      propId != NULL && 
+      propWorkingDir != NULL && 
+      propIds != NULL && 
       propBest != NULL &&
       propCat != NULL) {
       
-      // Convert the cat and best value from string
+      // Convert the ids, cat and best value from string
       long cat = atol(JSONLblVal(propCat));
       float bestVal = atof(JSONLblVal(propBest));
 
@@ -4518,42 +4526,68 @@ void SquidletProcessRequest_EvalNeuranet(
       // If we could load the dataset
       if (GDSGetSizeCat(&(that->_dataset), cat) > 0) {
 
-        // Load the Neuranet
-        NeuraNet* nn = NULL;
-        FILE* fpnn = fopen(JSONLblVal(propNeuranet), "r");
-        if (fpnn != NULL && NNLoad(&nn, fpnn)) {
-          
-          // Close the file pointer to the Neuranet definition
-          // file
-          fclose(fpnn);
-      
-          // Create the inputs and outputs vector from the
-          // dimension of the NeuraNet
-          // The sample values must be ordered as follow
-          // <i0, i1, ..., in, o0, o1, ..., om>
-          VecShort* inputs = VecShortCreate(NNGetNbInput(nn));
-          for (unsigned int i = VecGetDim(inputs); i--;)
-            VecSet(inputs, i, i);
-          VecShort* outputs = VecShortCreate(NNGetNbOutput(nn));
-          for (unsigned int i = VecGetDim(outputs); i--;)
-            VecSet(outputs, i, VecGetDim(inputs) + i);
+        // Declare a variable to memorize the values
+        VecFloat* values = VecFloatCreate(VecGetDim(nnids));
+        
+        // Set the flag for successfull process by default
+        success = true;
 
-          // Run the evaluation of the neuranet on the dataset
-          value = GDSEvaluateNN(
-            &(that->_dataset), 
-            nn,
-            cat,
-            inputs,
-            outputs,
-            bestVal);
+        // Loop on the NeuraNet to evaluate
+        for (int iNN = 0; iNN < VecGetDim(nnids); ++iNN) {
 
-          // Free memory
-          VecFree(&inputs);
-          VecFree(&outputs);
-          NeuraNetFree(&nn);
+          // Load the Neuranet
+          NeuraNet* nn = NULL;
+          char nnFilename[100];
+          sprintf(nnFilename, "nn%ld.json", VecGet(nnids, iNN));
+          char* pathNN = PBFSJoinPath(
+            JSONLblVal(propWorkingDir), 
+            nnFilename);
+          FILE* fpnn = fopen(pathNN, "r");
+          free(pathNN);
+          if (fpnn != NULL && NNLoad(&nn, fpnn)) {
+            
+            // Close the file pointer to the Neuranet definition
+            // file
+            fclose(fpnn);
+        
+            // Create the inputs and outputs vector from the
+            // dimension of the NeuraNet
+            // The sample values must be ordered as follow
+            // <i0, i1, ..., in, o0, o1, ..., om>
+            VecShort* inputs = VecShortCreate(NNGetNbInput(nn));
+            for (unsigned int i = VecGetDim(inputs); i--;)
+              VecSet(inputs, i, i);
+            VecShort* outputs = VecShortCreate(NNGetNbOutput(nn));
+            for (unsigned int i = VecGetDim(outputs); i--;)
+              VecSet(outputs, i, VecGetDim(inputs) + i);
 
-          // Set the flag for successfull process
-          success = true;
+            // Run the evaluation of the neuranet on the dataset
+            VecSet(
+              values, 
+              iNN, 
+              GDSEvaluateNN(
+                &(that->_dataset), 
+                nn,
+                cat,
+                inputs,
+                outputs,
+                bestVal));
+
+            // Free memory
+            VecFree(&inputs);
+            VecFree(&outputs);
+            NeuraNetFree(&nn);
+
+          // Else, we couldn't load the Neuranet
+          } else {
+
+            // Set the successfull flag to false
+            success = false;
+
+          }
+        }
+        
+        if (success == true) {
 
           // Update the time used to process the task
           struct timeval now;
@@ -4574,10 +4608,10 @@ void SquidletProcessRequest_EvalNeuranet(
           char successStr[2] = {'\0'};
           sprintf(successStr, "%d", success);
           JSONAddProp(jsonResult, "success", successStr);
-          JSONAddProp(jsonResult, "nnid", JSONLblVal(propId));
-          char valueStr[100] = {'\0'};
-          sprintf(valueStr, "%f", value);
-          JSONAddProp(jsonResult, "v", valueStr);
+          JSONAddProp(jsonResult, "nnids", propIds);
+
+          JSONNode* jsonValues = VecEncodeAsJSON(values);
+          JSONAddProp(jsonResult, "v", jsonValues);
 
           // Append the statistics data
           SquidletAddStatsToJSON(that, jsonResult);
@@ -4600,6 +4634,9 @@ void SquidletProcessRequest_EvalNeuranet(
             "\"err\":\"Invalid neuranet\"}");
         }
 
+        // Free memory
+        VecFree(&values);
+
       // Else, the dataset could not be loaded or was empty
       } else {
         
@@ -4607,7 +4644,7 @@ void SquidletProcessRequest_EvalNeuranet(
           "{\"success\":\"0\",\"temperature\":\"0.0\","
           "\"err\":\"Invalid dataset\"}");
       }
-
+      
     // else the value is not present
     } else {
 
@@ -4615,6 +4652,9 @@ void SquidletProcessRequest_EvalNeuranet(
         "{\"success\":\"0\",\"temperature\":\"0.0\","
         "\"err\":\"Invalid input\"}");
     }
+
+    // Free memory
+    VecFree(&nnids);
 
   // Else, we couldn't decode the input
   } else {

@@ -480,10 +480,14 @@ void UnitTestEvalNeuranet() {
     time_t maxWait = 60;
     float best = -1000.0;
     int cat = 0;
+    VecLong* ids = VecLongCreate(2);
     for (int id = 0; id < nbSquidlet * 2; ++id) {
+      VecSet(ids, 0, id * 2);
+      VecSet(ids, 1, id * 2 + 1);
       SquadAddTask_EvalNeuraNet(squad, id, maxWait,
-        "./dataset.json", "./nn.json", id, best, cat);
+        "./dataset.json", "./", ids, best, cat);
     }
+    VecFree(&ids);
 
     // Loop until all the tasks are completed or give up after 60s
     time_t startTime = time(NULL);

@@ -1,30 +1,31 @@
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 5
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 115
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"id":"1","subid":"0","dataset":"./dataset.json ..
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : process neuranet evaluation task {"id":"1","subid":"0","dataset":"./dataset.json","neuranet":"./nn.json","nnid":"1","best":"-1000.000000","cat":"0"}
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","nnid":"1","v":"-1.672186","nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"96","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 5
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 138
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"id":"1","subid":"0","dataset":"./dataset.json ..
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : process neuranet evaluation task {"id":"1","subid":"0","dataset":"./dataset.json","workingDir":"./","nnids":{"_dim":"2","_val":["2","3"]}
+,"best":"-1000.000000","cat":"0"}
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","nnids":{"_dim":"2","_val":["2","3"]},"v":{"_dim":"2","_val":["-1.672186","-1.672186"]},"nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"114","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
 
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 5
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 115
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"id":"3","subid":"0","dataset":"./dataset.json ..
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : process neuranet evaluation task {"id":"3","subid":"0","dataset":"./dataset.json","neuranet":"./nn.json","nnid":"3","best":"-1000.000000","cat":"0"}
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"temperature":"0.00","success":"1","nnid":"3","v":"-0.616352","nbAcceptedConnection":"2","nbAcceptedTask":"2","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"1","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"2","timeToProcessMs":"0","timeWaitedTaskMs":"8","timeWaitedAckMs":"1877","timeTransferSquidSquadMs":"0.000"}
-
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
-18354 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : accepted connection
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received task type 5
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : sent reply to task request 1
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : process task
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received size task data 138
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received task data {"id":"3","subid":"0","dataset":"./dataset.json ..
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : process neuranet evaluation task {"id":"3","subid":"0","dataset":"./dataset.json","workingDir":"./","nnids":{"_dim":"2","_val":["6","7"]}
+,"best":"-1000.000000","cat":"0"}
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result size
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : sent result {"success":"0","temperature":"0.0","err":"Invalid neuranet"}
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : wait for acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : received acknowledgement from squad
+5813 bayashi-Aspire-X1935 127.0.1.1:9001 : ready for next task

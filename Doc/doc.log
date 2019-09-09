@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.18)  8 SEP 2019 22:23
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.18)  9 SEP 2019 23:19
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -840,11 +840,11 @@ File: /home/bayashi/GitHub/TheSquid/thesquid.c  (verbatim)
 [59] [60] [61] [62] [63] [64] [65] [66] [67] [68] [69] [70] [71] [72] [73]
 [74] [75] [76] [77] [78] [79] [80] [81] [82] [83] [84] [85] [86] [87] [88]
 [89] [90] [91] [92] [93] [94] [95] [96] [97] [98] [99] [100] [101] [102]
-[103]
+[103] [104]
 File: /home/bayashi/GitHub/TheSquid/squidlet.c  (verbatim)
- [104] [105] [106]
+ [105] [106] [107]
 File: /home/bayashi/GitHub/TheSquid/squad.c  (verbatim)
- [107] [108] [109] [110] [111]
+ [108] [109] [110] [111] [112]
 File: /home/bayashi/GitHub/TheSquid/Makefile  (verbatim)
 
 Overfull \hbox (787.2669pt too wide) in paragraph at lines 362--362
@@ -854,7 +854,7 @@ s@ROOT_DIR=.*@ROOT_DIR='"`pwd | gawk -F/ 'NF{NF-=1};1' | sed -e 's@ @/@g'`"'@'
 PBMake-master/Makefile.inc; mv PBMake-master ../PBMake; fi[] 
  []
 
-[112]
+
 Overfull \hbox (196.50842pt too wide) in paragraph at lines 362--362
 []\OT1/cmtt/m/n/8 $(COMPILER) `echo "$($(repo)_EXE_DEP) $($(repo)_EXENAME).o" |
  tr ' ' '\n' | sort -u` $(LINK_ARG) $($(repo)_LINK_ARG) -o $($(repo)_EXENAME)[]
@@ -880,7 +880,7 @@ Overfull \hbox (111.5072pt too wide) in paragraph at lines 362--362
 n' | sort -u` $(LINK_ARG) $($(repo)_LINK_ARG) -o squidlet[] 
  []
 
-
+[113]
 Overfull \hbox (145.50769pt too wide) in paragraph at lines 362--362
 []\OT1/cmtt/m/n/8 $(COMPILER) $(BUILD_ARG) $($(repo)_BUILD_ARG) `echo "$($(repo
 )_INC_DIR)" | tr ' ' '\n' | sort -u` -c $($(repo)_DIR)/squidlet.c[] 
@@ -899,7 +899,7 @@ Overfull \hbox (132.7575pt too wide) in paragraph at lines 362--362
  []
 
 File: /home/bayashi/GitHub/TheSquid/main.c  (verbatim)
-[113] [114] [115] [116] [117] [118] [119] [120] [121]
+[114] [115] [116] [117] [118] [119] [120] [121] [122]
 File: /home/bayashi/GitHub/TheSquid/unitTestRef.txt  (verbatim)
 
 Overfull \hbox (1267.5238pt too wide) in paragraph at lines 378--378
@@ -921,7 +921,7 @@ cessMs":"0","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSqua
 dMs":"0.000"}[] 
  []
 
-[122]
+[123]
 Overfull \hbox (162.50793pt too wide) in paragraph at lines 378--378
 []\OT1/cmtt/m/n/8 squad : PovRay(#1-3) {"id":"1","subid":"3","ini":"./testPov.i
 ni","tga":"testPov-00003.tga","top":"1","left":"251", (...) succeeded[] 
@@ -996,28 +996,28 @@ ni","tga":"testPov-00002.tga","top":"501","left":"1", (...) succeeded[]
 
 Overfull \hbox (188.0083pt too wide) in paragraph at lines 378--378
 []\OT1/cmtt/m/n/8 squad : EvalNeuranet(#0-0) {"id":"0","subid":"0","dataset":".
-/dataset.json","neuranet":"./nn.json","nnid":"0","best":"-1 (...) succeeded[] 
+/dataset.json","workingDir":"./","nnids":{"_dim":"2","_val" (...) succeeded[] 
  []
 
 
 Overfull \hbox (188.0083pt too wide) in paragraph at lines 378--378
 []\OT1/cmtt/m/n/8 squad : EvalNeuranet(#1-0) {"id":"1","subid":"0","dataset":".
-/dataset.json","neuranet":"./nn.json","nnid":"1","best":"-1 (...) succeeded[] 
+/dataset.json","workingDir":"./","nnids":{"_dim":"2","_val" (...) succeeded[] 
  []
 
 
 Overfull \hbox (188.0083pt too wide) in paragraph at lines 378--378
 []\OT1/cmtt/m/n/8 squad : EvalNeuranet(#2-0) {"id":"2","subid":"0","dataset":".
-/dataset.json","neuranet":"./nn.json","nnid":"2","best":"-1 (...) succeeded[] 
+/dataset.json","workingDir":"./","nnids":{"_dim":"2","_val" (...) failed !![] 
  []
 
 
 Overfull \hbox (188.0083pt too wide) in paragraph at lines 378--378
 []\OT1/cmtt/m/n/8 squad : EvalNeuranet(#3-0) {"id":"3","subid":"0","dataset":".
-/dataset.json","neuranet":"./nn.json","nnid":"3","best":"-1 (...) succeeded[] 
+/dataset.json","workingDir":"./","nnids":{"_dim":"2","_val" (...) failed !![] 
  []
 
-) [123] (./doc.aux)
+) [124] (./doc.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
@@ -1039,9 +1039,9 @@ f-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist
 /type1/public/amsfonts/cm/cmtt8.pfb>
 
 pdfTeX warning: pdflatex: no GlyphToUnicode entry has been inserted yet!
-Output written on doc.pdf (123 pages, 368105 bytes).
+Output written on doc.pdf (124 pages, 369312 bytes).
 PDF statistics:
- 433 PDF objects out of 1000 (max. 8388607)
+ 436 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  28 words of extra memory for PDF output out of 10000 (max. 10000000)
 

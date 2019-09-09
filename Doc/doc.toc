@@ -18,7 +18,7 @@
 \contentsline {section}{\numberline {6}Code}{27}
 \contentsline {subsection}{\numberline {6.1}thesquid.c}{27}
 \contentsline {subsection}{\numberline {6.2}squidlet.c}{105}
-\contentsline {subsection}{\numberline {6.3}squad.c}{107}
-\contentsline {section}{\numberline {7}Makefile}{112}
-\contentsline {section}{\numberline {8}Unit tests}{113}
-\contentsline {section}{\numberline {9}Unit tests output}{122}
+\contentsline {subsection}{\numberline {6.3}squad.c}{108}
+\contentsline {section}{\numberline {7}Makefile}{113}
+\contentsline {section}{\numberline {8}Unit tests}{114}
+\contentsline {section}{\numberline {9}Unit tests output}{123}
