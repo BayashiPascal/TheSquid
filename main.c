@@ -481,9 +481,9 @@ void UnitTestEvalNeuranet() {
     float best = -1000.0;
     int cat = 0;
     VecLong* ids = VecLongCreate(2);
-    for (int id = 0; id < nbSquidlet * 2; ++id) {
-      VecSet(ids, 0, id * 2);
-      VecSet(ids, 1, id * 2 + 1);
+    for (int id = 0; id < nbSquidlet * 2; id += 2) {
+      VecSet(ids, 0, id);
+      VecSet(ids, 1, id + 1);
       SquadAddTask_EvalNeuraNet(squad, id, maxWait,
         "./dataset.json", "./", ids, best, cat);
     }
@@ -541,7 +541,8 @@ void UnitTestAll() {
 }
 
 int main() {
-  UnitTestAll();
+  //UnitTestAll();
+  UnitTestEvalNeuranet();
   // Return success code
   return 0;
 }

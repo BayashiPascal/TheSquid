@@ -4562,16 +4562,17 @@ void SquidletProcessRequest_EvalNeuranet(
               VecSet(outputs, i, VecGetDim(inputs) + i);
 
             // Run the evaluation of the neuranet on the dataset
+            float eval = GDSEvaluateNN(
+              &(that->_dataset), 
+              nn,
+              cat,
+              inputs,
+              outputs,
+              bestVal);
             VecSet(
               values, 
               iNN, 
-              GDSEvaluateNN(
-                &(that->_dataset), 
-                nn,
-                cat,
-                inputs,
-                outputs,
-                bestVal));
+              eval);
 
             // Free memory
             VecFree(&inputs);

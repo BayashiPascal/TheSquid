@@ -1,31 +1,16 @@
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 5
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 138
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"id":"0","subid":"0","dataset":"./dataset.json ..
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : process neuranet evaluation task {"id":"0","subid":"0","dataset":"./dataset.json","workingDir":"./","nnids":{"_dim":"2","_val":["0","1"]}
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 5
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 138
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"id":"0","subid":"0","dataset":"./dataset.json ..
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : process neuranet evaluation task {"id":"0","subid":"0","dataset":"./dataset.json","workingDir":"./","nnids":{"_dim":"2","_val":["0","1"]}
 ,"best":"-1000.000000","cat":"0"}
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"temperature":"0.00","success":"1","nnids":{"_dim":"2","_val":["0","1"]},"v":{"_dim":"2","_val":["-1.672186","-1.672186"]},"nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"113","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"temperature":"0.00","success":"1","nnids":{"_dim":"2","_val":["0","1"]},"v":{"_dim":"2","_val":["-1.672186","-1.672186"]},"nbAcceptedConnection":"1","nbAcceptedTask":"1","nbRefusedTask":"0","nbFailedReceptTaskSize":"0","nbFailedReceptTaskData":"0","nbSentResult":"0","nbFailedSendResult":"0","nbFailedSendResultSize":"0","nbFailedReceptAck":"0","nbTaskComplete":"1","timeToProcessMs":"106","timeWaitedTaskMs":"0","timeWaitedAckMs":"0","timeTransferSquidSquadMs":"0.000"}
 
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : accepted connection
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received task type 5
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : sent reply to task request 1
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : process task
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received size task data 138
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received task data {"id":"2","subid":"0","dataset":"./dataset.json ..
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : process neuranet evaluation task {"id":"2","subid":"0","dataset":"./dataset.json","workingDir":"./","nnids":{"_dim":"2","_val":["4","5"]}
-,"best":"-1000.000000","cat":"0"}
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result size
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : sent result {"success":"0","temperature":"0.0","err":"Invalid neuranet"}
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
-5812 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : wait for acknowledgement from squad
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : received acknowledgement from squad
+3819 bayashi-Aspire-X1935 127.0.1.1:9000 : ready for next task
