@@ -53,7 +53,7 @@ void SquidletSendResultData(
 SquidletInfo* SquidletInfoCreate(
   const char* const name, 
   const char* const ip, 
-    const int const port) {
+          const int port) {
 #if BUILDMODE == 0
   if (name == NULL) {
     TheSquidErr->_type = PBErrTypeNullPointer;
@@ -2931,7 +2931,7 @@ void SquadBenchmark(
         float nbTaskExpected = lengthTest / deltams * (float)nbComplete;
         
         // Print results
-        fprintf(stream, "%04d\t%08u\t%lu*%f/%f\t%.6f\n", 
+        fprintf(stream, "%04d\t%08lu\t%lu*%f/%f\t%.6f\n", 
           nbLoop, sizePayload, nbComplete, lengthTest, deltams, nbTaskExpected);
         fflush(stdout);
       }
@@ -3120,7 +3120,7 @@ void SquadBenchmark(
         float nbTaskExpected = lengthTest / deltams * nbTaskComplete;
 
         // Display the results
-        fprintf(stream, "%04d\t%08u\t%f*%f/%f\t%.6f\n", 
+        fprintf(stream, "%04d\t%08lu\t%f*%f/%f\t%.6f\n", 
           nbLoop, sizePayload, nbTaskComplete, lengthTest,
           deltams, nbTaskExpected);
         fflush(stream);
@@ -3677,7 +3677,7 @@ void SquidletProcessRequest(
       if (SquidletStreamInfo(that)) {
         SquidletPrint(that, SquidletStreamInfo(that));
         fprintf(SquidletStreamInfo(that), 
-          " : received size task data %d\n", sizeInputData);
+          " : received size task data %ld\n", sizeInputData);
       }
 
       // Allocate memory for the input data

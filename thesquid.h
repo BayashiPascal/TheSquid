@@ -99,7 +99,7 @@ typedef struct SquidletInfo {
 SquidletInfo* SquidletInfoCreate(
   const char* const name, 
   const char* const ip, 
-    const int const port);
+          const int port);
 
 // Free the memory used by the SquidletInfo 'that'
 void SquidletInfoFree(
