@@ -6,7 +6,7 @@
 
 // Return the stats of the SquidletInfo 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const SquidletInfoStats* SquidletInfoStatistics(
   const SquidletInfo* const that) {
@@ -28,7 +28,7 @@ const SquidletInfoStats* SquidletInfoStatistics(
 // The task is considered to have succeeded if its result buffer 
 // contains "success":"1"
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 bool SquidletTaskHasSucceeded(
   const SquidletTaskRequest* const that) {
@@ -45,7 +45,7 @@ bool SquidletTaskHasSucceeded(
 
 // Return the type of the task 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 SquidletTaskType SquidletTaskGetType(
   const SquidletTaskRequest* const that) {
@@ -61,7 +61,7 @@ SquidletTaskType SquidletTaskGetType(
 
 // Return the id of the task 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 unsigned long SquidletTaskGetId(
   const SquidletTaskRequest* const that) {
@@ -77,7 +77,7 @@ unsigned long SquidletTaskGetId(
 
 // Return the subid of the task 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 unsigned long SquidletTaskGetSubId(
   const SquidletTaskRequest* const that) {
@@ -93,7 +93,7 @@ unsigned long SquidletTaskGetSubId(
 
 // Return the data of the task 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const char* SquidletTaskData(
   const SquidletTaskRequest* const that) {
@@ -109,7 +109,7 @@ const char* SquidletTaskData(
 
 // Return the buffer result of the task 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const char* SquidletTaskBufferResult(
   const SquidletTaskRequest* const that) {
@@ -125,7 +125,7 @@ const char* SquidletTaskBufferResult(
 
 // Return the max wait time of the task 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 time_t SquidletTaskGetMaxWaitTime(
   const SquidletTaskRequest* const that) {
@@ -145,7 +145,7 @@ time_t SquidletTaskGetMaxWaitTime(
 
 // Get the set of squidlets of the Squad 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const GSetSquidletInfo* SquadSquidlets(
   const Squad* const that) {
@@ -161,7 +161,7 @@ const GSetSquidletInfo* SquadSquidlets(
 
 // Get the set of task to execute of the Squad 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const GSetSquidletTaskRequest* SquadTasks(
   const Squad* const that) {
@@ -177,7 +177,7 @@ const GSetSquidletTaskRequest* SquadTasks(
 
 // Get the set of running tasks of the Squad 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const GSetSquadRunningTask* SquadRunningTasks(
   const Squad* const that) {
@@ -193,7 +193,7 @@ const GSetSquadRunningTask* SquadRunningTasks(
 
 // Return the number of tasks not yet completed
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 unsigned long SquadGetNbTaskToComplete(
   const Squad* const that) {
@@ -210,7 +210,7 @@ unsigned long SquadGetNbTaskToComplete(
 
 // Return the number of running tasks
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 unsigned long SquadGetNbRunningTasks(
   const Squad* const that) {
@@ -226,7 +226,7 @@ unsigned long SquadGetNbRunningTasks(
 
 // Return the number of tasks to execute
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 unsigned long SquadGetNbRemainingTasks(
   const Squad* const that) {
@@ -243,7 +243,7 @@ unsigned long SquadGetNbRemainingTasks(
 // Return the number of currently available squidlets (squidlets not 
 // executing a task for 'that')
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 unsigned long SquadGetNbSquidlets(
   const Squad* const that) {
@@ -259,7 +259,7 @@ unsigned long SquadGetNbSquidlets(
 
 // Return the flag for the TextOMeter of the Squad 'that'
 #if BUILDMODE != 0
-inline
+static inline
 #endif
 bool SquadGetFlagTextOMeter(
   const Squad* const that) {
@@ -280,7 +280,7 @@ bool SquadGetFlagTextOMeter(
 
 // Get the PID of the Squidlet 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 pid_t SquidletGetPID(
   const Squidlet* const that) {
@@ -296,7 +296,7 @@ pid_t SquidletGetPID(
 
 // Get the hostname of the Squidlet 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const char* SquidletHostname(
   const Squidlet* const that) {
@@ -312,7 +312,7 @@ const char* SquidletHostname(
 
 // Get the IP of the Squidlet 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 const char* SquidletIP(
   const Squidlet* const that) {
@@ -328,7 +328,7 @@ const char* SquidletIP(
 
 // Get the port of the Squidlet 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 int SquidletGetPort(
   const Squidlet* const that) {
@@ -344,7 +344,7 @@ int SquidletGetPort(
 
 // Get the stream to output info of the Squidlet 'that'
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 FILE* SquidletStreamInfo(
   const Squidlet* const that) {
@@ -361,7 +361,7 @@ FILE* SquidletStreamInfo(
 // Set the stream to output info of the Squidlet 'that' to 'stream'
 // 'stream' may be null to mute the Squidlet
 #if BUILDMODE != 0 
-inline 
+static inline 
 #endif 
 void SquidletSetStreamInfo(
   Squidlet* const that, 
