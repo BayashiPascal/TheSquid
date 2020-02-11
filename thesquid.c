@@ -2888,7 +2888,7 @@ void SquadBenchmark(
     fprintf(stream, "%s", header);
 
     // Loop on the payload
-    for (size_t sizePayload = 9; 
+    for (unsigned long int sizePayload = 9; 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
 
       // Create a dummy buffer with the size of the payload
