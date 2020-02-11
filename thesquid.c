@@ -2954,7 +2954,7 @@ void SquadBenchmark(
     bool flagStop = false;
 
     // Loop on payload size
-    for (size_t sizePayload = 9; !flagStop && 
+    for (unsigned long int sizePayload = 9; !flagStop && 
       sizePayload <= maxSizePayload; sizePayload *= 10) {
 
       // Loop on nbLoop
@@ -3655,7 +3655,7 @@ void SquidletProcessRequest(
   }
 
   // Declare a variable to memorize the size in byte of the input data
-  size_t sizeInputData = 0;
+  unsigned long int sizeInputData = 0;
 
   // Declare a buffer for the result data
   char* bufferResult = NULL;
